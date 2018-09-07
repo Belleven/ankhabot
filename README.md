@@ -19,7 +19,7 @@ put your API token in a file called token and just run
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/lukeovalle/dankiebot.
+Bug reports and pull requests are welcome on GitLab at https://gitlab.com/lukeovalle/dankiebot.
 
 
 ## License
