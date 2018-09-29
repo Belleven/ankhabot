@@ -18,21 +18,11 @@ reddit = Reddit::Api.new
 
 dankie = Dankie.new(bot.api, bot.logger, redis, reddit)
 
-messages = []
-Thread.new do
-	bot.listen do |message|
-		messages << message #TODO: meter esto en un mutex
-	end
-end.abort_on_exception = true
 
-
-plugins = Dir[File.dirname(__FILE__) + "/plugins/*"].map { |file| file.split("/").last.gsub(".rb", "").to_sym }
-
-while true do
-	next if messages.empty?
-	message = messages.shift
+plugins = Dir[File.dirname(__FILE__) + "/plugins/*.rb"].map { |file| file.split("/").last.gsub(".rb", "").to_sym }
+bot.listen do |message|
 	#TODO: validar blacklist acá (crearla antes)
-	next if message.edit_date
+	next if message.is_a? Telegram::Bot::Types::Message and message.edit_date
 
 	#acá ocurre la magia
 	plugins.each do |plugin|
