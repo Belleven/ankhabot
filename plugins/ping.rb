@@ -4,7 +4,7 @@ class Dankie
 	command ping: "Hace ping"
 
 	def ping(msg)
-		return unless msg.text
+		return unless msg.is_a? Telegram::Bot::Types::Message and msg.text
 
 		cmd = parse_command(msg.text)
 		return unless cmd and cmd[:command] == :ping
@@ -12,7 +12,7 @@ class Dankie
 		time1 = Time.at(msg.date)
 		@api.send_chat_action(chat_id: msg.chat.id, action: "typing")
 		enviado = @api.send_message(chat_id: msg.chat.id,
-				  text: "pong")
+					    text: "pong")
 		enviado = Telegram::Bot::Types::Message.new(enviado["result"]) #TODO: validar?
 
 		time2 = Time.new

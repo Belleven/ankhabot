@@ -1,8 +1,10 @@
+require "telegram/bot"
+
 class Dankie
        command help: "Este mensaje"
 
 	def help(msg)
-		return unless msg.text
+		return unless msg.is_a? Telegram::Bot::Types::Message and msg.text
 		
 		cmd = parse_command(msg.text)
 		return unless cmd and cmd[:command] == :help
