@@ -3,6 +3,8 @@ require "telegram/bot"
 class Dankie
 	attr_reader :api, :logger, :redis, :reddit, :user
 	@@commands = {}
+	TROESMAS = %w{mostro genio figura crack mastodonte ídolo champion referente maquina artista elemento jefe fiera maestro socio golfo valiente héroe tanque fenómeno gacela tigre bestia titán animal gigante prenda semental coloso hacha mostrenco campeón helicóptero killer ciclón pieza brontosaurio vikingo vividor crack fiera mostro animal máquina gigante artista titán caimán tiranosaurio superman prenda semental ninja figura genio tsunami león terminator goliat terremoto tigre vaquero tanque mole samurai coloso paladin willyrex lobezno velociraptor espectro vikingo godzilla caza de combate campeón adamantium robocop zeus capitán king kong depredador tornado monster truck presa canario johnny bravo mastodonte coronel héroe canallita champion jefe chulazo truhan maquinola}
+	REKT = %w{☑️ Rekt ☑️ Really Rekt ☑️ Tyrannosaurus Rekt ☑️ Cash4Rekt.com ☑️ Grapes of Rekt ☑️ Ship Rekt ☑️ Rekt markes the spot ☑️ Caught rekt handed ☑️ The Rekt Side Story ☑️ Singin' In The Rekt ☑️ Painting The Roses Rekt ☑️ Rekt Van Winkle ☑️ Parks and Rekt ☑️ Lord of the Rekts: The Reking of the King ☑️ Star Trekt ☑️ The Rekt Prince of Bel-Air ☑️ A Game of Rekt ☑️ Rektflix ☑️ Rekt it like it's hot ☑️ RektBox 360 ☑️ The Rekt-men ☑️ School Of Rekt ☑️ I am Fire\n I am Rekt ☑️ Rekt and Roll ☑️ Professor Rekt ☑️ Catcher in the Rekt ☑️ Rekt-22 ☑️ Harry Potter: The Half-Rekt Prince ☑️ Great Rektspectations ☑️ Paper Scissors Rekt ☑️ RektCraft ☑️ Grand Rekt Auto V ☑️ Call of Rekt: Modern Reking 2 ☑️ Legend Of Zelda: Ocarina of Rekt ☑️ Rekt It Ralph ☑️ Left 4 Rekt ☑️ www.rekkit.com ☑️ Pokemon: Fire Rekt ☑️ The Shawshank Rektemption ☑️ The Rektfather ☑️ The Rekt Knight ☑️ Fiddler on the Rekt ☑️ The Rekt Files ☑️ The Good\n the Bad\n and The Rekt ☑️ Forrekt Gump ☑️ The Silence of the Rekts ☑️ The Green Rekt ☑️ Gladirekt ☑️ Spirekted Away ☑️ Terminator 2: Rektment Day ☑️ The Rekt Knight Rises ☑️ The Rekt King ☑️ REKT-E ☑️ Citizen Rekt ☑️ Requiem for a Rekt ☑️ REKT TO REKT ass to ass ☑️ Star Wars: Episode VI - Return of the Rekt ☑️ Braverekt ☑️ Batrekt Begins ☑️ 2001: A Rekt Odyssey ☑️ The Wolf of Rekt Street ☑️ Rekt's Labyrinth ☑️ 12 Years a Rekt ☑️ Gravirekt ☑️ Finding Rekt ☑️ The Arekters ☑️ There Will Be Rekt ☑️ Christopher Rektellston ☑️ Hachi: A Rekt Tale ☑️ The Rekt Ultimatum ☑️ Shrekt ☑️ Rektal Exam ☑️ Rektium for a Dream ☑️ www.Trekt.tv ☑️ Erektile Dysfunction}
 
 	def initialize(api, logger, redis, reddit)
 		@api = api
@@ -14,10 +16,10 @@ class Dankie
 
 	#Analiza un texto y se fija si es un comando válido, devuelve el comando y el resto del texto
 	def parse_command(text)
-		text.downcase!
 		return unless text.start_with? "/"
 		command, params = text.split " ", 2
-		command.gsub!(/(\/|@#{@user.username})/, "")
+		command.downcase!
+		command.gsub!(/^\/([a-zñ]+)(@#{@user.username})?/, "\\1")
 
 		{ command: command.to_sym, params: params } #TODO: reemplazar esto por un objeto Command????
 	end
@@ -27,5 +29,13 @@ class Dankie
 		raise ArgumentException unless args.is_a? Hash
 
 		@@commands.merge!(args)
+	end
+
+	def troesma
+		TROESMAS.sample
+	end
+
+	def rekt
+		REKT.sample
 	end
 end
