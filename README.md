@@ -14,6 +14,7 @@ And then execute:
 ## Usage
 
 put your API token in a file called token and just run
+
     $ ruby bot.rb
 
 
