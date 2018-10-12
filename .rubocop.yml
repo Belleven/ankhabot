@@ -1,0 +1,5 @@
+Layout/IndentationWidth:
+        Width: 4
+
+Style/AsciiComments:
+        AllowedChars: [☑️ , á, é, í, ó, ú, Á, É, Í, Ó, Ú]
