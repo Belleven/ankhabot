@@ -31,4 +31,10 @@ class Dankie
 
         @@commands.merge!(args)
     end
+
+    def self.commands
+        @@commands.each do |k, v|
+            yield k, v
+        end
+    end
 end

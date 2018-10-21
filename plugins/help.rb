@@ -12,7 +12,7 @@ class Dankie
         text = "TODO: poner algún texto acá\n"
         text << "versión: `#{VERSION}`\n"
 
-        @@commands.each do |k, v|
+        self.class.commands do |k, v|
             line = "/#{k} - #{v}\n"
             text << line # Mas adelante validar que text no se pase de los 4096 caracteres pero no creo que pase
         end
