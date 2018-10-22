@@ -23,11 +23,11 @@ class Dankie
     #
     # cmd = parse_command(msg.text)
     # return unless cmd && (cmd[:command] == :recarga)
-    @@cant_balas +=1
-    if @@cant_balas > 6 then @@cant_balas = 6 end
+    @@cant_balas += 1
+    @@cant_balas = 6 if @@cant_balas > 6
 
     @@balas = Array.new(@@cant_balas, true)
-    (6 -@@cant_balas).times { @@balas.push(false)}
+    (6 - @@cant_balas).times { @@balas.push(false)}
     @@balas = @@balas.shuffle
 
     text = "Orden de las balas\n"
@@ -39,10 +39,9 @@ class Dankie
       end}
 
 
-    @api.send_chat_action(chat_id: msg.chat.id, action: 'typing')
-    @api.send_message(chat_id: msg.chat.id,
-                      reply_to_message_id: msg.reply_to_message ? msg.reply_to_message.message_id : nil,
-                      text: text)
+   send_message(chat_id: msg.chat.id,
+                reply_to_message_id: msg.reply_to_message ? msg.reply_to_message.message_id : nil,
+                text: text)
   end
 
   def dispara(msg)
@@ -70,9 +69,9 @@ class Dankie
       end
 
     end
-    @api.send_chat_action(chat_id: msg.chat.id, action: 'typing')
-    @api.send_message(chat_id: msg.chat.id,
-                      reply_to_message_id: msg.reply_to_message ? msg.reply_to_message.message_id : nil,
-                      text: text)
+    
+    send_message(chat_id: msg.chat.id,
+                 reply_to_message_id: msg.reply_to_message ? msg.reply_to_message.message_id : nil,
+                 text: text)
   end
 end

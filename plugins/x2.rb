@@ -23,8 +23,7 @@ class Dankie
             text = '""'
         end
 
-        @api.send_chat_action(chat_id: msg.chat.id, action: 'typing')
-        @api.send_message(chat_id: msg.chat.id,
-                          text: text)
+        send_message(chat_id: msg.chat.id,
+                     text: text)
     end
 end

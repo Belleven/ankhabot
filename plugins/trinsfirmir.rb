@@ -22,10 +22,9 @@ class Dankie
         text.gsub!(/[áéíóú]/, 'í')
         text.gsub!(/[ÁÉÍÓÚ]/, 'Í')
 
-        @api.send_chat_action(chat_id: msg.chat.id, action: 'typing')
-        @api.send_message(chat_id: msg.chat.id,
-                          text: text)
-        @api.send_sticker(chat_id: msg.chat.id,
-                          sticker: 'BQADAgADQQEAAksODwABJlVW31Lsf6sC')
+        send_message(chat_id: msg.chat.id,
+                     text: text)
+        send_sticker(chat_id: msg.chat.id,
+                     sticker: 'BQADAgADQQEAAksODwABJlVW31Lsf6sC')
     end
 end

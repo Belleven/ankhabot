@@ -10,9 +10,8 @@ class Dankie
         return unless cmd && (cmd[:command] == :ping)
 
         time1 = Time.at(msg.date)
-        @api.send_chat_action(chat_id: msg.chat.id, action: 'typing')
-        enviado = @api.send_message(chat_id: msg.chat.id,
-                                    text: 'pong')
+        enviado = send_message(chat_id: msg.chat.id,
+                               text: 'pong')
         enviado = Telegram::Bot::Types::Message.new(enviado['result']) # TODO: validar?
 
         time2 = Time.new
