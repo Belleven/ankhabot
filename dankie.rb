@@ -37,15 +37,14 @@ class Dankie
             yield k, v
         end
     end
-=begin
-text: 'typing',
-photo: 'upload_photo'
-video: 'upload_video'
-audio: 'upload_audio'
-file: 'upload_document'
-animation: 'upload_document'
-video_note: 'upload_video_note'
-=end
+
+    # text: 'typing',
+    # photo: 'upload_photo'
+    # video: 'upload_video'
+    # audio: 'upload_audio'
+    # file: 'upload_document'
+    # animation: 'upload_document'
+    # video_note: 'upload_video_note'
     def send_message(args)
         @api.send_chat_action(chat_id: args[:chat_id], action: 'typing')
         @api.send_message(args)
