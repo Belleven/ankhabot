@@ -48,17 +48,19 @@ class Dankie
     def send_message(args)
         @api.send_chat_action(chat_id: args[:chat_id], action: 'typing')
         @api.send_message(args)
+    rescue Net::OpenTimeout => e
+        @logger.error e
+        retry
     rescue Telegram::Bot::Exceptions::ResponseError => e
-        puts e.error_code
-        puts e.to_s
-        puts e.response
+        @logger.error e
     end
 
     def send_sticker(args)
         @api.send_sticker(args)
+    rescue Net::OpenTimeout => e
+        @logger.error e
+        retry
     rescue Telegram::Bot::Exceptions::ResponseError => e
-        puts e.error_code
-        puts e.to_s
-        puts e.response
+        @logger.error e
     end
 end
