@@ -32,11 +32,7 @@ class Dankie
 
         text = "Orden de las balas\n"
         @@balas.each do |i|
-            text << if i
-                        ('bala' + "\n")
-                    else
-                        ('vacío' + "\n")
-                    end
+            text << (i ? 'bala' : 'vacío') + "\n"
         end
 
         send_message(chat_id: msg.chat.id,
