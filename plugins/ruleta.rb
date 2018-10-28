@@ -1,20 +1,20 @@
 require 'telegram/bot'
 
 class Dankie
-    command recarga: 'Recarga la bala y gira la ruleta (6 ranuras)', dispara: 'Dispara la próxima bala'
+    command recarga: 'Recarga la bala y gira la ruleta (6 ranuras)'
+    command dispara: 'Dispara la próxima bala'
     @@balas = []
     @@cant_balas = 0
 
     def ruleta(msg)
-        return unless msg.is_a?(Telegram::Bot::Types::Message) && msg.text
+        return unless msg.is_a?(Telegram::Bot::Types::Message)
 
-        cmd = parse_command(msg.text)
-        if cmd && (cmd[:command] == :recarga)
+        cmd = parse_command(msg)
+        return unless cmd
+        if cmd[:command] == :recarga
             recarga(msg)
-        elsif cmd && (cmd[:command] == :dispara)
+        elsif cmd[:command] == :dispara
             dispara(msg)
-        else
-            return
         end
     end
 

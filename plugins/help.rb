@@ -4,9 +4,9 @@ class Dankie
     command help: 'Este mensaje'
 
     def help(msg)
-        return unless msg.is_a?(Telegram::Bot::Types::Message) && msg.text
+        return unless msg.is_a?(Telegram::Bot::Types::Message)
 
-        cmd = parse_command(msg.text)
+        cmd = parse_command(msg)
         return unless cmd && (cmd[:command] == :help)
 
         text = "TODO: poner algún texto acá\n"

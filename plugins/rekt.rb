@@ -4,9 +4,9 @@ class Dankie
     command rekt: 'Informa a un usuario si ha sido destruido'
 
     def rekt(msg)
-        return unless msg.is_a?(Telegram::Bot::Types::Message) && msg.text
+        return unless msg.is_a?(Telegram::Bot::Types::Message)
 
-        cmd = parse_command(msg.text)
+        cmd = parse_command(msg)
         return unless cmd && (cmd[:command] == :rekt)
 
         text = "☐ Not rekt\n"
