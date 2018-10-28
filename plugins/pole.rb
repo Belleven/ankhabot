@@ -1,7 +1,7 @@
 require 'telegram/bot'
 
 class Dankie
-    command nisman: 'Ver el ranking de nisman'
+    command nisman: 'Muestra el ranking de nisman'
 
     def pole(msg)
         return unless msg.is_a?(Telegram::Bot::Types::Message)
@@ -44,10 +44,10 @@ class Dankie
                     user = Telegram::Bot::Types::ChatMember.new(user['result']).user
                     texto << "\n<pre>#{val[1].to_i}</pre> "
                     texto << if user.username
-                        "<a href=\"https://telegram.me/#{user.username}\">#{user.username}</a>"
-                    else
-                        '<pre>user.first_name</pre>'
-                    end
+                                 "<a href=\"https://telegram.me/#{user.username}\">#{user.username}</a>"
+                             else
+                                 '<pre>user.first_name</pre>'
+                             end
                 rescue Exception
                     # Despues me fijo que hacer con esto xd
                 end
