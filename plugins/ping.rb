@@ -15,7 +15,7 @@ class Dankie
         enviado = Telegram::Bot::Types::Message.new(enviado['result']) # TODO: validar?
 
         time2 = Time.new
-        @api.edit_message_text(chat_id: msg.chat.id,
+        @api.edit_message_text(chat_id: enviado.chat.id,
                                message_id: enviado.message_id,
                                parse_mode: 'markdown',
                                text: "pong\n`#{format('%.3f', (time2.to_r - time1.to_r))}`s")
