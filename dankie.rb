@@ -1,4 +1,5 @@
 require 'telegram/bot'
+require 'tzinfo'
 
 class Dankie
     attr_reader :api, :logger, :redis, :reddit, :user
@@ -11,6 +12,8 @@ class Dankie
         @logger = logger
         @redis = redis
         @reddit = reddit
+        # TODO: Pasar este string a algun archivo de configuracion global
+        @tz = TZInfo::Timezone.get('America/Argentina/Buenos_Aires')
         @user = Telegram::Bot::Types::User.new(@api.get_me['result']) # TODO: validar?
     end
 
@@ -20,7 +23,7 @@ class Dankie
 
         command, params = text.split ' ', 2
         command.downcase!
-        command.gsub!(/^\/([a-zñ]+)(@#{@user.username})?/, '\\1')
+        command.gsub!(%r{/^\/([a-zñ]+)(@#{@user.username})?/}, '\\1')
 
         { command: command.to_sym, params: params } # TODO: reemplazar esto por un objeto Command????
     end
