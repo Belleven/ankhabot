@@ -45,8 +45,7 @@ class Dankie
 
     def text_body(user)
         if user.username
-            "<a href='https://telegram.me/#{user.username}'>\
-            #{user.username}</a>"
+            "<a href='https://telegram.me/#{user.username}'>#{user.username}</a>"
         else
             "<pre>#{user.first_name}</pre>"
         end
@@ -54,11 +53,11 @@ class Dankie
 
     def send_pole(enviado, texto)
         poles = @redis.zrange(
-            "pole:#{msg.chat.id}", 0, -1, with_scores: true
+            "pole:#{enviado.chat.id}", 0, -1, with_scores: true
         ).sort_by! { |a| -a[1] }
         poles.each do |val|
             begin
-                user = @api.get_chat_member(chat_id: msg.chat.id, user_id: val[0])
+                user = @api.get_chat_member(chat_id: enviado.chat.id, user_id: val[0])
                 user = Telegram::Bot::Types::ChatMember.new(user['result']).user
                 texto << "\n<pre>#{val[1].to_i}</pre> "
                 texto << text_body(user)
@@ -69,6 +68,7 @@ class Dankie
                                    message_id: enviado.message_id,
                                    disable_web_page_preview: true,
                                    disable_notification: true, text: texto)
+            puts texto
         end
     end
 end

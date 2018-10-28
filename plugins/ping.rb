@@ -4,9 +4,9 @@ class Dankie
     command ping: 'Hace ping'
 
     def ping(msg)
-        return unless msg.is_a?(Telegram::Bot::Types::Message) && msg.text
+        return unless msg.is_a?(Telegram::Bot::Types::Message)
 
-        cmd = parse_command(msg.text)
+        cmd = parse_command(msg)
         return unless cmd && (cmd[:command] == :ping)
 
         time1 = Time.at(msg.date)
