@@ -19,12 +19,11 @@ class Dankie
 
     # Analiza un texto y se fija si es un comando válido, devuelve el comando y el resto del texto
     def parse_command(msg)
-        return unless msg.text
-        return unless msg.text.start_with? '/'
+        return unless msg&.text.start_with?('/')
 
         command, params = msg.text.split ' ', 2
         command.downcase!
-        command.gsub!(%r{^/([a-zñ]+)(@#{@user.username})?}, '\\1')
+        command.gsub!(%r{^/([a-z]+)(@#{@user.username})?}, '\\1')
 
         { command: command.to_sym, params: params } # TODO: reemplazar esto por un objeto Command????
     end

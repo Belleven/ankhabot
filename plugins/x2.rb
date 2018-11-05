@@ -3,13 +3,13 @@ require 'telegram/bot'
 class Dankie
     def x2(msg)
         return unless msg.is_a?(Telegram::Bot::Types::Message) && msg.text
-        return unless msg.reply_to_message && (msg.reply_to_message.text || msg.reply_to_message.caption)
+        return unless text = msg&.reply_to_message&.text || msg&.reply_to_message&.caption
 
         message = msg.text.split(' ').first
         return unless (r = /^[xX](\d*)/) =~ message
 
         n = message.gsub(r, '\\1').to_i
-        text = (msg.reply_to_message.text || msg.reply_to_message.caption) + ' '
+        text << ' '
 
         n = (4096 / text.length) + 1 if (text.length * n - 1) > 4096
 

@@ -18,11 +18,9 @@ class Dankie
         end
     end
 
+    private
+    
     def recarga(msg)
-        # return unless msg.is_a?(Telegram::Bot::Types::Message) && msg.text
-        #
-        # cmd = parse_command(msg.text)
-        # return unless cmd && (cmd[:command] == :recarga)
         @@cant_balas += 1
         @@cant_balas = 6 if @@cant_balas > 6
 
@@ -36,15 +34,11 @@ class Dankie
         end
 
         send_message(chat_id: msg.chat.id,
-                     reply_to_message_id: msg.reply_to_message ? msg.reply_to_message.message_id : nil,
+                     reply_to_message_id: msg&.reply_to_message&.message_id,
                      text: text)
     end
 
     def dispara(msg)
-        # return unless msg.is_a?(Telegram::Bot::Types::Message) && msg.text
-        #
-        # cmd = parse_command(msg.text)
-        # return unless cmd && (cmd[:command] == :dispara)
         if @@balas.empty?
             text = "Si no recargas no te puedo Nismanear papu. \n"
         else
@@ -67,7 +61,6 @@ class Dankie
         end
 
         send_message(chat_id: msg.chat.id,
-                     reply_to_message_id: msg.reply_to_message ? msg.reply_to_message.message_id : nil,
                      text: text)
     end
 end

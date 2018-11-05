@@ -24,12 +24,12 @@ class Dankie
 
         cmd = parse_command(msg)
 
-        ranking(msg) if cmd && cmd[:command] == :nisman
+        send_pole_ranking(msg) if cmd && cmd[:command] == :nisman
     end
 
     private
 
-    def ranking(msg)
+    def send_pole_ranking(msg)
         texto = '<b>Ranking de Nismans</b>'
         enviado = send_message(chat_id: msg.chat.id,
                                parse_mode: 'html',
@@ -39,11 +39,12 @@ class Dankie
         # en vez de esto debería tener otra lista de plugins pesados que
         # trabajen en un hilo aparte
         fork do
-            send_pole enviado, texto
+            edit_pole_ranking(enviado, texto)
         end
     end
 
-    def text_body(user)
+    # TODO: mover a dankie.rb? capaz se reutilize
+    def get_username_link(user)
         if user.username
             "<a href='https://telegram.me/#{user.username}'>#{user.username}</a>"
         else
@@ -51,7 +52,7 @@ class Dankie
         end
     end
 
-    def send_pole(enviado, texto)
+    def edit_pole_ranking(enviado, texto)
         poles = @redis.zrange(
             "pole:#{enviado.chat.id}", 0, -1, with_scores: true
         ).sort_by! { |a| -a[1] }
@@ -59,8 +60,8 @@ class Dankie
             begin
                 user = @api.get_chat_member(chat_id: enviado.chat.id, user_id: val[0])
                 user = Telegram::Bot::Types::ChatMember.new(user['result']).user
-                texto << "\n<pre>#{val[1].to_i}</pre> "
-                texto << text_body(user)
+                texto << "\n#{val[1].to_i} "
+                texto << get_username_link(user)
             rescue StandardError, e
                 @logger.error(e)
             end
@@ -68,7 +69,6 @@ class Dankie
                                    message_id: enviado.message_id,
                                    disable_web_page_preview: true,
                                    disable_notification: true, text: texto)
-            puts texto
         end
     end
 end

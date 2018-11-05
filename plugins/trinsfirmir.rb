@@ -9,11 +9,10 @@ class Dankie
         cmd = parse_command(msg)
         return unless cmd && (cmd[:command] == :trinsfirmir)
 
-        if !msg.reply_to_message || !((text = msg.reply_to_message.text) || msg.reply_to_message.caption)
+        unless (text = msg&.reply_to_message&.text || msg&.reply_to_message&.caption)
             text = "Respondele a algo, #{TROESMAS.sample}."
-            @api.send_chat_action(chat_id: msg.chat.id, action: 'typing')
-            @api.send_message(chat_id: msg.chat.id,
-                              text: text)
+            send_message(chat_id: msg.chat.id,
+                         text: text)
             return
         end
 
