@@ -11,6 +11,7 @@ class Dankie
 
         cmd = parse_command(msg)
         return unless cmd
+
         if cmd[:command] == :recarga
             recarga(msg)
         elsif cmd[:command] == :dispara
@@ -19,7 +20,7 @@ class Dankie
     end
 
     private
-    
+
     def recarga(msg)
         @@cant_balas += 1
         @@cant_balas = 6 if @@cant_balas > 6

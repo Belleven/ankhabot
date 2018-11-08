@@ -17,7 +17,8 @@ class Dankie
         @user = Telegram::Bot::Types::User.new(@api.get_me['result']) # TODO: validar?
     end
 
-    # Analiza un texto y se fija si es un comando válido, devuelve el comando y el resto del texto
+    # Analiza un texto y se fija si es un comando válido, devuelve el comando
+    # y el resto del texto
     def parse_command(msg)
         return unless msg&.text.start_with?('/')
 
@@ -28,7 +29,8 @@ class Dankie
         { command: command.to_sym, params: params } # TODO: reemplazar esto por un objeto Command????
     end
 
-    # Con esta función agregás un comando para el comando de ayuda, y su descripción
+    # Con esta función agregás un comando para el comando de ayuda,
+    # y su descripción
     def self.command(args)
         raise ArgumentException unless args.is_a? Hash
 
