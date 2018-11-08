@@ -10,13 +10,16 @@ class Dankie
         unless @redis.exists("pole:#{msg.chat.id}:done")
             now = Time.now
             t = @tz.utc_to_local(
-                Time.new(now.year, now.month, now.day + 1)).to_i
+                Time.new(now.year, now.month, now.day + 1)
+            ).to_i
             msg_time = @tz.utc_to_local(Time.at(msg.date)).to_i
             @redis.setex(
-                "pole:#{msg.chat.id}:done", t - msg_time, 'ok')
+                "pole:#{msg.chat.id}:done", t - msg_time, 'ok'
+            )
             @redis.zincrby("pole:#{msg.chat.id}", 1, msg.from.id)
             @logger.info(
-                "#{msg.from.first_name} hizo la nisman en #{msg.chat.id}")
+                "#{msg.from.first_name} hizo la nisman en #{msg.chat.id}"
+            )
             send_message(chat_id: msg.chat.id, parse_mode: 'html',
                          reply_to_message_id: msg.message_id,
                          text: "<b>#{msg.from.first_name}</b> hizo la Nisman")
@@ -44,31 +47,35 @@ class Dankie
     end
 
     # TODO: mover a dankie.rb? capaz se reutilize
-    def get_username_link(user)
-        if user.username
-            "<a href='https://telegram.me/#{user.username}'>#{user.username}</a>"
-        else
-            "<pre>#{user.first_name}</pre>"
+    def get_username_link(chat_id, user_id)
+        user = @api.get_chat_member(chat_id: chat_id, user_id: user_id)
+        user = Telegram::Bot::Types::ChatMember.new(user['result']).user
+        user_link = if user.username
+                        "<a href='https://telegram.me/#{user.username}'>" +
+                        "#{user.username}</a>"
+                    else
+                        "<b>#{user.first_name}</b>"
         end
+    rescue Telegram::Bot::Exceptions::ResponseError, e
+        user_link = nil
+        @logger.error(e)
+    ensure
+        user_link || 'ay no c'
     end
 
     def edit_pole_ranking(enviado, texto)
         poles = @redis.zrange(
             "pole:#{enviado.chat.id}", 0, -1, with_scores: true
         ).sort_by! { |a| -a[1] }
+        digits = poles.first[1].to_i.digits.count
         poles.each do |val|
-            begin
-                user = @api.get_chat_member(chat_id: enviado.chat.id, user_id: val[0])
-                user = Telegram::Bot::Types::ChatMember.new(user['result']).user
-                texto << "\n#{val[1].to_i} "
-                texto << get_username_link(user)
-            rescue StandardError, e
-                @logger.error(e)
-            end
-            @api.edit_message_text(chat_id: enviado.chat.id, parse_mode: 'html',
+            texto << "\n<code>#{format("%#{digits}d", val[1].to_i)} </code>"
+            texto << get_username_link(enviado.chat.id, val[0])
+            @api.edit_message_text(chat_id: enviado.chat.id,  text: texto,
+                                   parse_mode: 'html',
                                    message_id: enviado.message_id,
                                    disable_web_page_preview: true,
-                                   disable_notification: true, text: texto)
+                                   disable_notification: true)
         end
     end
 end
