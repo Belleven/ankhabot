@@ -3,3 +3,6 @@ Layout/IndentationWidth:
 
 Style/AsciiComments:
         AllowedChars: [☑️ , á, é, í, ó, ú, Á, É, Í, Ó, Ú]
+
+AllCops:
+  TargetRubyVersion: 2.5

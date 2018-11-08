@@ -5,16 +5,12 @@ require 'telegram/bot'
 require 'redis'
 require 'ruby_reddit_api'
 
-# TODO: mover a otro archivo?
-def get_token(file)
-    return nil unless File.exist?(file)
-
-    IO.read(file).chomp
-end
+$config = YAML.load_file(File.join(__dir__, 'config.yml'))
+$config.transform_keys!(&:to_sym)
 
 # apis de todas las porquerías
-bot = Telegram::Bot::Client.new(get_token('token'), logger: Logger.new($stderr))
-redis = Redis.new port: 42_069
+bot = Telegram::Bot::Client.new($config[:tg_token], logger: Logger.new($stderr))
+redis = Redis.new port: $config[:redis_port], host: $config[:redis_host]
 reddit = Reddit::Api.new
 
 dankie = Dankie.new(bot.api, bot.logger, redis, reddit)
@@ -28,4 +24,7 @@ bot.listen do |message|
     plugins.each do |plugin|
         dankie.send(plugin, message)
     end
+rescue Telegram::Bot::Exceptions::ResponseError => e
+	dankie.logger.error e
+	retry
 end
