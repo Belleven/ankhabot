@@ -11,8 +11,7 @@ class Dankie
 
         unless (text = msg&.reply_to_message&.text || msg&.reply_to_message&.caption)
             text = "Respondele a algo, #{TROESMAS.sample}."
-            send_message(chat_id: msg.chat.id,
-                         text: text)
+            send_message(chat_id: msg.chat.id, text: text)
             return
         end
 
