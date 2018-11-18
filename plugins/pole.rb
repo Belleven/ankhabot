@@ -46,23 +46,6 @@ class Dankie
         end
     end
 
-    # TODO: mover a dankie.rb? capaz se reutilize
-    def get_username_link(chat_id, user_id)
-        user = @api.get_chat_member(chat_id: chat_id, user_id: user_id)
-        user = Telegram::Bot::Types::ChatMember.new(user['result']).user
-        user_link = if user.username
-                        "<a href='https://telegram.me/#{user.username}'>" +
-                        "#{user.username}</a>"
-                    else
-                        "<b>#{user.first_name}</b>"
-        end
-    rescue Telegram::Bot::Exceptions::ResponseError, e
-        user_link = nil
-        @logger.error(e)
-    ensure
-        user_link || 'ay no c'
-    end
-
     def edit_pole_ranking(enviado, texto)
         poles = @redis.zrange(
             "pole:#{enviado.chat.id}", 0, -1, with_scores: true
@@ -71,11 +54,11 @@ class Dankie
         poles.each do |val|
             texto << "\n<code>#{format("%#{digits}d", val[1].to_i)} </code>"
             texto << get_username_link(enviado.chat.id, val[0])
-            @api.edit_message_text(chat_id: enviado.chat.id,  text: texto,
-                                   parse_mode: 'html',
-                                   message_id: enviado.message_id,
-                                   disable_web_page_preview: true,
-                                   disable_notification: true)
+            edit_message_text(chat_id: enviado.chat.id,  text: texto,
+                              parse_mode: 'html',
+                              message_id: enviado.message_id,
+                              disable_web_page_preview: true,
+                              disable_notification: true)
         end
     end
 end

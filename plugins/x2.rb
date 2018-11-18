@@ -25,7 +25,6 @@ class Dankie
             text = '""'
         end
 
-        send_message(chat_id: msg.chat.id,
-                     text: text)
+        send_message(chat_id: msg.chat.id, text: text)
     end
 end

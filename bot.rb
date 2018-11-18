@@ -24,7 +24,7 @@ bot.listen do |message|
     plugins.each do |plugin|
         dankie.send(plugin, message)
     end
-rescue Telegram::Bot::Exceptions::ResponseError => e
-	dankie.logger.error e
+rescue Faraday::ConnectionFailed, Net::OpenTimeout => e
+    dankie.logger.error e
 	retry
 end
