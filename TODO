@@ -1,0 +1,73 @@
+LISTA DE QUEHACERES
+------------------------
+bienvenida
+saludo
+conurbano
+
++1
+^-1 (no me acuerdo para que iba a ser, se me ocurrió algo pero nunca lo anoté)
+ultima vez (no se si hacerlo)
+	/lurkers
+triggers
+	/settrigger
+	/deltrigger
+	/triggers
+random de reddit (o mejor no hacerlo y usar el !sub de dankie)
+	/dankgentina
+	/maisie
+	/gato
+	/fox
+	/owl
+steam (hay que rediseñarlo)
+	(inline) busqueda de logros
+	(inline) busqueda de juegos
+	/steam
+
+
+cp
+	/cp
+ignore (un admin le responde a un usuario con esto y el bot ignora a ese usuario)
+	/ignore
+start
+	/start
+info de user
+		-user id
+		-status admin?
+		-last.fm
+		-steam
+		-ranking de poles
+		-cumpleaños? (y cuando es el fc manda un mensaje al grupo)
+	/yo | /me
+búsqueda de imágenes
+	/img
+	inline también
+--------------------
+
+COMO FUNCIONAN LOS TRIGGERS (en realidad no va a funcionar así, lo estoy cambiando)
+--------------------
+trigger:
+
+en respuesta a mensaje multimedia
+/settrigger trigger
+
+(si ya hay un trigger)		o si no es válido te manda a la mierda
+>>ya hay trigger, sobreescribir?
+[si]	[no]
+
+(guarda el trigger)
+
+>>todo listo papu
+
+
+triggers:global => lista de regex
+
+trigger:global:regexp => hash:
+				(text || caption) => texto (o no va este campo)
+				(photo || document || ...) => file_id
+				method => (send_message || send_photo || ...)
+
+
+triggers:group_id => lista de regex
+
+trigger:group_id:regexp => hash de type, media, frase
+------------------
