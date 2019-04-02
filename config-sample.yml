@@ -2,3 +2,4 @@
 tg_token: 'token'
 redis_host: 'localhost'
 redis_port: '42069'
+redis_pass: 'pass'

@@ -10,7 +10,7 @@ $config.transform_keys!(&:to_sym)
 
 # apis de todas las porquerías
 bot = Telegram::Bot::Client.new($config[:tg_token], logger: Logger.new($stderr))
-redis = Redis.new port: $config[:redis_port], host: $config[:redis_host]
+redis = Redis.new port: $config[:redis_port], host: $config[:redis_host], password: $config[:redis_pass]
 reddit = Reddit::Api.new
 
 dankie = Dankie.new(bot.api, bot.logger, redis, reddit)
