@@ -38,8 +38,7 @@ class Dankie
 
         command, params = msg.text.split ' ', 2
         command.downcase!
-        command.gsub!(%r{^/([a-z]+)(@#{@user.username})?}, '\\1')
-
+        test = command.gsub!(%r{^/([a-z]+)(@#{@user.username.downcase})?}, '\\1')
         { command: command.to_sym, params: params } # TODO: reemplazar esto por un objeto Command????
     end
 
