@@ -23,9 +23,12 @@ class Dankie
 
       id = 0
 
-      if (cmd[:params])
-        id = msg.from.id #si no lo tiene todo mal
-      else if msg&.reply_to_message
+      # if (cmd[:params])
+      #   user = cmd[:params]
+      # research: quizás se pueda
+      #   id = msg.from.id #si no lo tiene todo mal
+      # else
+        if msg&.reply_to_message
         id = msg.reply_to_messsage&.from.id
       else
         send_message(chat_id: msg.chat.id,
