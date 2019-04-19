@@ -40,7 +40,8 @@ class Dankie
         command.downcase!
         command.gsub!(%r{^/([a-z]+)(@#{@user.username})?}, '\\1')
 
-        { command: command.to_sym, params: params } # TODO: reemplazar esto por un objeto Command????
+        { command: command.to_sym, params: params } # TODO: reemplazar esto por
+                                                    # un objeto Command????
     end
 
     def get_username_link(chat_id, user_id)
@@ -59,6 +60,13 @@ class Dankie
         user_link || 'ay no c'
     end
 
+
+
+
+
+
+    # tengo acceso a toda la api de telegram (bot.api) desde la clase Dankie
+    # suena horrible pero está bueno y pude hacer unos rescue
     def method_missing(method_name, *args)
         super unless @api.respond_to?(method_name)
         @api.send(method_name, *args)
