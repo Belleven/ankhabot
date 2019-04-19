@@ -1,3 +1,4 @@
+# coding: utf-8
 require 'telegram/bot'
 require 'tzinfo'
 
@@ -15,6 +16,9 @@ class Dankie
         # TODO: Pasar este string a algun archivo de configuracion global
         @tz = TZInfo::Timezone.get('America/Argentina/Buenos_Aires')
         @user = Telegram::Bot::Types::User.new(get_me['result']) # TODO: validar?
+
+        @blacklist = []
+        @blacklist_populated = false
     end
 
     # Con esta función agregás un comando para el comando de ayuda,
@@ -35,10 +39,10 @@ class Dankie
     # y el resto del texto
     def parse_command(msg)
         return unless msg&.text&.start_with?('/')
-
+       
         command, params = msg.text.split ' ', 2
         command.downcase!
-        command.gsub!(%r{^/([a-z]+)(@#{@user.username})?}, '\\1')
+        command.gsub!(%r{^/([a-z]+)(@#{@user.username.downcase})?}, '\\1')
 
         { command: command.to_sym, params: params } # TODO: reemplazar esto por
                                                     # un objeto Command????
