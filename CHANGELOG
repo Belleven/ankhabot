@@ -1,3 +1,14 @@
+1.0.0
+    -reestructuración del código
+    -parseo de comandos rediseñado
+    -pole
+    -blacklist de usuarios
+    -comando /trinsfirmir
+    -comando /rekt
+    -función x2
+    -ruleta nisman
+    -corrección de errores
+
 0.2.0
     -reestructurado el bot
     -método para registrar un comando 
