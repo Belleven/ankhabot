@@ -1,68 +1,66 @@
-# coding: utf-8
+# frozen_string_literal: true
+
 require 'telegram/bot'
 
 class Dankie
     command blacklist: 'Blacklist updater in the bot'
 
     def blacklist(msg)
-      
-      if (!@blacklist_populated)
-        populate_blacklist() # should get redis, etc. For now, nothing
-      end
+        unless @blacklist_populated
+            populate_blacklist # should get redis, etc. For now, nothing
+        end
 
-      return unless msg.is_a?(Telegram::Bot::Types::Message)
-      
-      cmd = parse_command(msg)
+        return unless msg.is_a?(Telegram::Bot::Types::Message)
 
-      return unless cmd && (cmd[:command] == :ignore || cmd[:command] == :unignore)
+        cmd = parse_command(msg)
 
-      #TODO: sólo admins ejecutan esto
+        return unless cmd && (cmd[:command] == :ignore || cmd[:command] == :unignore)
 
-      #return if !admin msg.from.id
-      #NB: mantener lista de admins
+        # TODO: sólo admins ejecutan esto
 
-      id = 0
+        # return if !admin msg.from.id
+        # NB: mantener lista de admins
 
-      # if (cmd[:params])
-      #   user = cmd[:params]
-      # research: quizás se pueda
-      #   id = msg.from.id #si no lo tiene todo mal
-      # else
+        id = 0
+
+        # if (cmd[:params])
+        #   user = cmd[:params]
+        # research: quizás se pueda
+        #   id = msg.from.id #si no lo tiene todo mal
+        # else
         if msg&.reply_to_message
-        id = msg.reply_to_messsage&.from.id
-      else
-        send_message(chat_id: msg.chat.id,
-                     reply_to_message: msg.message_id
-                     text: 'nope')
-        return
-      end
+            id = msg.reply_to_messsage&.from.id
+        else
+            send_message(chat_id: msg.chat.id,
+                         reply_to_message: msg.message_id,
+                         text: 'nope')
+            return
+        end
 
-      return if (id == 98631116 || id == 0) #sanity check
-      
-      if cmd[:command] == :ignore
-        ignore(id)
-      else if cmd [:command] == :unignore
-        unignore(id)
-      end
-      
+        return if id == 98_631_116 || id == 0 # sanity check
+
+        if cmd[:command] == :ignore
+            ignore(id)
+        elsif cmd [:command] == :unignore
+            unignore(id)
+        end
     end
 
     def ignore(id)
-      @blacklist.push(id)
+        @blacklist_arr.push(id)
     end
-    
+
     def unignore(id)
-      @blacklist.delete(id)
+        @blacklist_arr.delete(id)
     end
-    
-    def save()
-      #TODO use @redis
+
+    def save
+        # TODO: use @redis
     end
-    
-    def populate_blacklist()
-      #TODO: read redis and populate dankie array
-      #TODO: learn redis
-      @blacklist_populated = true
+
+    def populate_blacklist
+        # TODO: read redis and populate dankie array
+        # TODO: learn redis
+        @blacklist_populated = true
     end
-    
 end

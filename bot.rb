@@ -22,7 +22,7 @@ plugins = Dir[File.dirname(__FILE__) + '/plugins/*.rb'].map { |file| file.split(
 bot.listen do |message|
     
     # TODO: validar blacklist acá (crearla antes)
-  next if dankie.blacklist.includes?(message&.from&.id)
+  next if dankie.blacklist_arr.include?(message&.from&.id)
   
   next if message.is_a?(Telegram::Bot::Types::Message) && message.edit_date
 

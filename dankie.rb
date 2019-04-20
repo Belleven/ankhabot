@@ -1,9 +1,8 @@
-# coding: utf-8
 require 'telegram/bot'
 require 'tzinfo'
 
 class Dankie
-    attr_reader :logger, :redis, :reddit, :user
+    attr_reader :logger, :redis, :reddit, :user, :blacklist_arr
     @@commands = {}
     TROESMAS = File.readlines('troesmas.txt').map(&:chomp)
     REKT = File.readlines('rekt.txt').map(&:chomp)
@@ -17,7 +16,7 @@ class Dankie
         @tz = TZInfo::Timezone.get('America/Argentina/Buenos_Aires')
         @user = Telegram::Bot::Types::User.new(get_me['result']) # TODO: validar?
 
-        @blacklist = []
+        @blacklist_arr = []
         @blacklist_populated = false
     end
 
@@ -38,14 +37,35 @@ class Dankie
     # Analiza un texto y se fija si es un comando válido, devuelve el comando
     # y el resto del texto
     def parse_command(msg)
-        return unless msg&.text&.start_with?('/')
-       
-        command, params = msg.text.split ' ', 2
-        command.downcase!
-        command.gsub!(%r{^/([a-z]+)(@#{@user.username.downcase})?}, '\\1')
+        return unless (text = msg.text || msg.caption)
 
-        { command: command.to_sym, params: params } # TODO: reemplazar esto por
-                                                    # un objeto Command????
+        if text.start_with? '/' # "/cmd params" o "/cmd@bot params"
+            command, params = text.split ' ', 2
+            command.downcase!
+            command.gsub!(%r{^/([a-z]+)(@#{@user.username.downcase})?}, '\\1')
+
+            return { command: command.to_sym, params: params }
+
+        elsif ['!', '>'].include? text[0] # "!cmd params" o ">cmd params"
+            command, params = text[1..-1].split ' ', 2
+            command.downcase!
+
+            return { command: command.to_sym, params: params }
+
+        else 
+            arr = text.split(' ', 3) # ["user", "comando", "params"]
+            if arr.first.downcase == @user.username.downcase
+                return { command: arr[1].downcase.to_sym, params: arr[2] || nil }
+
+            elsif msg.reply_to_message&.from&.id == @user.id # responde al bot
+                command, params = text.split ' ', 2
+                command.downcase!
+
+                return { command: command.to_sym, params: params }
+            end
+        end
+
+        return { command: nil, params: nil }
     end
 
     def get_username_link(chat_id, user_id)
