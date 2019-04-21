@@ -85,8 +85,38 @@ class Dankie
     end
 
 
+    def send_message(args)
+        
+        # Tomo argumentos (ALTO SIDA QUE TENGA QUE SER ASÍ)
+        text = args[:text]
+        chat_id = args[:chat_id]
+        parse_mode = args[:parse_mode]
+        reply_to_message_id = args[:reply_to_message_id]
+        disable_web_page_preview = args[:disable_web_page_preview]
+        disable_notification = args[:disable_notification]
+        reply_to_message_id = args[:reply_to_message_id]
+        reply_markup = args[:reply_markup]
+        
+        return unless chat_id && text && (not text.empty?)
 
+        # Itero de a bloques de 4096
+        inicio = 0
+        fin = [text.length, 4096].min
 
+        while inicio != fin do
+            
+            # Mando el blocazo
+            resultado = delay_y_envio(chat_id, text[inicio...fin], parse_mode, disable_web_page_preview,
+                                      disable_notification, reply_to_message_id, reply_markup)
+            
+            inicio = fin
+            fin = [text.length, fin + 4096].min 
+
+        end
+
+        return resultado
+
+    end
 
 
     # tengo acceso a toda la api de telegram (bot.api) desde la clase Dankie
@@ -109,4 +139,20 @@ class Dankie
     def respond_to_missing?(method_name)
         @api.respond_to?(method_name) || super
     end
+end
+
+
+def delay_y_envio(chat_id, text, parse_mode, disable_web_page_preview,
+                  disable_notification, reply_to_message_id, reply_markup)
+    
+    text = text.strip
+    if text.empty?
+        return
+    end
+
+    return @api.send_message(chat_id: chat_id, text: text, parse_mode: parse_mode,
+                            disable_web_page_preview: disable_web_page_preview,
+                            disable_notification: disable_notification,
+                            reply_to_message_id: reply_to_message_id, reply_markup: reply_markup)
+
 end

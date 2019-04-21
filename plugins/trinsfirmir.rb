@@ -4,6 +4,7 @@ class Dankie
     command trinsfirmir: 'Convierte un texto a isti firmiti'
 
     def trinsfirmir(msg)
+
         return unless msg.is_a?(Telegram::Bot::Types::Message)
 
         cmd = parse_command(msg)

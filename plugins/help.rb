@@ -17,8 +17,6 @@ class Dankie
             text << line # Mas adelante validar que text no se pase de los 4096 caracteres pero no creo que pase
         end
 
-        send_message(chat_id: msg.chat.id,
-                     parse_mode: 'markdown',
-                     text: text)
+        send_message(chat_id: msg.chat.id, parse_mode: 'markdown', text: text)
     end
 end
