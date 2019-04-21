@@ -1,5 +1,5 @@
 1.0.0
-	-changelog
+    -changelog
     -reestructuración del código
     -parseo de comandos rediseñado
     -pole
