@@ -1,4 +1,5 @@
 1.0.0
+	-changelog
     -reestructuración del código
     -parseo de comandos rediseñado
     -pole
@@ -8,6 +9,7 @@
     -función x2
     -ruleta nisman
     -corrección de errores
+    -mensajes de cualquier longitud
 
 0.2.0
     -reestructurado el bot
