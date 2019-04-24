@@ -41,12 +41,12 @@ class Dankie
 
     def dispara(msg)
         if @@balas.empty?
-            text = "Si no recargas no te puedo Nismanear papu. \n"
+            text = "Si no recargas no te puedo Nismanear " + TROESMAS.sample + "\n"
         else
             val = @@balas.shift
             if val
                 @@cant_balas -= 1
-                text = "Te Nismaneaste papu. \n"
+                text = "Te Nismaneaste " + TROESMAS.sample + "\n"
             else
                 text = "Sobreviviste \n"
             end
