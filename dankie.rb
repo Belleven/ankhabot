@@ -1,23 +1,81 @@
-require 'telegram/bot'
+require_relative 'telegram.rb'
+require 'redis'
 require 'tzinfo'
 
 class Dankie
-    attr_reader :logger, :redis, :reddit, :user, :blacklist_arr
+    attr_reader :tg, :logger, :redis, :reddit, :user
     @@commands = {}
     TROESMAS = File.readlines('troesmas.txt').map(&:chomp)
     REKT = File.readlines('rekt.txt').map(&:chomp)
 
-    def initialize(api, logger, redis, reddit)
-        @api = api
-        @logger = logger
-        @redis = redis
-        @reddit = reddit
-        # TODO: Pasar este string a algun archivo de configuracion global
-        @tz = TZInfo::Timezone.get('America/Argentina/Buenos_Aires')
-        @user = Telegram::Bot::Types::User.new(get_me['result']) # TODO: validar?
+    def self.add_handler(handler)
+        case handler
+        when MessageHandler
+            @@message_handlers ||= []
+            @@message_handlers << handler
+        when CommandHandler
+            @@command_handlers ||= []
+            @@command_handlers << handler
+        when CallbackQueryHandler
+            @@callback_query_handlers ||= []
+            @@callback_query_handlers << handler
+        end
+    end
+
+    # creo que esto es un dispatch si entendí bien
+    def dispatch(msg)
+        case msg
+        when Telegram::Bot::Types::Message
+=begin
+            @@message_handlers.each do |handler|
+                if handler.check_message(msg)
+                    send(handler.callback, msg)
+                end
+            end
+=end
+            cmd = parse_command(msg)[:command]
+            return unless cmd
+            @@command_handlers.each do |handler|
+                if handler.check_message(cmd, msg.edit_date)
+                    send(handler.callback, msg)
+                end
+            end
+=begin
+        when Telegram::Bot::Types::CallbackQuery
+            @@callback_query_handlers.each do |handler|
+                if handler.check_message(msg)
+                    send(handler.callback, msg)
+                end
+            end
+=end
+        end
+    end
+
+
+
+#    def initialize(api, logger, redis, reddit)
+    # Recibe un Hash con :tg_token, :redis_host, :redis_port, :redis_pass
+    def initialize(args)
+        @logger = Logger.new $stderr
+        @tg = TelegramAPI.new args[:tg_token], @logger
+        @redis = Redis.new port: args[:redis_port], host: args[:redis_host], password: args[:redis_pass]
+        @tz = TZInfo::Timezone.get args[:timezone]
+        @user = Telegram::Bot::Types::User.new(@tg.get_me['result']) # TODO: validar?
 
         @blacklist_arr = []
         @blacklist_populated = false
+    end
+
+    def run
+        @tg.client.listen do |msg|
+            next if @blacklist_arr.include? msg&.from&.id
+
+            dispatch(msg)
+
+        rescue Faraday::ConnectionFailed, Net::OpenTimeout => e
+            logger.error e
+            retry
+        end
     end
 
     # Con esta función agregás un comando para el comando de ayuda,
@@ -33,6 +91,10 @@ class Dankie
             yield k, v
         end
     end
+
+
+    private
+
 
     # Analiza un texto y se fija si es un comando válido, devuelve el comando
     # y el resto del texto
@@ -84,75 +146,5 @@ class Dankie
         user_link || 'ay no c'
     end
 
-
-    def send_message(args)
-        
-        # Tomo argumentos (ALTO SIDA QUE TENGA QUE SER ASÍ)
-        text = args[:text]
-        chat_id = args[:chat_id]
-        parse_mode = args[:parse_mode]
-        reply_to_message_id = args[:reply_to_message_id]
-        disable_web_page_preview = args[:disable_web_page_preview]
-        disable_notification = args[:disable_notification]
-        reply_to_message_id = args[:reply_to_message_id]
-        reply_markup = args[:reply_markup]
-        
-        return unless chat_id && text && (not text.empty?)
-
-        # Itero de a bloques de 4096
-        inicio = 0
-        fin = [text.length, 4096].min
-
-        while inicio != fin do
-            
-            # Mando el blocazo
-            resultado = delay_y_envio(chat_id, text[inicio...fin], parse_mode, disable_web_page_preview,
-                                      disable_notification, reply_to_message_id, reply_markup)
-            
-            inicio = fin
-            fin = [text.length, fin + 4096].min 
-
-        end
-
-        return resultado
-
-    end
-
-
-    # tengo acceso a toda la api de telegram (bot.api) desde la clase Dankie
-    # suena horrible pero está bueno y pude hacer unos rescue
-    def method_missing(method_name, *args)
-        super unless @api.respond_to?(method_name)
-        @api.send(method_name, *args)
-    rescue Faraday::ConnectionFailed, Net::OpenTimeout => e
-        @logger.error(e)
-        @logger.error(e.display)
-        @logger.error(e.backtrace)
-        retry
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        @logger.error(e)
-        @logger.error(e.display)
-        @logger.error(e.backtrace)
-        raise e
-    end
-
-    def respond_to_missing?(method_name)
-        @api.respond_to?(method_name) || super
-    end
-end
-
-
-def delay_y_envio(chat_id, text, parse_mode, disable_web_page_preview,
-                  disable_notification, reply_to_message_id, reply_markup)
-    
-    text = text.strip
-    if text.empty?
-        return
-    end
-
-    return @api.send_message(chat_id: chat_id, text: text, parse_mode: parse_mode,
-                            disable_web_page_preview: disable_web_page_preview,
-                            disable_notification: disable_notification,
-                            reply_to_message_id: reply_to_message_id, reply_markup: reply_markup)
 
 end
