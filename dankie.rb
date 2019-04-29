@@ -76,13 +76,11 @@ class Dankie
         end
     end
 
-    def self.command(*args)
-    end
     # Permite iterar sobre los comandos del bot, y sus descripciones
     def self.commands
         @@command_handlers.each do |handler|
-            unless handler.description
-                yield handler.callback, handler.description
+            if handler.description
+                yield handler.cmd, handler.description
             end
         end
 
