@@ -1,14 +1,7 @@
-require 'telegram/bot'
-
 class Dankie
-    command rekt: 'Informa a un usuario si ha sido destruido'
+    add_handler CommandHandler.new(:rekt, :rekt, 'Informa a un usuario si ha sido destruido')
 
     def rekt(msg)
-        return unless msg.is_a?(Telegram::Bot::Types::Message)
-
-        cmd = parse_command(msg)
-        return unless cmd && (cmd[:command] == :rekt)
-
         text = "☐ Not rekt\n"
 
         3.times { text << REKT.sample + "\n" }

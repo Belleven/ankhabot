@@ -9,8 +9,6 @@ config.transform_keys!(&:to_sym)
 
 dankie = Dankie.new config
 
-
-
 dankie.run
 
 #plugins = Dir[File.dirname(__FILE__) + '/plugins/*.rb'].map { |file| file.split('/').last.gsub('.rb', '').to_sym }

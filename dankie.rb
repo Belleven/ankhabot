@@ -4,7 +4,6 @@ require 'tzinfo'
 
 class Dankie
     attr_reader :tg, :logger, :redis, :reddit, :user
-    @@commands = {}
     TROESMAS = File.readlines('troesmas.txt').map(&:chomp)
     REKT = File.readlines('rekt.txt').map(&:chomp)
 
@@ -26,17 +25,16 @@ class Dankie
     def dispatch(msg)
         case msg
         when Telegram::Bot::Types::Message
-=begin
             @@message_handlers.each do |handler|
                 if handler.check_message(msg)
                     send(handler.callback, msg)
                 end
             end
-=end
-            cmd = parse_command(msg)[:command]
-            return unless cmd
+
+            cmd = parse_command(msg)
+            return unless cmd && cmd[:command]
             @@command_handlers.each do |handler|
-                if handler.check_message(cmd, msg.edit_date)
+                if handler.check_message(cmd[:command], msg.edit_date)
                     send(handler.callback, msg)
                 end
             end
@@ -78,20 +76,17 @@ class Dankie
         end
     end
 
-    # Con esta función agregás un comando para el comando de ayuda,
-    # y su descripción
-    def self.command(args)
-        raise ArgumentException unless args.is_a? Hash
-
-        @@commands.merge!(args)
+    def self.command(*args)
     end
-
+    # Permite iterar sobre los comandos del bot, y sus descripciones
     def self.commands
-        @@commands.each do |k, v|
-            yield k, v
+        @@command_handlers.each do |handler|
+            unless handler.description
+                yield handler.callback, handler.description
+            end
         end
-    end
 
+    end
 
     private
 
@@ -131,13 +126,14 @@ class Dankie
     end
 
     def get_username_link(chat_id, user_id)
-        user = get_chat_member(chat_id: chat_id, user_id: user_id)
+        user = @tg.get_chat_member(chat_id: chat_id, user_id: user_id)
         user = Telegram::Bot::Types::ChatMember.new(user['result']).user
         user_link = if user.username
                         "<a href='https://telegram.me/#{user.username}'>" +
-                        "#{user.username}</a>"
+                            "#{user.username}</a>"
                     else
-                        "<b>#{user.first_name}</b>"
+                        "<a href='tg://user?id=#{user_id}'>" +
+                            "#{user.first_name}</a>"
         end
     rescue Telegram::Bot::Exceptions::ResponseError, e
         user_link = nil

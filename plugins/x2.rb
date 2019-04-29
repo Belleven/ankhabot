@@ -1,14 +1,13 @@
-require 'telegram/bot'
-
 class Dankie
+    add_handler MessageHandler.new(:x2)
     def x2(msg)
-        return unless msg.is_a?(Telegram::Bot::Types::Message) && msg.text
+        return unless msg.text
 
         text = msg&.reply_to_message&.text || msg&.reply_to_message&.caption
         return unless text
 
         message = msg.text.split(' ').first
-        return unless (r = /^[xX](\d*)/) =~ message
+        return unless (r = /^[xX*](\d*)/) =~ message
 
         n = message.gsub(r, '\\1').to_i
         text << ' '
@@ -25,6 +24,6 @@ class Dankie
             text = '""'
         end
 
-        send_message(chat_id: msg.chat.id, text: text)
+        @tg.send_message(chat_id: msg.chat.id, text: text)
     end
 end

@@ -3,12 +3,31 @@ class Handler
 end
 
 class MessageHandler < Handler
+    def initialize(callback, args = {})
+        @callback = callback
+        @allow_edited = args[:allow_edited] || false
+        @allow_channel = args[:allow_channel] || false
+    end
+
+    def check_message(msg)
+        if !@allow_edited && msg.edit_date
+            return false
+        end
+
+        if !@allow_channel && msg.chat.type == 'channel'
+            return false
+        end
+
+        return true
+    end
 end
 
 class CommandHandler < Handler
-    def initialize(cmd, callback, args)
+    attr_reader :cmd, :description
+    def initialize(cmd, callback, desc = nil, args = {})
         @cmd = cmd
         @callback = callback
+        @description = desc
         @allow_edited = args[:allow_edited] || false
     end
 
@@ -17,11 +36,11 @@ class CommandHandler < Handler
             return false
         end
 
-        if @cmd == cmd
-            return true
+        if @cmd != cmd
+            return false
         end
        
-        return false
+        return true
     end
 
 end

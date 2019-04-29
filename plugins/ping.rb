@@ -1,8 +1,5 @@
 class Dankie
-    add_handler CommandHandler.new(:ping, :ping, allow_edited: false)
-    puts "asdW"
-
-    command ping: 'Hace ping'
+    add_handler CommandHandler.new(:ping, :ping, 'Hace ping', allow_edited: false)
 
     def ping(msg)
         time1 = Time.at(msg.date)

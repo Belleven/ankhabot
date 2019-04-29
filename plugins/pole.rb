@@ -1,42 +1,42 @@
-require 'telegram/bot'
-
 # Extension de dankie para manejar las poles
 class Dankie
-    command nisman: 'Muestra el ranking de nisman'
+    add_handler MessageHandler.new(:pole)
+    add_handler CommandHandler.new(:nisman, :send_pole_ranking, 'Muestra el ranking de Nisman')
 
-    def pole(msg)
-        return unless msg.is_a?(Telegram::Bot::Types::Message)
+# TODO: Ponerle algún flag de solo test a este comando
+#    add_handler CommandHandler.new(:givenisman, :_test_give_nisman)
 
-        unless @redis.exists("pole:#{msg.chat.id}:done")
-            now = Time.now
-            t = @tz.utc_to_local(
-                Time.new(now.year, now.month, now.day + 1)
-            ).to_i
-            msg_time = @tz.utc_to_local(Time.at(msg.date)).to_i
-            @redis.setex(
-                "pole:#{msg.chat.id}:done", t - msg_time, 'ok'
-            )
-            @redis.zincrby("pole:#{msg.chat.id}", 1, msg.from.id)
-            @logger.info(
-                "#{msg.from.first_name} hizo la nisman en #{msg.chat.id}"
-            )
-            send_message(chat_id: msg.chat.id, parse_mode: 'html',
+    def _test_give_nisman(msg)
+        id =  msg.reply_to_message ? msg.reply_to_message.from.id : msg.from.id
+        name = msg.reply_to_message ? msg.reply_to_message.from.first_name : msg.from.first_name
+        @redis.zincrby("pole:#{msg.chat.id}", 1, id)
+        @logger.info("#{name} hizo la nisman en #{msg.chat.id}")
+        @tg.send_message(chat_id: msg.chat.id, parse_mode: 'html',
                          reply_to_message_id: msg.message_id,
-                         text: "<b>#{msg.from.first_name}</b> hizo la Nisman")
-        end
-
-        cmd = parse_command(msg)
-
-        send_pole_ranking(msg) if cmd && cmd[:command] == :nisman
+                         text: "<b>#{name}</b> hizo la Nisman"
+                        )
     end
 
-    private
+    def pole(msg)
+        return if @redis.exists("pole:#{msg.chat.id}:done")
+
+        now = Time.now
+        t = @tz.utc_to_local(Time.new(now.year, now.month, now.day + 1)).to_i
+        msg_time = @tz.utc_to_local(Time.at(msg.date)).to_i
+        @redis.setex("pole:#{msg.chat.id}:done", t - msg_time, 'ok')
+        @redis.zincrby("pole:#{msg.chat.id}", 1, msg.from.id)
+        @logger.info("#{msg.from.first_name} hizo la nisman en #{msg.chat.id}")
+        @tg.send_message(chat_id: msg.chat.id, parse_mode: 'html',
+                         reply_to_message_id: msg.message_id,
+                         text: "<b>#{msg.from.first_name}</b> hizo la Nisman"
+                        )
+    end
 
     def send_pole_ranking(msg)
         texto = '<b>Ranking de Nismans</b>'
-        enviado = send_message(chat_id: msg.chat.id,
-                               parse_mode: 'html',
-                               text: texto + "\ncargando...")
+        enviado = @tg.send_message(chat_id: msg.chat.id,
+                                   parse_mode: 'html',
+                                   text: texto + "\ncargando...")
         enviado = Telegram::Bot::Types::Message.new(enviado['result'])
 
         # en vez de esto debería tener otra lista de plugins pesados que
@@ -54,11 +54,12 @@ class Dankie
         poles.each do |val|
             texto << "\n<code>#{format("%#{digits}d", val[1].to_i)} </code>"
             texto << get_username_link(enviado.chat.id, val[0])
-            edit_message_text(chat_id: enviado.chat.id,  text: texto,
-                              parse_mode: 'html',
-                              message_id: enviado.message_id,
-                              disable_web_page_preview: true,
-                              disable_notification: true)
+            @tg.edit_message_text(chat_id: enviado.chat.id,  text: texto,
+                                  parse_mode: 'html',
+                                  message_id: enviado.message_id,
+                                  disable_web_page_preview: true,
+                                  disable_notification: true
+                                 )
         end
     end
 end
