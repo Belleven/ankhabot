@@ -4,11 +4,18 @@ class Dankie
     add_handler CommandHandler.new(:nisman, :send_pole_ranking, 'Muestra el ranking de Nisman')
 
 # TODO: Ponerle algún flag de solo test a este comando
-#    add_handler CommandHandler.new(:givenisman, :_test_give_nisman)
+    add_handler CommandHandler.new(:givenisman, :_test_give_nisman)
 
     def _test_give_nisman(msg)
-        id =  msg.reply_to_message ? msg.reply_to_message.from.id : msg.from.id
-        name = msg.reply_to_message ? msg.reply_to_message.from.first_name : msg.from.first_name
+        id = msg.reply_to_message ? msg.reply_to_message.from.id : msg.from.id
+        mensaje = msg.reply_to_message ? msg.reply_to_message : msg
+        
+        name = if mensaje.from.first_name.empty?
+                  msg.from.id.to_s
+               else 
+                 mensaje.from.first_name
+               end
+        
         @redis.zincrby("pole:#{msg.chat.id}", 1, id)
         @logger.info("#{name} hizo la nisman en #{msg.chat.id}")
         @tg.send_message(chat_id: msg.chat.id, parse_mode: 'html',
@@ -19,16 +26,22 @@ class Dankie
 
     def pole(msg)
         return if @redis.exists("pole:#{msg.chat.id}:done")
-
         now = Time.now
         t = @tz.utc_to_local(Time.new(now.year, now.month, now.day + 1)).to_i
         msg_time = @tz.utc_to_local(Time.at(msg.date)).to_i
         @redis.setex("pole:#{msg.chat.id}:done", t - msg_time, 'ok')
         @redis.zincrby("pole:#{msg.chat.id}", 1, msg.from.id)
-        @logger.info("#{msg.from.first_name} hizo la nisman en #{msg.chat.id}")
+        
+        nombre = if mensaje.from.first_name.empty?
+          msg.from.id.to_s
+        else 
+          mensaje.from.first_name
+        end
+
+        @logger.info(nombre + " hizo la nisman en #{msg.chat.id}")
         @tg.send_message(chat_id: msg.chat.id, parse_mode: 'html',
                          reply_to_message_id: msg.message_id,
-                         text: "<b>#{msg.from.first_name}</b> hizo la Nisman"
+                         text: "<b>" + nombre + "</b> hizo la Nisman"
                         )
     end
 

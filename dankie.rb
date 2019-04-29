@@ -129,10 +129,12 @@ class Dankie
         user_link = if user.username
                         "<a href='https://telegram.me/#{user.username}'>" +
                             "#{user.username}</a>"
-                    else
+                    elsif not user.first_name.empty?
                         "<a href='tg://user?id=#{user_id}'>" +
                             "#{user.first_name}</a>"
-        end
+                    else
+                        "Cuenta Eliminada (ID: " + user_id + ")"
+                    end
     rescue Telegram::Bot::Exceptions::ResponseError, e
         user_link = nil
         @logger.error(e)
