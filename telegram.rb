@@ -33,6 +33,8 @@ class TelegramAPI
 
     end
 
+    private
+
     def delay_y_envio(args)
     
         args[:text].strip!
