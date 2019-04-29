@@ -3,8 +3,8 @@ require 'telegram/bot'
 class Dankie
     command recarga: 'Recarga la bala y gira la ruleta (6 ranuras)'
     command dispara: 'Dispara la próxima bala'
-    @@balas = []
-    @@cant_balas = 0
+    @@juegos = {}
+
 
     def ruleta(msg)
         return unless msg.is_a?(Telegram::Bot::Types::Message)
@@ -22,17 +22,18 @@ class Dankie
     private
 
     def recarga(msg)
-        @@cant_balas += 1
-        @@cant_balas = 6 if @@cant_balas > 6
+        @@juegos[msg.chat.id] ||= [0, []]
+        cant_balas, balas_arr = @@juegos[msg.chat.id]
+        cant_balas += 1
+        cant_balas = 6 if cant_balas > 6
 
-        @@balas = Array.new(@@cant_balas, true)
-        (6 - @@cant_balas).times { @@balas.push(false) }
-        @@balas = @@balas.shuffle
+        balas_arr = Array.new(cant_balas, true)
+        (6 - cant_balas).times { cant_balas.push(false) }
+        balas_arr = balas_arr.shuffle
+        @@juegos[msg.chat.id] = [cant_balas, balas_arr]
 
-        text = "Orden de las balas\n"
-        @@balas.each do |i|
-            text << (i ? 'bala' : 'vacío') + "\n"
-        end
+        text = "Recargado y girado. Hay " + cant_balas.to_s + " balas de 6 cargadas en la bersa.\n"
+
 
         send_message(chat_id: msg.chat.id,
                      reply_to_message_id: msg&.reply_to_message&.message_id,
@@ -40,23 +41,24 @@ class Dankie
     end
 
     def dispara(msg)
-        if @@balas.empty?
+        if (@@juegos[msg.chat.id] == nil)
             text = "Si no recargas no te puedo Nismanear #{TROESMAS.sample}. \n"
         else
-            val = @@balas.shift
+            cant_balas, balas_arr = @@juegos[msg.chat.id]
+            val = balas_arr.shift
             if val
-                @@cant_balas -= 1
+                cant_balas -= 1
                 text = "Te Nismaneaste #{TROESMAS.sample}. \n"
             else
-                text = "Sobreviviste \n"
+                text = "Sobreviviste #{TROESMAS.sample}.\n"
             end
 
-            if @@cant_balas == 0
+            if cant_balas == 0
                 text << "Se acabaron las balas. Vuelvan a recargar. \n"
-                @@balas = []
+                @@juegos.delete(msg.chat.id)
             else
-                text << 'Balas restantes: ' + @@cant_balas.to_s + "\n"
-                text << 'Tiros restantes: ' + @@balas.length.to_s + "\n"
+                text << 'Balas restantes: ' + cant_balas.to_s + "\n"
+                text << 'Tiros restantes: ' + cant_balas.length.to_s + "\n"
             end
 
         end
