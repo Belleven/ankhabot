@@ -8,8 +8,7 @@ class Dankie
     def recarga(msg)
         @@juegos[msg.chat.id] ||= [0, []]
         cant_balas, balas_arr = @@juegos[msg.chat.id]
-        cant_balas += 1
-        cant_balas = 6 if cant_balas > 6
+        cant_balas += 1 if cant_balas < 6
 
         balas_arr = Array.new(cant_balas, true)
         (6 - cant_balas).times { balas_arr.push(false) }
