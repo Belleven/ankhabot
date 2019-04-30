@@ -4,13 +4,35 @@ class Dankie
     add_handler CommandHandler.new(:blocked, :blocked)
 
     def ignore(msg)
-        # if msg.from no es admin
-        # putear y return
 
+    	if msg.chat.type == "private"
+          	@tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.message_id, text: 'Esto solo funciona en grupetes')
+          	return
+    	elsif msg.chat.type == "channel"
+    		return
+    	end
+
+        chat_id = msg.chat.id
+        user_id = msg.from.id
+        
+        # Chequeo que quien llama al comando sea o desarrollador, o admin, o creador del grupo
+        if not @developers.include?(user_id)
+        	member = @tg.get_chat_member(chat_id: chat_id, user_id: user_id)
+        	member = Telegram::Bot::Types::ChatMember.new(member['result'])
+        	status = member.status
+
+        	if status != "administrator" and status != "creator"
+	           	@tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.message_id, text: 'Vos no podés usar esto pa')
+        		return
+        	end
+        end
+
+
+        # Chequeo casos turbinas de quien va a ser bloqueado
         if msg.reply_to_message
             
             id = msg.reply_to_message.from.id
-            
+
             if id == msg.from.id
             	@tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.message_id, text: 'Cómo te vas a autobloquear papurri??')
             	return
@@ -30,13 +52,22 @@ class Dankie
             return
         end
 
-        # if id es de un admin
-        # putear y return
+        # Chequeo que no sea desarrollador ni admin del grupete
         if @developers.include?(id)
         	@tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.message_id, text: 'No podés bloquear a un desarrollador pa')
         	return
         end
+        
+        member_bloq = @tg.get_chat_member(chat_id: chat_id, user_id: id)
+        member_bloq = Telegram::Bot::Types::ChatMember.new(member_bloq['result'])
+        status = member_bloq.status
 
+        if status == "administrator" or status == "creator"
+           	@tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.message_id, text: 'No se puede bloquear a un admin')
+       		return
+        end
+
+        # Chequeo que no esté bloqueado ya
         id = id.to_s
         if @redis.sismember("bloqueados", id)
         	@tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.message_id, text: 'Pero cuántas veces te pensás que podés bloquear a alguien?? ya está en la lista negra')
@@ -47,8 +78,28 @@ class Dankie
     end
 
     def unignore(msg)
-        # if msg.from no es admin
-        # putear y return
+
+    	if msg.chat.type == "private"
+          	@tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.message_id, text: 'Esto solo funciona en grupetes')
+          	return
+    	elsif msg.chat.type == "channel"
+    		return
+    	end
+
+    	chat_id = msg.chat.id
+        user_id = msg.from.id
+        
+        # Chequeo que quien llama al comando sea o desarrollador, o admin, o creador del grupo
+        if not @developers.include?(user_id)
+        	member = @tg.get_chat_member(chat_id: chat_id, user_id: user_id)
+        	member = Telegram::Bot::Types::ChatMember.new(member['result'])
+        	status = member.status
+
+        	if status != "administrator" and status != "creator"
+	           	@tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.message_id, text: 'Vos no podés usar esto pa')
+        		return
+        	end
+        end
 
         if msg.reply_to_message
             id = msg.reply_to_message.from.id
@@ -56,9 +107,6 @@ class Dankie
             @tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.message_id, text: 'Dale capo a quién designoro???')
             return
         end
-
-        # if id es de un admin
-        # putear y return
 
         id = id.to_s
         if not @redis.sismember("bloqueados", id)
