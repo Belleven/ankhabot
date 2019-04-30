@@ -7,7 +7,7 @@ class Dankie
         return unless text
 
         message = msg.text.split(' ').first
-        return unless (r = /^[xX*](\d*)/) =~ message
+        return unless (r = /^[xX*](\d+)/) =~ message
 
         n = message.gsub(r, '\\1').to_i
         text << ' '
