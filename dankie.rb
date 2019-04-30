@@ -67,7 +67,6 @@ class Dankie
         @tg.client.listen do |msg|
             next if not msg&.from&.id
             next if @redis.sismember("bloqueados", msg.from.id.to_s)
-            
             dispatch(msg)
 
         rescue Faraday::ConnectionFailed, Net::OpenTimeout => e

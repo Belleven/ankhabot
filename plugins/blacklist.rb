@@ -17,6 +17,9 @@ class Dankie
             elsif id == @user.id
             	@tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.message_id, text: 'Ni se te ocurra')
             	return
+            elsif msg.reply_to_message.from.is_bot
+            	@tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.message_id, text: 'Para qué querés bloquear a un botazo???? Si ni los puedo leer')
+            	return
             elsif msg.reply_to_message.from.first_name.empty?
             	@tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.message_id, text: 'Para qué querés bloquear a una cuenta eliminada? Si ya no jode')
             	return
