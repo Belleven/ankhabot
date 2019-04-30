@@ -8,10 +8,12 @@ class Dankie
     TROESMAS = File.readlines('troesmas.txt').map(&:chomp)
     REKT = File.readlines('rekt.txt').map(&:chomp)
     DEVS = Set.new([240_524_686, # Luke
-                    98_631_116,  # m
-                    263_078_683, # santi
-                    267_832_653, # galeraa
-                    196_535_916  # ale
+                    98_631_116,  # M
+                    263_078_683, # Santi
+                    267_832_653, # Galerazo
+                    196_535_916, # Ale
+                    298_088_760, # Mel
+                    36_557_595 # Bruno
     ]).freeze
 
 
@@ -67,7 +69,8 @@ class Dankie
     def run
         @tg.client.listen do |msg|
             next unless msg&.from&.id
-            next if @redis.sismember('bloqueados', msg.from.id.to_s)
+            next if @redis.sismember('bloqueados:globales', msg.from.id.to_s)
+            next if @redis.sismember('bloqueados:' + msg.chat.id.to_s, msg.from.id.to_s)
 
             dispatch(msg)
 
