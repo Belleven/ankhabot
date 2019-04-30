@@ -27,32 +27,27 @@ class Dankie
         case msg
         when Telegram::Bot::Types::Message
             @@message_handlers.each do |handler|
-                if handler.check_message(msg)
-                    send(handler.callback, msg)
-                end
+                send(handler.callback, msg) if handler.check_message(msg)
             end
 
             cmd = parse_command(msg)
             return unless cmd && cmd[:command]
+
             @@command_handlers.each do |handler|
                 if handler.check_message(cmd[:command], msg.edit_date)
                     send(handler.callback, msg)
                 end
             end
-=begin
-        when Telegram::Bot::Types::CallbackQuery
-            @@callback_query_handlers.each do |handler|
-                if handler.check_message(msg)
-                    send(handler.callback, msg)
-                end
-            end
-=end
+            #         when Telegram::Bot::Types::CallbackQuery
+            #             @@callback_query_handlers.each do |handler|
+            #                 if handler.check_message(msg)
+            #                     send(handler.callback, msg)
+            #                 end
+            #             end
         end
     end
 
-
-
-#    def initialize(api, logger, redis, reddit)
+    #    def initialize(api, logger, redis, reddit)
     # Recibe un Hash con :tg_token, :redis_host, :redis_port, :redis_pass
     def initialize(args)
         @logger = Logger.new $stderr
@@ -60,13 +55,14 @@ class Dankie
         @redis = Redis.new port: args[:redis_port], host: args[:redis_host], password: args[:redis_pass]
         @tz = TZInfo::Timezone.get args[:timezone]
         @user = Telegram::Bot::Types::User.new(@tg.get_me['result']) # TODO: validar?
-        @developers = Set.new([263078683, 240524686, 267832653, 98631116, 196535916])
+        @developers = Set.new([263_078_683, 240_524_686, 267_832_653, 98_631_116, 196_535_916])
     end
 
     def run
         @tg.client.listen do |msg|
-            next if not msg&.from&.id
-            next if @redis.sismember("bloqueados", msg.from.id.to_s)
+            next unless msg&.from&.id
+            next if @redis.sismember('bloqueados', msg.from.id.to_s)
+
             dispatch(msg)
 
         rescue Faraday::ConnectionFailed, Net::OpenTimeout => e
@@ -78,15 +74,11 @@ class Dankie
     # Permite iterar sobre los comandos del bot, y sus descripciones
     def self.commands
         @@command_handlers.each do |handler|
-            if handler.description
-                yield handler.cmd, handler.description
-            end
+            yield handler.cmd, handler.description if handler.description
         end
-
     end
 
     private
-
 
     # Analiza un texto y se fija si es un comando válido, devuelve el comando
     # y el resto del texto
@@ -106,9 +98,9 @@ class Dankie
 
             return { command: command.to_sym, params: params }
 
-        else 
+        else
             arr = text.split(' ', 3) # ["user", "comando", "params"]
-            if arr.first.downcase == @user.username.downcase
+            if arr.first.casecmp(@user.username).zero?
                 return { command: arr[1].downcase.to_sym, params: arr[2] || nil }
 
             elsif msg.reply_to_message&.from&.id == @user.id # responde al bot
@@ -119,27 +111,25 @@ class Dankie
             end
         end
 
-        return { command: nil, params: nil }
+        { command: nil, params: nil }
     end
 
     def get_username_link(chat_id, user_id)
         user = @tg.get_chat_member(chat_id: chat_id, user_id: user_id)
         user = Telegram::Bot::Types::ChatMember.new(user['result']).user
         user_link = if user.username
-                        "<a href='https://telegram.me/#{user.username}'>" +
+                        "<a href='https://telegram.me/#{user.username}'>" \
                             "#{user.username}</a>"
-                    elsif not user.first_name.empty?
-                        "<a href='tg://user?id=#{user_id}'>" +
+                    elsif !user.first_name.empty?
+                        "<a href='tg://user?id=#{user_id}'>" \
                             "#{user.first_name}</a>"
                     else
-                        "ay no c (" + user_id + ")"
+                        'ay no c (' + user_id + ')'
                     end
     rescue Telegram::Bot::Exceptions::ResponseError, e
         user_link = nil
         @logger.error(e)
     ensure
-        user_link || "ay no c (ID: " + user_id + ")"
+        user_link || 'ay no c (ID: ' + user_id + ')'
     end
-
-
 end

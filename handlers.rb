@@ -10,15 +10,11 @@ class MessageHandler < Handler
     end
 
     def check_message(msg)
-        if !@allow_edited && msg.edit_date
-            return false
-        end
+        return false if !@allow_edited && msg.edit_date
 
-        if !@allow_channel && msg.chat.type == 'channel'
-            return false
-        end
+        return false if !@allow_channel && msg.chat.type == 'channel'
 
-        return true
+        true
     end
 end
 
@@ -32,17 +28,12 @@ class CommandHandler < Handler
     end
 
     def check_message(cmd, edit_date)
-        if !@allow_edited && edit_date
-            return false
-        end
+        return false if !@allow_edited && edit_date
 
-        if @cmd != cmd
-            return false
-        end
-       
-        return true
+        return false if @cmd != cmd
+
+        true
     end
-
 end
 
 class CallbackQueryHandler < Handler

@@ -3,47 +3,41 @@ require 'telegram/bot'
 class TelegramAPI
     attr_reader :client
 
-    #token es String, logger es Logger
+    # token es String, logger es Logger
     def initialize(token, logger)
         @client = Telegram::Bot::Client.new token, logger: logger
     end
 
     def send_message(args)
-        
         text = args[:text]
-        
-        return unless args[:chat_id] && args[:text] && (not text.empty?)
+
+        return unless args[:chat_id] && args[:text] && !text.empty?
 
         # Itero de a bloques de 4096
         inicio = 0
         fin = [text.length, 4096].min
 
-        while inicio != fin do
-            
+        while inicio != fin
+
             # Mando el blocazo
             args[:text] = text[inicio..fin]
             resultado = delay_y_envio(args)
-            
+
             inicio = fin
-            fin = [text.length, fin + 4096].min 
+            fin = [text.length, fin + 4096].min
 
         end
 
-        return resultado
-
+        resultado
     end
 
     private
 
     def delay_y_envio(args)
-    
         args[:text].strip!
-        if args[:text].empty?
-            return
-        end
+        return if args[:text].empty?
 
-        return @client.api.send_message(args)
-
+        @client.api.send_message(args)
     end
 
     # tengo acceso a toda la api de telegram (bot.api) desde la clase Dankie
@@ -67,4 +61,3 @@ class TelegramAPI
         @client.api.respond_to?(method_name) || super
     end
 end
-

@@ -16,8 +16,8 @@ class Dankie
         text.gsub!(/[ÁÉÍÓÚ]/, 'Í')
 
         @tg.send_message(chat_id: msg.chat.id,
-                     text: text)
+                         text: text)
         @tg.send_sticker(chat_id: msg.chat.id,
-                     sticker: 'BQADAgADQQEAAksODwABJlVW31Lsf6sC')
+                         sticker: 'BQADAgADQQEAAksODwABJlVW31Lsf6sC')
     end
 end

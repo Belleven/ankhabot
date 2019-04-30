@@ -15,17 +15,15 @@ class Dankie
         balas_arr = balas_arr.shuffle
         @@juegos[msg.chat.id] = [cant_balas, balas_arr]
 
-        text = "Recargado y girado. Hay " + cant_balas.to_s + " balas de 6 cargadas en la bersa.\n"
-
+        text = 'Recargado y girado. Hay ' + cant_balas.to_s + " balas de 6 cargadas en la bersa.\n"
 
         @tg.send_message(chat_id: msg.chat.id,
                          reply_to_message_id: msg&.reply_to_message&.message_id,
-                         text: text
-                        )
+                         text: text)
     end
 
     def dispara(msg)
-        if (@@juegos[msg.chat.id] == nil)
+        if @@juegos[msg.chat.id].nil?
             text = "Si no recargas no te puedo Nismanear #{TROESMAS.sample}. \n"
         else
             juego_actual = @@juegos[msg.chat.id]
@@ -48,7 +46,6 @@ class Dankie
         end
 
         @tg.send_message(chat_id: msg.chat.id,
-                         text: text
-                        )
+                         text: text)
     end
 end
