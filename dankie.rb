@@ -8,12 +8,12 @@ class Dankie
     TROESMAS = File.readlines('troesmas.txt').map(&:chomp)
     REKT = File.readlines('rekt.txt').map(&:chomp)
     DEVS = Set.new([240_524_686, # Luke
-                    98_631_116,  # M
+                     98_631_116, # M
                     263_078_683, # Santi
                     267_832_653, # Galerazo
                     196_535_916, # Ale
                     298_088_760, # Mel
-                    36_557_595 # Bruno
+                     36_557_595  # Bruno
     ]).freeze
 
 
