@@ -31,8 +31,13 @@ class Dankie
         	return
         end
 
-        @redis.sadd("bloqueados", id.to_s)
-        @tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.reply_to_message.message_id, text: 'ya no te doy bola papu ¬_¬')
+        id = id.to_s
+        if @redis.sismember("bloqueados", id)
+        	@tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.message_id, text: 'Pero cuántas veces te pensás que podés bloquear a alguien?? ya está en la lista negra')
+        else
+        	@redis.sadd("bloqueados", id)
+        	@tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.reply_to_message.message_id, text: 'ya no te doy bola papu ¬_¬')
+    	end
     end
 
     def unignore(msg)
@@ -42,19 +47,20 @@ class Dankie
         if msg.reply_to_message
             id = msg.reply_to_message.from.id
         else
-            @tg.send_message(chat_id: msg.chat.id,
-                             reply_to_message: msg.message_id,
-                             text: 'Dale capo a quién designoro???')
+            @tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.message_id, text: 'Dale capo a quién designoro???')
             return
         end
 
         # if id es de un admin
         # putear y return
 
-        @redis.srem("bloqueados", id.to_s)
-        @tg.send_message(chat_id: msg.chat.id,
-                         reply_to_message: msg.reply_to_message.message_id,
-                         text: 'ola de nuevo nwn')
+        id = id.to_s
+        if not @redis.sismember("bloqueados", id)
+	       	@tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.message_id, text: 'No puedo desbloquear a alguien que no está en la lista negra')
+	    else
+        	@redis.srem("bloqueados", id)
+        	@tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.reply_to_message.message_id, text: 'ola de nuevo nwn')
+        end
     end
 
     def save
