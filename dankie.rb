@@ -59,9 +59,6 @@ class Dankie
         @redis = Redis.new port: args[:redis_port], host: args[:redis_host], password: args[:redis_pass]
         @tz = TZInfo::Timezone.get args[:timezone]
         @user = Telegram::Bot::Types::User.new(@tg.get_me['result']) # TODO: validar?
-
-        @blacklist_arr = []
-        @blacklist_populated = false
     end
 
     def run
