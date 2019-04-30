@@ -4,26 +4,8 @@ class Dankie
     add_handler CommandHandler.new(:blocked, :blocked)
 
     def ignore(msg)
-        if msg.chat.type == 'private'
-            @tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.message_id, text: 'Esto solo funciona en grupetes')
-            return
-        elsif msg.chat.type == 'channel'
-            return
-        end
-
-        chat_id = msg.chat.id
-        user_id = msg.from.id
-
-        # Chequeo que quien llama al comando sea o desarrollador, o admin, o creador del grupo
-        unless @developers.include?(user_id)
-            member = @tg.get_chat_member(chat_id: chat_id, user_id: user_id)
-            member = Telegram::Bot::Types::ChatMember.new(member['result'])
-            status = member.status
-
-            if (status != 'administrator') && (status != 'creator')
-                @tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.message_id, text: 'Vos no podés usar esto pa')
-                return
-            end
+        if not validate(msg)
+           return
         end
 
         # Chequeo casos turbinas de quien va a ser bloqueado
@@ -56,7 +38,7 @@ class Dankie
             return
         end
 
-        member_bloq = @tg.get_chat_member(chat_id: chat_id, user_id: id)
+        member_bloq = @tg.get_chat_member(chat_id: msg.chat.id, user_id: id)
         member_bloq = Telegram::Bot::Types::ChatMember.new(member_bloq['result'])
         status = member_bloq.status
 
@@ -71,32 +53,16 @@ class Dankie
             @tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.message_id, text: 'Pero cuántas veces te pensás que podés bloquear a alguien?? ya está en la lista negra')
         else
             @redis.sadd('bloqueados', id)
+            @redis.bgsave()
             @tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.reply_to_message.message_id, text: 'ya no te doy bola papu ¬_¬')
         end
     end
 
     def unignore(msg)
-        if msg.chat.type == 'private'
-            @tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.message_id, text: 'Esto solo funciona en grupetes')
-            return
-        elsif msg.chat.type == 'channel'
-            return
-        end
 
-        chat_id = msg.chat.id
-        user_id = msg.from.id
-
-        # Chequeo que quien llama al comando sea o desarrollador, o admin, o creador del grupo
-        unless @developers.include?(user_id)
-            member = @tg.get_chat_member(chat_id: chat_id, user_id: user_id)
-            member = Telegram::Bot::Types::ChatMember.new(member['result'])
-            status = member.status
-
-            if (status != 'administrator') && (status != 'creator')
-                @tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.message_id, text: 'Vos no podés usar esto pa')
-                return
-            end
-        end
+    	if not validate(msg)
+    		return
+    	end
 
         if msg.reply_to_message
             id = msg.reply_to_message.from.id
@@ -110,13 +76,39 @@ class Dankie
             @tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.message_id, text: 'No puedo desbloquear a alguien que no está en la lista negra')
         else
             @redis.srem('bloqueados', id)
+            @redis.bgsave()
             @tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.reply_to_message.message_id, text: 'ola de nuevo nwn')
         end
     end
 
-    def save
-        # TODO: use @redis
+
+    private
+    def validate(msg)
+    	if msg.chat.type == 'private'
+            @tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.message_id, text: 'Esto solo funciona en grupetes')
+            return false
+        elsif msg.chat.type == 'channel'
+            return false
+        end
+
+        chat_id = msg.chat.id
+        user_id = msg.from.id
+
+        # Chequeo que quien llama al comando sea o desarrollador, o admin, o creador del grupo
+        unless @developers.include?(user_id)
+            member = @tg.get_chat_member(chat_id: chat_id, user_id: user_id)
+            member = Telegram::Bot::Types::ChatMember.new(member['result'])
+            status = member.status
+
+            if (status != 'administrator') && (status != 'creator')
+                @tg.send_message(chat_id: chat_id, reply_to_message: msg.message_id, text: 'Vos no podés usar esto pa')
+                return false
+            end
+        end
+
+        return true
     end
+
 
     def blocked(msg)
         # Solo para ver si anda
