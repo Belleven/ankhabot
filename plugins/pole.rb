@@ -33,7 +33,7 @@ class Dankie
         @redis.zincrby("pole:#{msg.chat.id}", 1, msg.from.id)
         
         nombre = if mensaje.from.first_name.empty?
-          msg.from.id.to_s
+          "ay no c (" + msg.from.id.to_s + ")"
         else 
           mensaje.from.first_name
         end

@@ -8,10 +8,17 @@ class Dankie
 
         if msg.reply_to_message
             id = msg.reply_to_message.from.id
+            if id == msg.from.id
+            	@tg.send_message(chat_id: msg.chat.id,
+                             reply_to_message: msg.message_id,
+                             text: 'Cómo te vas a autobloquear papurri??')
+            	return
+            end
+
         else
             @tg.send_message(chat_id: msg.chat.id,
                              reply_to_message: msg.message_id,
-                             text: 'Dale capo a quien ignoro')
+                             text: 'Dale capo a quién ignoro???')
             return
         end
 
@@ -33,7 +40,7 @@ class Dankie
         else
             @tg.send_message(chat_id: msg.chat.id,
                              reply_to_message: msg.message_id,
-                             text: 'Dale capo a quien designoro')
+                             text: 'Dale capo a quién designoro???')
             return
         end
 

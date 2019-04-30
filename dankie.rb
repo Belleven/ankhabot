@@ -133,13 +133,13 @@ class Dankie
                         "<a href='tg://user?id=#{user_id}'>" +
                             "#{user.first_name}</a>"
                     else
-                        "Cuenta Eliminada (ID: " + user_id + ")"
+                        "ay no c (" + user_id + ")"
                     end
     rescue Telegram::Bot::Exceptions::ResponseError, e
         user_link = nil
         @logger.error(e)
     ensure
-        user_link || 'ay no c'
+        user_link || "ay no c (ID: " + user_id + ")"
     end
 
 
