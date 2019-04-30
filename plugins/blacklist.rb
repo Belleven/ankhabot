@@ -33,7 +33,7 @@ class Dankie
         end
 
         # Chequeo que no sea desarrollador ni admin del grupete
-        if @developers.include?(id)
+        if DEVS.include?(id)
             @tg.send_message(chat_id: msg.chat.id, reply_to_message: msg.message_id, text: 'No podés bloquear a un desarrollador pa')
             return
         end
@@ -95,7 +95,7 @@ class Dankie
         user_id = msg.from.id
 
         # Chequeo que quien llama al comando sea o desarrollador, o admin, o creador del grupo
-        unless @developers.include?(user_id)
+        unless DEVS.include?(user_id)
             member = @tg.get_chat_member(chat_id: chat_id, user_id: user_id)
             member = Telegram::Bot::Types::ChatMember.new(member['result'])
             status = member.status

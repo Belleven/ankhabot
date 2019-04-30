@@ -7,6 +7,13 @@ class Dankie
     attr_reader :tg, :logger, :redis, :reddit, :user
     TROESMAS = File.readlines('troesmas.txt').map(&:chomp)
     REKT = File.readlines('rekt.txt').map(&:chomp)
+    DEVS = Set.new([240_524_686, # Luke
+                    98_631_116,  # m
+                    263_078_683, # santi
+                    267_832_653, # galeraa
+                    196_535_916  # ale
+    ]).freeze
+
 
     def self.add_handler(handler)
         case handler
@@ -55,7 +62,6 @@ class Dankie
         @redis = Redis.new port: args[:redis_port], host: args[:redis_host], password: args[:redis_pass]
         @tz = TZInfo::Timezone.get args[:timezone]
         @user = Telegram::Bot::Types::User.new(@tg.get_me['result']) # TODO: validar?
-        @developers = Set.new([263_078_683, 240_524_686, 267_832_653, 98_631_116, 196_535_916])
     end
 
     def run
