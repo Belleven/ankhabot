@@ -1,6 +1,7 @@
 require_relative 'telegram.rb'
 require 'redis'
 require 'tzinfo'
+require 'set'
 
 class Dankie
     attr_reader :tg, :logger, :redis, :reddit, :user
@@ -59,6 +60,7 @@ class Dankie
         @redis = Redis.new port: args[:redis_port], host: args[:redis_host], password: args[:redis_pass]
         @tz = TZInfo::Timezone.get args[:timezone]
         @user = Telegram::Bot::Types::User.new(@tg.get_me['result']) # TODO: validar?
+        @developers = Set.new([263078683, 240524686, 267832653, 98631116, 196535916])
     end
 
     def run
