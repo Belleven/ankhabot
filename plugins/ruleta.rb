@@ -28,21 +28,21 @@ class Dankie
         if (@@juegos[msg.chat.id] == nil)
             text = "Si no recargas no te puedo Nismanear #{TROESMAS.sample}. \n"
         else
-            cant_balas, balas_arr = @@juegos[msg.chat.id]
-            val = balas_arr.shift
+            juego_actual = @@juegos[msg.chat.id]
+            val = juego_actual[1].shift
             if val
-                cant_balas -= 1
+                juego_actual[0] -= 1
                 text = "Te Nismaneaste #{TROESMAS.sample}. \n"
             else
                 text = "Sobreviviste #{TROESMAS.sample}.\n"
             end
 
-            if cant_balas == 0
+            if juego_actual[0] == 0
                 text << "Se acabaron las balas. Vuelvan a recargar. \n"
                 @@juegos.delete(msg.chat.id)
             else
-                text << 'Balas restantes: ' + cant_balas.to_s + "\n"
-                text << 'Tiros restantes: ' + balas_arr.length.to_s + "\n"
+                text << 'Balas restantes: ' + juego_actual[0].to_s + "\n"
+                text << 'Tiros restantes: ' + juego_actual[1].length.to_s + "\n"
             end
 
         end
