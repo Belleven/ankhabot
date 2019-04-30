@@ -35,7 +35,7 @@ class Dankie
         nombre = if msg.from.first_name.empty?
                      'ay no c (' + msg.from.id.to_s + ')'
                  else
-                     mensaje.from.first_name
+                     msg.from.first_name
         end
 
         @logger.info(nombre + " hizo la nisman en #{msg.chat.id}")
