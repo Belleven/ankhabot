@@ -16,7 +16,6 @@ class Dankie
                     36_557_595 # Bruno
     ]).freeze
 
-
     def self.add_handler(handler)
         case handler
         when MessageHandler
@@ -43,6 +42,8 @@ class Dankie
             return unless cmd && cmd[:command]
 
             @@command_handlers.each do |handler|
+                next if msg.chat.type == 'channel'
+
                 if handler.check_message(cmd[:command], msg.edit_date)
                     send(handler.callback, msg)
                 end
@@ -69,8 +70,8 @@ class Dankie
     def run
         @tg.client.listen do |msg|
             next unless msg&.from&.id
-            next if @redis.sismember('bloqueados:globales', msg.from.id.to_s)
-            next if @redis.sismember('bloqueados:' + msg.chat.id.to_s, msg.from.id.to_s)
+            next if @redis.sismember('blacklist:global', msg.from.id.to_s)
+            next if @redis.sismember("blacklist:#{msg.chat.id}", msg.from.id.to_s)
 
             dispatch(msg)
 
