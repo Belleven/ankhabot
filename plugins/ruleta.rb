@@ -5,7 +5,7 @@ class Dankie
     add_handler CommandHandler.new(:dispara, :dispara, 'Dispara la próxima bala')
     @@juegos = {}
 
-    def recarga(msg)
+    def recarga(msg, params=nil)
         @@juegos[msg.chat.id] ||= [0, []]
         cant_balas, balas_arr = @@juegos[msg.chat.id]
         cant_balas += 1 if cant_balas < 6
@@ -22,7 +22,7 @@ class Dankie
                          text: text)
     end
 
-    def dispara(msg)
+    def dispara(msg, params=nil)
         if @@juegos[msg.chat.id].nil?
             text = "Si no recargas no te puedo Nismanear #{TROESMAS.sample}. \n"
         else

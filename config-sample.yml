@@ -4,3 +4,4 @@ redis_host: 'localhost'
 redis_port: '42069'
 redis_pass: 'pass'
 timezone: 'America/Argentina/Buenos_Aires'
+last_fm_api: "6c242c3ac9284cbeaeb6ad145c0a764a"

@@ -13,21 +13,21 @@ class Dankie
 
     private
 
-    def block(msg)
+    def block(msg, params=nil)
         run_blacklist_command(msg, :check_admin, :block_user, msg.chat.id.to_s,
                               'Vos no podés usar esto pa')
     end
 
-    def gblock(msg)
+    def gblock(msg, params=nil)
         run_blacklist_command(msg, :validate_dev, :block_user, 'globales')
     end
 
-    def unblock(msg)
+    def unblock(msg, params=nil)
         run_blacklist_command(msg, :check_admin, :unblock_user,
                               msg.chat.id.to_s, 'Vos no podés usar esto pa')
     end
 
-    def gunblock(msg)
+    def gunblock(msg, params=nil)
         run_blacklist_command(msg, :validate_dev, :unblock_user, 'globales')
     end
 
@@ -178,11 +178,11 @@ class Dankie
         true
     end
 
-    def blocked(msg)
+    def blocked(msg, params=nil)
         get_blocked(msg, 'global')
     end
 
-    def local_blocked(msg)
+    def local_blocked(msg, params=nil)
         get_blocked(msg, msg.chat.id.to_s)
     end
 
