@@ -5,10 +5,10 @@ class Dankie
 
   def setlastfm(msg)
 
-    parsed = msg.split(" ")
+    parsed = msg.text.split(" ")
     user = parsed[1].to_s
 
-    if (user == nil)
+    if ((user == nil )  || (user == ""))
       err_txt = "Si no me pasás un usuario, está jodida la cosa #{TROESMAS.sample}."
       @tg.send_message(chat_id: msg.chat.id,
                        reply_to_message: msg.message_id,
