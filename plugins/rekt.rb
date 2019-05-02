@@ -1,7 +1,7 @@
 class Dankie
     add_handler CommandHandler.new(:rekt, :rekt, 'Informa a un usuario si ha sido destruido')
 
-    def rekt(msg, params=nil)
+    def rekt(msg)
         text = "☐ Not rekt\n"
 
         3.times { text << REKT.sample + "\n" }

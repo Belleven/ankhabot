@@ -45,7 +45,7 @@ class Dankie
                 next if msg.chat.type == 'channel'
 
                 if handler.check_message(cmd[:command], msg.edit_date)
-                        send(handler.callback, msg, cmd[:params])
+                        send(handler.callback, msg)
                 end
             end
             #         when Telegram::Bot::Types::CallbackQuery

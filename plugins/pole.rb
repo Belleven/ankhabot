@@ -6,7 +6,7 @@ class Dankie
     # TODO: Ponerle algún flag de solo test a este comando
     add_handler CommandHandler.new(:givenisman, :_test_give_nisman)
 
-    def _test_give_nisman(msg, params=nil)
+    def _test_give_nisman(msg)
         id = msg.reply_to_message ? msg.reply_to_message.from.id : msg.from.id
         mensaje = msg.reply_to_message || msg
 
@@ -23,7 +23,7 @@ class Dankie
                          text: "<b>#{name}</b> hizo la Nisman")
     end
 
-    def pole(msg, params=nil)
+    def pole(msg)
         return if @redis.exists("pole:#{msg.chat.id}:done")
 
         now = Time.now
@@ -44,7 +44,7 @@ class Dankie
                          text: '<b>' + nombre + '</b> hizo la Nisman')
     end
 
-    def send_pole_ranking(msg, params=nil)
+    def send_pole_ranking(msg)
         texto = '<b>Ranking de Nismans</b>'
         enviado = @tg.send_message(chat_id: msg.chat.id,
                                    parse_mode: 'html',

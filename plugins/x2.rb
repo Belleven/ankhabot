@@ -1,6 +1,6 @@
 class Dankie
     add_handler MessageHandler.new(:x2)
-    def x2(msg, params=nil)
+    def x2(msg)
         return unless msg.text
 
         text = msg&.reply_to_message&.text || msg&.reply_to_message&.caption
