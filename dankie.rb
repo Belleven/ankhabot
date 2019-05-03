@@ -46,7 +46,7 @@ class Dankie
                 next if msg.chat.type == 'channel'
 
                 if handler.check_message(cmd[:command], msg.edit_date)
-                    send(handler.callback, msg)
+                        send(handler.callback, msg)
                 end
             end
             #         when Telegram::Bot::Types::CallbackQuery
@@ -66,7 +66,10 @@ class Dankie
         @img = ImageSearcher.new args[:google_image_key], args[:google_image_cx]
         @tz = TZInfo::Timezone.get args[:timezone]
         @user = Telegram::Bot::Types::User.new @tg.get_me['result'] # TODO: validar?
+        @lastfm = "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&format=json&limit=1&api_key=" + args[:last_fm_api] + "&user="
     end
+
+
 
     def run
         @tg.client.listen do |msg|
