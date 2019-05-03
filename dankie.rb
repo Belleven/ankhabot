@@ -1,4 +1,5 @@
 require_relative 'telegram.rb'
+require_relative 'images.rb'
 require 'redis'
 require 'tzinfo'
 require 'set'
@@ -57,14 +58,14 @@ class Dankie
         end
     end
 
-    #    def initialize(api, logger, redis, reddit)
-    # Recibe un Hash con :tg_token, :redis_host, :redis_port, :redis_pass
+    # Recibe un Hash con los datos de config.yml
     def initialize(args)
         @logger = Logger.new $stderr
         @tg = TelegramAPI.new args[:tg_token], @logger
         @redis = Redis.new port: args[:redis_port], host: args[:redis_host], password: args[:redis_pass]
+        @img = ImageSearcher.new args[:google_image_key], args[:google_image_cx]
         @tz = TZInfo::Timezone.get args[:timezone]
-        @user = Telegram::Bot::Types::User.new(@tg.get_me['result']) # TODO: validar?
+        @user = Telegram::Bot::Types::User.new @tg.get_me['result'] # TODO: validar?
     end
 
     def run
