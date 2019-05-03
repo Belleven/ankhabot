@@ -8,8 +8,9 @@ require 'set'
 
 class Dankie
     attr_reader :tg, :logger, :redis, :reddit, :user
-    TROESMAS = File.readlines('resources/troesmas.txt').map(&:chomp)
-    REKT = File.readlines('resources/rekt.txt').map(&:chomp)
+    TROESMAS = File.readlines('resources/troesmas.txt').map &:chomp
+    REKT = File.readlines('resources/rekt.txt').map &:chomp
+    CALLEFUEGOS = File.readlines('resources/callefuegos.txt').map &:chomp
     DEVS = Set.new([240_524_686, # Luke
                     98_631_116,  # M
                     263_078_683, # Santi
