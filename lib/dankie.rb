@@ -1,3 +1,5 @@
+require_relative 'version.rb'
+require_relative 'handlers.rb'
 require_relative 'telegram.rb'
 require_relative 'images.rb'
 require 'redis'
@@ -6,8 +8,8 @@ require 'set'
 
 class Dankie
     attr_reader :tg, :logger, :redis, :reddit, :user
-    TROESMAS = File.readlines('troesmas.txt').map(&:chomp)
-    REKT = File.readlines('rekt.txt').map(&:chomp)
+    TROESMAS = File.readlines('resources/troesmas.txt').map(&:chomp)
+    REKT = File.readlines('resources/rekt.txt').map(&:chomp)
     DEVS = Set.new([240_524_686, # Luke
                     98_631_116,  # M
                     263_078_683, # Santi
@@ -66,7 +68,7 @@ class Dankie
         @img = ImageSearcher.new args[:google_image_key], args[:google_image_cx]
         @tz = TZInfo::Timezone.get args[:timezone]
         @user = Telegram::Bot::Types::User.new @tg.get_me['result'] # TODO: validar?
-        @lastfm = "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&format=json&limit=1&api_key=" + args[:last_fm_api] + "&user="
+        @lastfm = "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&format=json&limit=1&api_key=#{args[:last_fm_api]}&user="
     end
 
 
