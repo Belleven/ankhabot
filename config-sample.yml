@@ -6,4 +6,4 @@ redis_pass: 'pass'
 timezone: 'America/Argentina/Buenos_Aires'
 google_image_key: 
 google_image_cx: 
-last_fm_api: "6c242c3ac9284cbeaeb6ad145c0a764a"
+last_fm_api: 
