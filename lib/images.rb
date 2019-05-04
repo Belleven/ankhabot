@@ -20,6 +20,12 @@ class ImageSearcher
             return nil
         end
         result['items'].map { |i| Link.new i['link'] }
+    rescue Faraday::ConnectionFailed, Net::OpenTimeout => e
+        @client.logger.error(e)
+        retry
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        @client.logger.error(e)
+        raise e
     rescue JSON::ParserError, e
         @logger.error(e)
         nil
