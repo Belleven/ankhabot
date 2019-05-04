@@ -26,7 +26,7 @@ class ImageSearcher
     rescue Telegram::Bot::Exceptions::ResponseError => e
         @client.logger.error(e)
         raise e
-    rescue JSON::ParserError, e
+    rescue JSON::ParserError => e
         @logger.error(e)
         nil
     end

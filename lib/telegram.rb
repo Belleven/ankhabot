@@ -38,6 +38,12 @@ class TelegramAPI
         return if args[:text].empty?
 
         @client.api.send_message(args)
+    rescue Faraday::ConnectionFailed, Net::OpenTimeout => e
+        @client.logger.error(e)
+        retry
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        @client.logger.error(e)
+        raise e
     end
 
     # tengo acceso a toda la api de telegram (bot.api) desde la clase Dankie
@@ -47,13 +53,9 @@ class TelegramAPI
         @client.api.send(method_name, *args)
     rescue Faraday::ConnectionFailed, Net::OpenTimeout => e
         @client.logger.error(e)
-        @client.logger.error(e.display)
-        @client.logger.error(e.backtrace)
         retry
     rescue Telegram::Bot::Exceptions::ResponseError => e
         @client.logger.error(e)
-        @client.logger.error(e.display)
-        @client.logger.error(e.backtrace)
         raise e
     end
 

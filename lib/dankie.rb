@@ -145,7 +145,7 @@ class Dankie
                     else
                         'ay no c (' + user_id + ')'
                     end
-    rescue Telegram::Bot::Exceptions::ResponseError, e
+    rescue Telegram::Bot::Exceptions::ResponseError => e
         user_link = nil
         @logger.error(e)
     ensure
