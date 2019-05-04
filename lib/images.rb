@@ -1,6 +1,6 @@
 require 'net/http'
 require 'json'
-
+require_relative 'links.rb'
 
 class ImageSearcher
     def initialize(key, cx)
@@ -13,18 +13,15 @@ class ImageSearcher
         query << "&key=#{@key}&cx=#{@cx}"
         query << '&searchType=image'
         url = 'https://www.googleapis.com/customsearch/v1?' + query
-        resp = Net::HTTP.get_response(URI.parse(url))
+        resp = Net::HTTP.get_response(URI.parse(URI.escape(url)))
         result = JSON.parse(resp.body)
         if result['items'].nil?
+            puts 'posta no encontré una chota'
             return nil
         end
-        arr = result['items'].map { |i| i['link'] }
-        arr
-#        else
-#            result_size = result['items'].count
-#            bot.api.send_chat_action(chat_id: message.chat.id, action: 'upload_photo')
-#            bot.api.send_photo(chat_id: message.chat.id,
-#                               photo: result['items'][rand(result_size)]['link'])
-#        end
+        result['items'].map { |i| Link.new i['link'] }
+    rescue JSON::ParserError, e
+        @logger.error(e)
+        nil
     end
 end
