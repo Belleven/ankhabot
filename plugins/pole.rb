@@ -36,7 +36,7 @@ class Dankie
                      'ay no c (' + msg.from.id.to_s + ')'
                  else
                      msg.from.first_name
-        end
+                 end
 
         @logger.info(nombre + " hizo la nisman en #{msg.chat.id}")
         @tg.send_message(chat_id: msg.chat.id, parse_mode: 'html',
