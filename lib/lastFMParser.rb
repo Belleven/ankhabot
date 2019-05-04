@@ -14,7 +14,7 @@ class LastFMParser
         resp = Net::HTTP.get_response(URI.parse(url))
         result = JSON.parse(resp.body)
         if result['recenttracks'].nil?
-            return nil
+            return result
         end
         arr = result['recenttracks']['track']
         arr

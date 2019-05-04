@@ -1,7 +1,10 @@
 Adamantium
+Amigacho
+Amigo
 Animal
 Artista
 Bestia
+Bisonte
 Bravo
 Brontosaurio
 Caimán
@@ -17,6 +20,7 @@ Coloso
 Coronel
 Crack
 Depredador
+Digimón
 Elemento
 Espectro
 Fenómeno
@@ -34,6 +38,7 @@ Héroe
 Ídolo
 Jefe
 Johnny
+Kamikaze
 Killer
 King Kong
 León
@@ -75,6 +80,7 @@ Valiente
 Vaquero
 Velociraptor
 Vikingo
+Visionario
 Vividor
 Willyrex
 Zeus

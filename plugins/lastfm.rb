@@ -57,6 +57,12 @@ class Dankie
         end
 
         np = @lastFM.now_playing user, amount
+
+        valid = valid_recent_tracks(msg, np)
+        if (!valid)
+            return
+        end
+
         out = "Canciones recientes del usuario: \n\n"
         x = 0
         for track in np
@@ -81,14 +87,36 @@ class Dankie
         end
 
         np = @lastFM.now_playing user, 1
+
+        valid = valid_recent_tracks(msg, np)
+        if (!valid)
+            return
+        end
+
         out = "Mirate este temón: \n"
         out << "👤: #{np[0]['artist']['#text']}\n"
         out <<  "🎵: #{np[0]['name']}\n"
         out << "💿: #{np[0]['album']['#text']}"
-        out << "<a href=\"#{np[0]['image'][2]['#text']}\"> \u200d </a>"
+        out << "<a href=\"#{np[0]['image'][2]['#text']}\">\u200d</a>"
 
         @tg.send_message(chat_id: msg.chat.id, parse_mode: 'html',
                          reply_to_message: msg.message_id,
                          text: out)
+    end
+
+
+    def valid_recent_tracks(msg, arr)
+        if (arr.empty?)
+            @tg.send_message(chat_id: msg.chat.id, parse_mode: 'html',
+                             reply_to_message: msg.message_id,
+                             text: "No encontré que hayas escuchado ninguna canción #{TROESMAS.sample}.")
+            return false
+        elsif !arr['error'].nil?
+            @tg.send_message(chat_id: msg.chat.id, parse_mode: 'html',
+                             reply_to_message: msg.message_id,
+                             text: "Alto error #{TROESMAS.sample}. \n<b>#{arr['message']}</b>")
+            return false
+        end
+        return true
     end
 end
