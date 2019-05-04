@@ -2,6 +2,7 @@ require_relative 'version.rb'
 require_relative 'handlers.rb'
 require_relative 'telegram.rb'
 require_relative 'images.rb'
+require_relative 'lastFMParser.rb'
 require 'redis'
 require 'tzinfo'
 require 'set'
@@ -70,7 +71,7 @@ class Dankie
         @img = ImageSearcher.new args[:google_image_key], args[:google_image_cx]
         @tz = TZInfo::Timezone.get args[:timezone]
         @user = Telegram::Bot::Types::User.new @tg.get_me['result'] # TODO: validar?
-        @lastfm = "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&format=json&limit=1&api_key=#{args[:last_fm_api]}&user="
+        @lastFM = LastFMParser.new args[:last_fm_api]
     end
 
 
