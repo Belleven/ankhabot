@@ -111,10 +111,10 @@ class Dankie
                              reply_to_message: msg.message_id,
                              text: "No encontré que hayas escuchado ninguna canción #{TROESMAS.sample}.")
             return false
-        elsif !arr['error'].nil?
+        elsif (arr[0] == 'error')
             @tg.send_message(chat_id: msg.chat.id, parse_mode: 'html',
                              reply_to_message: msg.message_id,
-                             text: "Alto error #{TROESMAS.sample}. \n<b>#{arr['message']}</b>")
+                             text: "Alto error #{TROESMAS.sample}. \n<b>#{arr[1]}</b>")
             return false
         end
         return true

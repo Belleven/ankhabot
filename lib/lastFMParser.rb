@@ -13,8 +13,8 @@ class LastFMParser
         url = 'http://ws.audioscrobbler.com/2.0/?' + query
         resp = Net::HTTP.get_response(URI.parse(url))
         result = JSON.parse(resp.body)
-        if result['recenttracks'].nil?
-            return result
+        if !(result['error'].nil?)
+            return ['error',result['message']]
         end
         arr = result['recenttracks']['track']
         arr
