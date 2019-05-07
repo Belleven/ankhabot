@@ -27,21 +27,22 @@ class Dankie
         return if @redis.exists("pole:#{msg.chat.id}:done")
 
         now = Time.now
-        t = @tz.utc_to_local(Time.new(now.year, now.month, now.day + 1)).to_i
+        next_pole = @tz.utc_to_local(Time.new(now.year, now.month, now.day + 1))
+        next_pole = next_pole.to_i
         msg_time = @tz.utc_to_local(Time.at(msg.date)).to_i
-        @redis.setex("pole:#{msg.chat.id}:done", t - msg_time, 'ok')
+        @redis.setex("pole:#{msg.chat.id}:done", next_pole - msg_time, 'ok')
         @redis.zincrby("pole:#{msg.chat.id}", 1, msg.from.id)
 
-        nombre = if msg.from.first_name.empty?
-                     'ay no c (' + msg.from.id.to_s + ')'
-                 else
-                     msg.from.first_name
-                 end
+        name = if msg.from.first_name.empty?
+                   "ay no c (#{msg.from.id.to_s})"
+               else
+                   msg.from.first_name
+               end
 
-        @logger.info(nombre + " hizo la nisman en #{msg.chat.id}")
+        @logger.info("#{name} hizo la nisman en #{msg.chat.id}")
         @tg.send_message(chat_id: msg.chat.id, parse_mode: 'html',
                          reply_to_message_id: msg.message_id,
-                         text: '<b>' + nombre + '</b> hizo la Nisman')
+                         text: "<b>#{name}</b> hizo la Nisman")
     end
 
     def send_pole_ranking(msg)
@@ -59,9 +60,8 @@ class Dankie
     end
 
     def edit_pole_ranking(enviado, texto)
-        poles = @redis.zrange(
-            "pole:#{enviado.chat.id}", 0, -1, with_scores: true
-        ).sort_by! { |a| -a[1] }
+        poles = @redis.zrevrange("pole:#{enviado.chat.id}",
+                                 0, -1, with_scores: true)
         digits = poles.first[1].to_i.digits.count
         poles.each do |val|
             texto << "\n<code>#{format("%#{digits}d", val[1].to_i)} </code>"
