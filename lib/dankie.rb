@@ -13,6 +13,8 @@ class Dankie
     REKT = File.readlines('resources/rekt.txt').map(&:chomp).freeze
     CALLEFUEGOS = File.readlines('resources/callefuegos.txt').map(&:chomp).freeze
     DEUS_VULT = File.readlines('resources/deus.txt').map(&:chomp).freeze
+    PALABRAS_CON_C = File.readlines('resources/palabrasConC.txt').map(&:chomp).freeze
+    PALABRAS_CON_P = File.readlines('resources/palabrasConP.txt').map(&:chomp).freeze
     DEVS = Set.new([240_524_686, # Luke
                     98_631_116,  # M
                     263_078_683, # Santi
