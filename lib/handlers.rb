@@ -3,10 +3,15 @@ class Handler
 end
 
 class MessageHandler < Handler
+    MSG_TYPES = %i[text audio document game photo
+                   sticker video voice video_note contact
+                   location venue poll].freeze
+
     def initialize(callback, args = {})
         @callback = callback
         @allow_edited = args[:allow_edited] || false
         @allow_channel = args[:allow_channel] || false
+        @msg_types = args[:types] || MSG_TYPES
     end
 
     def check_message(msg)
@@ -14,7 +19,13 @@ class MessageHandler < Handler
 
         return false if !@allow_channel && msg.chat.type == 'channel'
 
-        true
+        msg_type = false
+        @msg_types.each do |type|
+            msg_type = msg.send type
+            break if msg_type
+        end
+
+        msg_type ? true : false
     end
 end
 
