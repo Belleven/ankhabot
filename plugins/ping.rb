@@ -1,17 +1,20 @@
 class Dankie
-    add_handler CommandHandler.new(:ping, :ping, 'Hace ping', allow_edited: false)
+    add_handler CommandHandler.new(:ping, :ping, 'Hace ping')
 
     def ping(msg)
-        time1 = Time.at(msg.date)
-        enviado = @tg.send_message(chat_id: msg.chat.id,
-                                   text: 'pong')
+        time1 = Time.new
+        enviado = @tg.send_message(chat_id: msg.chat.id, text: 'pong')
         enviado = Telegram::Bot::Types::Message.new(enviado['result'])
 
         time2 = Time.new
-        @tg.edit_message_text(chat_id: enviado.chat.id,
-                              message_id: enviado.message_id,
-                              parse_mode: 'markdown',
-                              text: "pong\n`#{format('%.3f', (time2.to_r - time1.to_r))}`s")
-        @logger.info("pong: #{format('%.3f', (time2.to_r - time1.to_r))}")
+        @redis.ping
+        time3 = Time.new
+
+        text = "pong\n"
+        text << format("%s: `%.3fs`\n", 'tg', time2.to_r - time1.to_r)
+        text << format("%s: `%.3fs`\n", 'bbdd', time3.to_r - time2.to_r)
+        @tg.edit_message_text(chat_id: enviado.chat.id, parse_mode: 'markdown',
+                              message_id: enviado.message_id, text: text)
+        @logger.info text.tr("\n", "\t")
     end
 end

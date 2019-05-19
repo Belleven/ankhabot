@@ -1,12 +1,20 @@
+require_relative 'version.rb'
+require_relative 'handlers.rb'
 require_relative 'telegram.rb'
+require_relative 'images.rb'
+require_relative 'last_fm_parser.rb'
 require 'redis'
 require 'tzinfo'
 require 'set'
 
 class Dankie
     attr_reader :tg, :logger, :redis, :reddit, :user
-    TROESMAS = File.readlines('troesmas.txt').map(&:chomp)
-    REKT = File.readlines('rekt.txt').map(&:chomp)
+    TROESMAS = File.readlines('resources/troesmas.txt').map(&:chomp).freeze
+    REKT = File.readlines('resources/rekt.txt').map(&:chomp).freeze
+    CALLEFUEGOS = File.readlines('resources/callefuegos.txt').map(&:chomp).freeze
+    DEUS_VULT = File.readlines('resources/deus.txt').map(&:chomp).freeze
+    PALABRAS_CON_C = File.readlines('resources/palabrasConC.txt').map(&:chomp).freeze
+    PALABRAS_CON_P = File.readlines('resources/palabrasConP.txt').map(&:chomp).freeze
     DEVS = Set.new([240_524_686, # Luke
                      98_631_116, # M
                     263_078_683, # Santi
@@ -45,7 +53,7 @@ class Dankie
                 next if msg.chat.type == 'channel'
 
                 if handler.check_message(cmd[:command], msg.edit_date)
-                    send(handler.callback, msg)
+                        send(handler.callback, msg)
                 end
             end
             #         when Telegram::Bot::Types::CallbackQuery
@@ -57,15 +65,18 @@ class Dankie
         end
     end
 
-    #    def initialize(api, logger, redis, reddit)
-    # Recibe un Hash con :tg_token, :redis_host, :redis_port, :redis_pass
+    # Recibe un Hash con los datos de config.yml
     def initialize(args)
         @logger = Logger.new $stderr
         @tg = TelegramAPI.new args[:tg_token], @logger
         @redis = Redis.new port: args[:redis_port], host: args[:redis_host], password: args[:redis_pass]
+        @img = ImageSearcher.new args[:google_image_key], args[:google_image_cx]
         @tz = TZInfo::Timezone.get args[:timezone]
-        @user = Telegram::Bot::Types::User.new(@tg.get_me['result']) # TODO: validar?
+        @user = Telegram::Bot::Types::User.new @tg.get_me['result'] # TODO: validar?
+        @lastFM = LastFMParser.new args[:last_fm_api]
     end
+
+
 
     def run
         @tg.client.listen do |msg|
@@ -136,7 +147,7 @@ class Dankie
                     else
                         'ay no c (' + user_id + ')'
                     end
-    rescue Telegram::Bot::Exceptions::ResponseError, e
+    rescue Telegram::Bot::Exceptions::ResponseError => e
         user_link = nil
         @logger.error(e)
     ensure

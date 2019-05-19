@@ -1,14 +1,14 @@
 class Dankie
-    add_handler CommandHandler.new(:block, :block, 'Bloquea a alguien en el '\
+    add_handler CommandHandler.new(:bloqueado, :block, 'Bloquea a alguien en el '\
                                 'chat de interactuar con el bot (solo admins)')
-    add_handler CommandHandler.new(:unblock, :unblock, 'Desbloquea a alguien '\
+    add_handler CommandHandler.new(:desbloqueado, :unblock, 'Desbloquea a alguien '\
                           'en el chat de interactuar con el bot (solo admins)')
 
-    add_handler CommandHandler.new(:gblock, :gblock)
-    add_handler CommandHandler.new(:gunblock, :gunblock)
+    add_handler CommandHandler.new(:gbloqueado, :gblock)
+    add_handler CommandHandler.new(:gdesbloqueado, :gunblock)
 
-    add_handler CommandHandler.new(:gblocked, :blocked)
-    add_handler CommandHandler.new(:blocked, :local_blocked,
+    add_handler CommandHandler.new(:gbloqueados, :blocked)
+    add_handler CommandHandler.new(:bloqueados, :local_blocked,
                                    'Lista de miembros del chat bloqueados del bot')
 
     private
