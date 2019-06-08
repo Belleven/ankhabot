@@ -119,7 +119,7 @@ class Dankie
 
         else
             arr = text.split(' ', 3) # ["user", "comando", "params"]
-            if arr.first.casecmp(@user.username).zero?
+            if arr.first.casecmp(@user.username).zero? && !arr[1].nil?
                 return { command: arr[1].downcase.to_sym, params: arr[2] || nil }
 
             elsif msg.reply_to_message&.from&.id == @user.id # responde al bot

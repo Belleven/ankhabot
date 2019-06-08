@@ -45,15 +45,21 @@ class Dankie
         else
 #           id =
 #           if HAY PARÁMETROS
-#               if PARÁMETRO VÁLIDO
-#                   send(execute_function, msg, block_site, id)
+#                if parametros.length != 1 || !(id = entero(parametros[0]))
+#                    if = true
 #                else
-#                    @tg.send_message(chat_id: msg.chat.id,
-#                                    reply_to_message: msg.message_id,
-#                                    text: 'No puedo bloquear esa id, o es inválida')
-#                    return    
+#                    # Me fijo que sea una id de un usuario que haya pasado por el chat
+#                    @tg.get_chat_member(chat_id: chat_id, user_id: id)
+#                    rescue Telegram::Bot::Exceptions::TelegramError => e
+#                        @logger.error(e)
+#                    ensure
+#                        @tg.send_message(chat_id: msg.chat.id,
+#                                        reply_to_message: msg.message_id,
+#                                        text: 'No puedo bloquear esa id, pasame una que sea válida')
+#                        return 
+#                    end
 #                end
-#            else
+
             send(execute_function, msg, block_site)
             return
 #            end
@@ -214,5 +220,13 @@ class Dankie
                end
 
         @tg.send_message(chat_id: msg.chat.id, text: text)
+    end
+
+    # Esto tranquilamente puede ir en otro lado así lo podemos reusar
+    def entero(numero)
+        #    return Integer(numero)
+        #rescue
+        #    return false
+        #end
     end
 end
