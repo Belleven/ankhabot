@@ -5,7 +5,7 @@ class Dankie
                                    description: 'Muestra el ranking de Nisman')
 
     # TODO: Ponerle algún flag de solo test a este comando
-#    add_handler CommandHandler.new(:givenisman, :_test_give_nisman)
+    #    add_handler CommandHandler.new(:givenisman, :_test_give_nisman)
 
     def _test_give_nisman(msg)
         id = msg.reply_to_message ? msg.reply_to_message.from.id : msg.from.id
@@ -35,7 +35,7 @@ class Dankie
         @redis.zincrby("pole:#{msg.chat.id}", 1, msg.from.id)
 
         name = if msg.from.first_name.empty?
-                   "ay no c (#{msg.from.id.to_s})"
+                   "ay no c (#{msg.from.id})"
                else
                    msg.from.first_name
                end

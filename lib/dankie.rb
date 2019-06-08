@@ -14,12 +14,12 @@ class Dankie
     CALLEFUEGOS = File.readlines('resources/callefuegos.txt').map(&:chomp).freeze
     DEUS_VULT = File.readlines('resources/deus.txt').map(&:chomp).freeze
     DEVS = Set.new([240_524_686, # Luke
-                     98_631_116, # M
+                    98_631_116,  # M
                     263_078_683, # Santi
                     267_832_653, # Galerazo
                     196_535_916, # Ale
                     298_088_760, # Mel
-                     36_557_595  # Bruno
+                    36_557_595   # Bruno
     ]).freeze
 
     def self.add_handler(handler)
@@ -67,18 +67,19 @@ class Dankie
     def self.commands
         @handlers.each do |handler|
             next unless handler.is_a? CommandHandler
+
             yield handler.cmd, handler.description if handler.description
         end
     end
 
     def get_command(msg)
         cmd = _parse_command(msg)
-        return cmd[:command]
+        cmd[:command]
     end
 
     def get_command_params(msg)
         cmd = _parse_command(msg)
-        return cmd[:params]
+        cmd[:params]
     end
 
     private
@@ -86,7 +87,6 @@ class Dankie
     # Analiza un texto y se fija si es un comando válido, devuelve el comando
     # y el resto del texto
     def _parse_command(msg)
-
         unless (text = msg.text || msg.caption)
             return { command: nil, params: nil }
         end

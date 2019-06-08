@@ -54,66 +54,66 @@ class Dankie
         # Chequeo que sea llamado por quién corresponde y dónde corresponde
         if !validate_group(type, chat_id, message_id) ||
            !send(validate_function, user_id, chat_id, message_id, text)
-            return     
+            return
         else
-#           id =
-#           if HAY PARÁMETROS
-#                if parametros.length != 1 || !(id = entero(parametros[0]))
-#                    if = true
-#                else
-#                    # Me fijo que sea una id de un usuario que haya pasado por el chat
-#                    @tg.get_chat_member(chat_id: chat_id, user_id: id)
-#                    rescue Telegram::Bot::Exceptions::TelegramError => e
-#                        @logger.error(e)
-#                    ensure
-#                        @tg.send_message(chat_id: msg.chat.id,
-#                                        reply_to_message: msg.message_id,
-#                                        text: 'No puedo bloquear esa id, pasame una que sea válida')
-#                        return 
-#                    end
-#                end
+            #           id =
+            #           if HAY PARÁMETROS
+            #                if parametros.length != 1 || !(id = entero(parametros[0]))
+            #                    if = true
+            #                else
+            #                    # Me fijo que sea una id de un usuario que haya pasado por el chat
+            #                    @tg.get_chat_member(chat_id: chat_id, user_id: id)
+            #                    rescue Telegram::Bot::Exceptions::TelegramError => e
+            #                        @logger.error(e)
+            #                    ensure
+            #                        @tg.send_message(chat_id: msg.chat.id,
+            #                                        reply_to_message: msg.message_id,
+            #                                        text: 'No puedo bloquear esa id, pasame una que sea válida')
+            #                        return
+            #                    end
+            #                end
 
             send(execute_function, msg, block_site)
             return
-#            end
+            #            end
         end
     end
 
-    def block_user(msg, group_id, id=nil)
-            # Chequeo casos turbinas de quien va a ser bloqueado
+    def block_user(msg, group_id, id = nil)
+        # Chequeo casos turbinas de quien va a ser bloqueado
         if id.nil?
             if msg.reply_to_message
-    
+
                 id = msg.reply_to_message.from.id
-    
+
                 if id == msg.from.id
                     @tg.send_message(chat_id: msg.chat.id,
-                                    reply_to_message: msg.message_id,
-                                    text: 'Cómo te vas a autobloquear papurri??')
+                                     reply_to_message: msg.message_id,
+                                     text: 'Cómo te vas a autobloquear papurri??')
                     return
                 elsif id == @user.id
                     @tg.send_message(chat_id: msg.chat.id,
-                                    reply_to_message: msg.message_id,
-                                    text: 'Ni se te ocurra')
+                                     reply_to_message: msg.message_id,
+                                     text: 'Ni se te ocurra')
                     return
                 elsif msg.reply_to_message.from.is_bot
                     @tg.send_message(chat_id: msg.chat.id,
-                                    reply_to_message: msg.message_id,
-                                    text: 'Para qué querés bloquear a un '\
+                                     reply_to_message: msg.message_id,
+                                     text: 'Para qué querés bloquear a un '\
                                         'botazo???? Si ni los puedo leer')
                     return
                 elsif msg.reply_to_message.from.first_name.empty?
                     @tg.send_message(chat_id: msg.chat.id,
-                                    reply_to_message: msg.message_id,
-                                    text: 'Para qué querés bloquear a una '\
+                                     reply_to_message: msg.message_id,
+                                     text: 'Para qué querés bloquear a una '\
                                         'cuenta eliminada? Si ya no jode')
                     return
                 end
-    
+
             else
                 @tg.send_message(chat_id: msg.chat.id,
-                                reply_to_message: msg.message_id,
-                                text: 'Dale capo a quién ignoro???')
+                                 reply_to_message: msg.message_id,
+                                 text: 'Dale capo a quién ignoro???')
                 return
             end
         end
@@ -152,14 +152,14 @@ class Dankie
         end
     end
 
-    def unblock_user(msg, group_id, id=nil)
+    def unblock_user(msg, group_id, id = nil)
         if id.nil?
             if msg.reply_to_message
                 id = msg.reply_to_message.from.id
             else
                 @tg.send_message(chat_id: msg.chat.id,
-                                reply_to_message: msg.message_id,
-                                text: 'Dale capo a quién designoro???')
+                                 reply_to_message: msg.message_id,
+                                 text: 'Dale capo a quién designoro???')
                 return
             end
         end
@@ -230,8 +230,8 @@ class Dankie
     # Esto tranquilamente puede ir en otro lado así lo podemos reusar
     def entero(numero)
         #    return Integer(numero)
-        #rescue
+        # rescue
         #    return false
-        #end
+        # end
     end
 end

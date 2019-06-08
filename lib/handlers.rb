@@ -40,7 +40,7 @@ class CommandHandler < Handler
         @allow_edited = args[:allow_edited] || false
     end
 
-    def check_message(bot, msg) #(cmd, edit_date)
+    def check_message(bot, msg)
         return unless msg.is_a? Telegram::Bot::Types::Message
 
         return if !@allow_edited && msg.edit_date

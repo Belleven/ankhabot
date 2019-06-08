@@ -8,4 +8,3 @@ config.transform_keys!(&:to_sym)
 dankie = Dankie.new config
 
 dankie.run
-
