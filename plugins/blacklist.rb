@@ -43,9 +43,15 @@ class Dankie
            !send(validate_function, user_id, chat_id, message_id, text)
             return     
         else
-
-            if BLABLABLA
-                send(execute_function, msg, block_site, id)
+            id = 
+            if HAY PARÁMETROS
+                if PARÁMETRO VÁLIDO
+                    send(execute_function, msg, block_site, id)
+                else
+                    @tg.send_message(chat_id: msg.chat.id,
+                                    reply_to_message: msg.message_id,
+                                    text: 'No puedo bloquear esa id, o es inválida')
+                return    
             else
                 send(execute_function, msg, block_site)
                 return
