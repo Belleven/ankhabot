@@ -1,11 +1,13 @@
 Todo en español (usar tildes y 'ñ' sin miedo)
 
 Variables:
--Locales: primer_nombre
--De instancia: @primer_nombre
--De clase: @@primer_nombre
--Globales: $PRIMER_NOMBRE
+-Locales: mi_variable
+-De instancia: @mi_variable
+-De clase: @@mi_variable
+-Globales: $MI_VARIABLE
 
 Métodos: nombre_método
 
-Archivos de código/constantes: nombre_archivo.rb 
+Archivos de código/constantes: nombre_archivo.rb
+
+Clases: NombreClase
