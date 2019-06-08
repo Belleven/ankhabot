@@ -1,5 +1,4 @@
 class Handler
-    attr_reader :callback
 end
 
 class MessageHandler < Handler
@@ -14,36 +13,46 @@ class MessageHandler < Handler
         @msg_types = args[:types] || MSG_TYPES
     end
 
-    def check_message(msg)
-        return false if !@allow_edited && msg.edit_date
+    def check_message(bot, msg)
+        return if !@allow_edited && msg.edit_date
 
-        return false if !@allow_channel && msg.chat.type == 'channel'
+        return if !@allow_channel && msg.chat.type == 'channel'
 
-        msg_type = false
+        msg_type = nil
         @msg_types.each do |type|
             msg_type = msg.send type
             break if msg_type
         end
 
-        msg_type ? true : false
+        return unless msg_type
+
+        bot.public_send(@callback, msg)
     end
 end
 
 class CommandHandler < Handler
     attr_reader :cmd, :description
-    def initialize(cmd, callback, desc = nil, args = {})
+    def initialize(cmd, callback, args = {})
         @cmd = cmd
         @callback = callback
-        @description = desc
+        @description = args[:description]
+        @allow_params = args[:allow_params] || false
         @allow_edited = args[:allow_edited] || false
     end
 
-    def check_message(cmd, edit_date)
-        return false if !@allow_edited && edit_date
+    def check_message(bot, msg) #(cmd, edit_date)
+        return unless msg.is_a? Telegram::Bot::Types::Message
 
-        return false if @cmd != cmd
+        return if !@allow_edited && msg.edit_date
 
-        true
+        cmd = bot.get_command(msg)
+        return if @cmd != cmd
+
+        if @allow_params
+            bot.public_send(@callback, msg, bot.get_command_params(msg))
+        else
+            bot.public_send(@callback, msg)
+        end
     end
 end
 

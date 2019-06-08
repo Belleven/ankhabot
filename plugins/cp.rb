@@ -1,10 +1,9 @@
 class Dankie
     add_handler MessageHandler.new(:add_cp_words, types: [:text])
     add_handler CommandHandler.new(:cp, :cp,
-                                   'genera una posible definición de la sigla'\
-                                   ' cp, usando texto del chat')
-
-    private
+                                   description: 'genera una posible '\
+                                                'definición de la sigla cp, '\
+                                                'usando texto del chat')
 
     def add_cp_words(msg)
         @c_words ||= {}

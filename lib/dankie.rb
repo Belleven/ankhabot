@@ -23,43 +23,18 @@ class Dankie
     ]).freeze
 
     def self.add_handler(handler)
-        case handler
-        when MessageHandler
-            @@message_handlers ||= []
-            @@message_handlers << handler
-        when CommandHandler
-            @@command_handlers ||= []
-            @@command_handlers << handler
-        when CallbackQueryHandler
-            @@callback_query_handlers ||= []
-            @@callback_query_handlers << handler
-        end
+        @handlers ||= []
+        @handlers << handler
+    end
+
+    def self.handlers
+        @handlers ||= []
     end
 
     # creo que esto es un dispatch si entendí bien
     def dispatch(msg)
-        case msg
-        when Telegram::Bot::Types::Message
-            @@message_handlers.each do |handler|
-                send(handler.callback, msg) if handler.check_message(msg)
-            end
-
-            cmd = parse_command(msg)
-            return unless cmd && cmd[:command]
-
-            @@command_handlers.each do |handler|
-                next if msg.chat.type == 'channel'
-
-                if handler.check_message(cmd[:command], msg.edit_date)
-                        send(handler.callback, msg)
-                end
-            end
-            #         when Telegram::Bot::Types::CallbackQuery
-            #             @@callback_query_handlers.each do |handler|
-            #                 if handler.check_message(msg)
-            #                     send(handler.callback, msg)
-            #                 end
-            #             end
+        self.class.handlers.each do |handler|
+            handler.check_message(self, msg)
         end
     end
 
@@ -73,8 +48,6 @@ class Dankie
         @user = Telegram::Bot::Types::User.new @tg.get_me['result'] # TODO: validar?
         @lastFM = LastFMParser.new args[:last_fm_api]
     end
-
-
 
     def run
         @tg.client.listen do |msg|
@@ -92,45 +65,56 @@ class Dankie
 
     # Permite iterar sobre los comandos del bot, y sus descripciones
     def self.commands
-        @@command_handlers.each do |handler|
+        @handlers.each do |handler|
+            next unless handler.is_a? CommandHandler
             yield handler.cmd, handler.description if handler.description
         end
+    end
+
+    def get_command(msg)
+        cmd = _parse_command(msg)
+        return cmd[:command]
+    end
+
+    def get_command_params(msg)
+        cmd = _parse_command(msg)
+        return cmd[:params]
     end
 
     private
 
     # Analiza un texto y se fija si es un comando válido, devuelve el comando
     # y el resto del texto
-    def parse_command(msg)
-        return unless (text = msg.text || msg.caption)
+    def _parse_command(msg)
+
+        unless (text = msg.text || msg.caption)
+            return { command: nil, params: nil }
+        end
+
+        command = nil
+        params = nil
 
         if text.start_with? '/' # "/cmd params" o "/cmd@bot params"
             command, params = text.split ' ', 2
             command.downcase!
             command.gsub!(%r{^/([a-z]+)(@#{@user.username.downcase})?}, '\\1')
 
-            return { command: command.to_sym, params: params }
-
         elsif ['!', '>'].include? text[0] # "!cmd params" o ">cmd params"
             command, params = text[1..-1].split ' ', 2
             command.downcase!
-
-            return { command: command.to_sym, params: params }
-
         else
             arr = text.split(' ', 3) # ["user", "comando", "params"]
-            if arr.first.casecmp(@user.username).zero? && !arr[1].nil?
-                return { command: arr[1].downcase.to_sym, params: arr[2] || nil }
+            if arr.first.casecmp(@user.username).zero?
+                command = arr[1]&.downcase.to_sym
+                params = arr[2]
 
             elsif msg.reply_to_message&.from&.id == @user.id # responde al bot
                 command, params = text.split ' ', 2
                 command.downcase!
-
-                return { command: command.to_sym, params: params }
             end
         end
 
-        { command: nil, params: nil }
+        { command: command&.to_sym, params: params }
     end
 
     def get_username_link(chat_id, user_id)

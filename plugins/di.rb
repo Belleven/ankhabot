@@ -1,12 +1,12 @@
 class Dankie
     add_handler CommandHandler.new(:di, :di,
-                                   'Te repito lo que me digas')
+                                   description: 'Te repito lo que me digas')
     add_handler CommandHandler.new(:grita, :grita,
-                                   'Te grito lo que me digas')
+                                   description: 'Te grito lo que me digas')
 
     def di(msg)
-        cmd = parse_command(msg)
-        text = cmd[:params]
+        text = get_command_params(msg) || msg.reply_to_message&.text || msg.reply_to_message&.caption
+
         if text.nil? || text == ''
             text = "Dale #{TROESMAS.sample}, ¿Qué digo?"
             @tg.send_message(chat_id: msg.chat.id, text: text,
@@ -18,8 +18,7 @@ class Dankie
     end
 
     def grita(msg)
-        cmd = parse_command(msg)
-        args = cmd[:params] || msg.reply_to_message&.text || msg.reply_to_message&.caption
+        args = get_command_params(msg) || msg.reply_to_message&.text || msg.reply_to_message&.caption
         if args.nil?
             text = "Dale #{TROESMAS.sample}, ¿Qué grito?"
             @tg.send_message(chat_id: msg.chat.id, text: text,

@@ -1,10 +1,11 @@
 # Extension de dankie para manejar las poles
 class Dankie
     add_handler MessageHandler.new(:pole)
-    add_handler CommandHandler.new(:nisman, :send_pole_ranking, 'Muestra el ranking de Nisman')
+    add_handler CommandHandler.new(:nisman, :send_pole_ranking,
+                                   description: 'Muestra el ranking de Nisman')
 
     # TODO: Ponerle algún flag de solo test a este comando
-    add_handler CommandHandler.new(:givenisman, :_test_give_nisman)
+#    add_handler CommandHandler.new(:givenisman, :_test_give_nisman)
 
     def _test_give_nisman(msg)
         id = msg.reply_to_message ? msg.reply_to_message.from.id : msg.from.id
