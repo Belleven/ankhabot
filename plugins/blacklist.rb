@@ -43,19 +43,20 @@ class Dankie
            !send(validate_function, user_id, chat_id, message_id, text)
             return     
         else
-            id = 
-            if HAY PARÁMETROS
-                if PARÁMETRO VÁLIDO
-                    send(execute_function, msg, block_site, id)
-                else
-                    @tg.send_message(chat_id: msg.chat.id,
-                                    reply_to_message: msg.message_id,
-                                    text: 'No puedo bloquear esa id, o es inválida')
-                return    
-            else
-                send(execute_function, msg, block_site)
-                return
-            end
+#           id =
+#           if HAY PARÁMETROS
+#               if PARÁMETRO VÁLIDO
+#                   send(execute_function, msg, block_site, id)
+#                else
+#                    @tg.send_message(chat_id: msg.chat.id,
+#                                    reply_to_message: msg.message_id,
+#                                    text: 'No puedo bloquear esa id, o es inválida')
+#                    return    
+#                end
+#            else
+            send(execute_function, msg, block_site)
+            return
+#            end
         end
     end
 
@@ -96,6 +97,7 @@ class Dankie
                                 text: 'Dale capo a quién ignoro???')
                 return
             end
+        end
 
         # Chequeo que no sea desarrollador ni admin del grupete
         if DEVS.include?(id)
@@ -141,6 +143,7 @@ class Dankie
                                 text: 'Dale capo a quién designoro???')
                 return
             end
+        end
 
         if !@redis.sismember("blacklist:#{group_id}", id)
             @tg.send_message(chat_id: msg.chat.id,
