@@ -47,7 +47,7 @@ class Dankie
         end
     end
 
-    def block_user(msg, group_id)
+    def block_user(msg, group_id, id_bloqueado=nil)
         # Chequeo casos turbinas de quien va a ser bloqueado
         if msg.reply_to_message
 
