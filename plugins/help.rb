@@ -1,7 +1,7 @@
 require 'telegram/bot'
 
 class Dankie
-    add_handler CommandHandler.new(:help, :help, 'Envía la ayuda')
+    add_handler CommandHandler.new(:help, :help, description: 'Envía la ayuda')
 
     def help(msg)
         text = "ola, soy @#{user.username} y puedo hacer todo esto :0\n"

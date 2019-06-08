@@ -1,5 +1,5 @@
 class Dankie
-    add_handler CommandHandler.new(:ping, :ping, 'Hace ping')
+    add_handler CommandHandler.new(:ping, :ping, description: 'Hace ping')
 
     def ping(msg)
         time1 = Time.new

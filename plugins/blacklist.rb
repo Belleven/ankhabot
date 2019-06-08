@@ -1,17 +1,20 @@
 class Dankie
-    add_handler CommandHandler.new(:bloqueado, :block, 'Bloquea a alguien en el '\
-                                'chat de interactuar con el bot (solo admins)')
-    add_handler CommandHandler.new(:desbloqueado, :unblock, 'Desbloquea a alguien '\
-                          'en el chat de interactuar con el bot (solo admins)')
+    add_handler CommandHandler.new(:bloqueado, :block,
+                                   description: 'Bloquea a alguien en el chat '\
+                                                'de interactuar con el bot '\
+                                                '(solo admins)')
+    add_handler CommandHandler.new(:desbloqueado, :unblock,
+                                   description: 'Desbloquea a alguien en el '\
+                                                'chat de interactuar con el '\
+                                                'bot (solo admins)')
 
     add_handler CommandHandler.new(:gbloqueado, :gblock)
     add_handler CommandHandler.new(:gdesbloqueado, :gunblock)
 
     add_handler CommandHandler.new(:gbloqueados, :blocked)
     add_handler CommandHandler.new(:bloqueados, :local_blocked,
-                                   'Lista de miembros del chat bloqueados del bot')
-
-    private
+                                   description: 'Lista de miembros del chat '\
+                                                'bloqueados del bot')
 
     def block(msg)
         run_blacklist_command(msg, :check_admin, :block_user, msg.chat.id.to_s,
@@ -30,6 +33,16 @@ class Dankie
     def gunblock(msg)
         run_blacklist_command(msg, :validate_dev, :unblock_user, 'globales')
     end
+
+    def blocked(msg)
+        get_blocked(msg, 'global')
+    end
+
+    def local_blocked(msg)
+        get_blocked(msg, msg.chat.id.to_s)
+    end
+
+    private
 
     def run_blacklist_command(msg, validate_function, execute_function,
                               block_site, text = nil)
@@ -176,14 +189,6 @@ class Dankie
         end
 
         true
-    end
-
-    def blocked(msg)
-        get_blocked(msg, 'global')
-    end
-
-    def local_blocked(msg)
-        get_blocked(msg, msg.chat.id.to_s)
     end
 
     def get_blocked(msg, group_id)
