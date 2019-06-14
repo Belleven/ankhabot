@@ -9,8 +9,8 @@ require 'set'
 
 class Dankie
     attr_reader :tg, :logger, :redis, :reddit, :user
-    TROESMAS = File.readlines('resources/troesmas.txt', :encoding => 'UTF-8').map(&:chomp).freeze
-    REKT = File.readlines('resources/rekt.txt', :encoding => 'UTF-8').map(&:chomp).freeze
+    TROESMAS = File.readlines('resources/troesmas.txt', encoding: 'UTF-8').map(&:chomp).freeze
+    REKT = File.readlines('resources/rekt.txt', encoding: 'UTF-8').map(&:chomp).freeze
     CALLEFUEGOS = File.readlines('resources/callefuegos.txt').map(&:chomp).freeze
     DEUS_VULT = File.readlines('resources/deus.txt').map(&:chomp).freeze
     DEVS = Set.new([240_524_686, # Luke
@@ -32,12 +32,11 @@ class Dankie
     end
 
     def html_parser(text)
-        text = text.to_s.gsub("&","&amp;")
-        text = text.to_s.gsub("<","&lt;")
-        text = text.to_s.gsub(">","&gt;")
-        return text
+        text = text.to_s.gsub('&', '&amp;')
+        text = text.to_s.gsub('<', '&lt;')
+        text = text.to_s.gsub('>', '&gt;')
+        text
     end
-
 
     # creo que esto es un dispatch si entendí bien
     def dispatch(msg)

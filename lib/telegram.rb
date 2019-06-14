@@ -9,22 +9,22 @@ class TelegramAPI
     end
 
     def send_message(args)
-        text = args[:text]
+        texto = args[:text]
 
-        return unless args[:chat_id] && args[:text] && !text.empty?
+        return unless args[:chat_id] && args[:text] && !texto.empty?
 
         # Itero de a bloques de 4096
         inicio = 0
-        fin = [text.length, 4096].min
+        fin = [texto.length, 4096].min
 
         while inicio != fin
 
             # Mando el blocazo
-            args[:text] = text[inicio..fin]
+            args[:text] = texto[inicio..fin-1]
             resultado = delay_y_envio(args)
 
             inicio = fin
-            fin = [text.length, fin + 4096].min
+            fin = [texto.length, fin + 4096].min
 
         end
 
@@ -34,8 +34,9 @@ class TelegramAPI
     private
 
     def delay_y_envio(args)
-        args[:text].strip!
-        return if args[:text].empty?
+
+        args[:text] = args[:text].strip
+        return if args[:text].nil? || args[:text].empty?
 
         @client.api.send_message(args)
     rescue Faraday::ConnectionFailed, Net::OpenTimeout => e
