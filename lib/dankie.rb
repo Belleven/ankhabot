@@ -135,5 +135,4 @@ class Dankie
     ensure
         user_link || 'ay no c (ID: ' + user_id + ')'
     end
-    
 end
