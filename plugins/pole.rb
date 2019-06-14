@@ -64,14 +64,26 @@ class Dankie
         poles = @redis.zrevrange("pole:#{enviado.chat.id}",
                                  0, -1, with_scores: true)
         digits = poles.first[1].to_i.digits.count
+        
+        tamaño = 0
         poles.each do |val|
             texto << "\n<code>#{format("%#{digits}d", val[1].to_i)} </code>"
             texto << get_username_link(enviado.chat.id, val[0])
-            @tg.edit_message_text(chat_id: enviado.chat.id, text: texto,
-                                  parse_mode: 'html',
-                                  message_id: enviado.message_id,
-                                  disable_web_page_preview: true,
-                                  disable_notification: true)
+            
+            if tamaño + texto.length > 4096
+            	tamaño = texto.length
+            	enviado = @tg.send_message(chat_id: msg.chat.id, text: texto,
+                                   		   parse_mode: 'html',
+                        	               disable_web_page_preview: true,
+                            	           disable_notification: true)
+            else
+            	tamaño += texto.length
+            	@tg.edit_message_text(chat_id: enviado.chat.id, text: texto,
+                	                  parse_mode: 'html',
+                    	              message_id: enviado.message_id,
+                        	          disable_web_page_preview: true,
+                            	      disable_notification: true)
+        	end
         end
     end
 end
