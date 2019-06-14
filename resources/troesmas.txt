@@ -51,6 +51,7 @@ Mole
 Monster
 Mostrenco
 Mostro
+Muchachote
 Máquina
 Ninja
 Paladin

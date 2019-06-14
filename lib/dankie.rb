@@ -31,6 +31,14 @@ class Dankie
         @handlers ||= []
     end
 
+    def html_parser(text)
+        text = text.to_s.gsub("&","&amp;")
+        text = text.to_s.gsub("<","&lt;")
+        text = text.to_s.gsub(">","&gt;")
+        return text
+    end
+
+
     # creo que esto es un dispatch si entendí bien
     def dispatch(msg)
         self.class.handlers.each do |handler|
