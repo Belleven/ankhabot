@@ -21,7 +21,7 @@ class Dankie
 
     def restringir(msg, params)
         comando_lista_negra(msg, :chequeo_local, :bloquear_usuario, msg.chat.id.to_s,
-                              params, 'Vos no podés usar esto pa')
+                            params, 'Vos no podés usar esto pa')
     end
 
     def bloquear(msg, params)
@@ -30,7 +30,7 @@ class Dankie
 
     def habilitar(msg, params)
         comando_lista_negra(msg, :es_admin, :desbloquear_usuario,
-                              msg.chat.id.to_s, params, 'Vos no podés usar esto pa')
+                            msg.chat.id.to_s, params, 'Vos no podés usar esto pa')
     end
 
     def desbloquear(msg, params)
@@ -48,7 +48,7 @@ class Dankie
     private
 
     def comando_lista_negra(msg, funcion_validadora, execute_function,
-                              block_site, params, text = nil)
+                            block_site, params, text = nil)
 
         type = msg.chat.type
         chat_id = msg.chat.id
