@@ -140,7 +140,6 @@ class Dankie
         user_link = nil
         @logger.error(e)
     ensure
-        result = user_link || 'ay no c (' + user_id + ')'
-        return result
+        return user_link || 'ay no c (' + user_id + ')'
     end
 end
