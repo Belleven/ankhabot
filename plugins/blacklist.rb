@@ -59,7 +59,7 @@ class Dankie
         if params.nil?
             id = nil
         else
-            id = entero(params)
+            id = natural(params)
             if !id
                 @tg.send_message(chat_id: chat_id,
                                 reply_to_message: message_id,
@@ -321,7 +321,7 @@ class Dankie
     end
 
     # Esto tranquilamente puede ir en otro lado así lo podemos reusar
-    def entero(numero)
+    def natural(numero)
         if numero.length < 25
             begin
                 num = Integer(numero)
