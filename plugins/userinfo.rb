@@ -1,8 +1,8 @@
 class Dankie
-  add_handler CommandHandler.new(:setnickname, :setnickname,
-                                 description: 'Te cambio el apodo al que me digas')
-  add_handler CommandHandler.new(:getinfo, :getinfo,
-                                 description: 'Devuelve tu información')
+  add_handler CommandHandler.new(:apodar, :setnickname,
+                                 description: 'Te cambio el apodo al que me digas (si sos admin, podés cambiárselo a otros)')
+  add_handler CommandHandler.new(:vos, :getinfo,
+                                 description: 'Devuelve tu información (o la del usuario al que le respondas)')
 
 
 
@@ -33,7 +33,9 @@ class Dankie
     end
     @redis.set("userNick:#{"#{chat_id}-#{user_id}"}", new_nick)
     @redis.bgsave
-    txt_done = "De hoy en adelante, el #{TROESMAS.sample} '#{fullname}' será conocido como '#{new_nick}'."
+    troesma = TROESMAS.sample
+    print(troesma)
+    txt_done = "De hoy en adelante, el #{troesma} '#{fullname}' será conocido como '#{new_nick}'."
     @tg.send_message(chat_id: msg.chat.id,
                      reply_to_message: reply_tgt,
                      text: txt_done)

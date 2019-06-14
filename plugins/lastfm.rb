@@ -1,16 +1,16 @@
 class Dankie
-    add_handler CommandHandler.new(:setlastfm, :setlastfm,
+    add_handler CommandHandler.new(:guardarlastfm, :setlastfm,
                                    description: 'Guarda tu usuario de Last.Fm '\
                                                 '(Solo necesita tu usuario)')
-    add_handler CommandHandler.new(:getlastfm, :getlastfm,
+    add_handler CommandHandler.new(:verlastfm, :getlastfm,
                                    description: 'Devuelve la información '\
                                                 'registrada de Last.Fm del '\
                                                 'usuario')
-    add_handler CommandHandler.new(:nowplaying, :nowplaying,
+    add_handler CommandHandler.new(:escuchando, :nowplaying,
                                    description: 'Devuelve la canción más '\
                                                 'reciente que escucha el '\
                                                 'usuario que te pusiste')
-    add_handler CommandHandler.new(:recentplayed, :recentplayed,
+    add_handler CommandHandler.new(:fmrecientes, :recentplayed,
                                    description: 'Devuelve las últimas '\
                                                 'canciones que escuchaste. '\
                                                 'Pasame un número así te paso '\
