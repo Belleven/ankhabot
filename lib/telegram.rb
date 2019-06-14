@@ -20,7 +20,7 @@ class TelegramAPI
         while inicio != fin
 
             # Mando el blocazo
-            args[:text] = texto[inicio..fin-1]
+            args[:text] = texto[inicio..fin - 1]
             resultado = delay_y_envio(args)
 
             inicio = fin
@@ -34,7 +34,6 @@ class TelegramAPI
     private
 
     def delay_y_envio(args)
-
         args[:text] = args[:text].strip
         return if args[:text].nil? || args[:text].empty?
 
