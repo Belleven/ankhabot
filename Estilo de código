@@ -6,8 +6,14 @@ Variables:
 -De clase: @@mi_variable
 -Globales: $MI_VARIABLE
 
+Comandos: /nombrecomando
+
 Métodos: nombre_método
 
 Archivos de código/constantes: nombre_archivo.rb
 
 Clases: NombreClase
+
+Indentación: usando 4 espacios
+
+Al mandar mensajes en "negrita", "cursiva", etc, usar HTML y NO Markdown

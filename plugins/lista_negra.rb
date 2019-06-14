@@ -1,21 +1,21 @@
 class Dankie
-    add_handler CommandHandler.new(:bloqueado, :block,
-                                   description: 'Bloquea a alguien en el chat '\
-                                                'de interactuar con el bot '\
+    add_handler CommandHandler.new(:restringir, :block,
+                                   description: 'Restringe a alguien en el chat '\
+                                                'para que no interactúe con el bot '\
                                                 '(solo admins)',
                                    allow_params: true)
 
-    add_handler CommandHandler.new(:desbloqueado, :unblock,
-                                   description: 'Desbloquea a alguien en el '\
-                                                'chat de interactuar con el '\
+    add_handler CommandHandler.new(:habilitar, :unblock,
+                                   description: 'Habilita a alguien en el '\
+                                                'chat de para que pueda interactuar con el '\
                                                 'bot (solo admins)',
                                    allow_params: true)
 
-    add_handler CommandHandler.new(:gbloqueado, :gblock, allow_params: true)
-    add_handler CommandHandler.new(:gdesbloqueado, :gunblock, allow_params: true)
+    add_handler CommandHandler.new(:bloquear, :gblock, allow_params: true)
+    add_handler CommandHandler.new(:desbloquear, :gunblock, allow_params: true)
 
-    add_handler CommandHandler.new(:gbloqueados, :blocked)
-    add_handler CommandHandler.new(:bloqueados, :local_blocked,
+    add_handler CommandHandler.new(:bloqueados, :bloqueados)
+    add_handler CommandHandler.new(:restringidos, :local_blocked,
                                    description: 'Lista de miembros del chat '\
                                                 'bloqueados por el bot')
 
@@ -25,7 +25,7 @@ class Dankie
     end
 
     def gblock(msg, params)
-        run_blacklist_command(msg, :validate_dev, :block_user, 'globales', params)
+        run_blacklist_command(msg, :validar_desarrollador, :block_user, 'globales', params)
     end
 
     def unblock(msg, params)
@@ -34,10 +34,10 @@ class Dankie
     end
 
     def gunblock(msg, params)
-        run_blacklist_command(msg, :validate_dev, :unblock_user, 'globales', params)
+        run_blacklist_command(msg, :validar_desarrollador, :unblock_user, 'globales', params)
     end
 
-    def blocked(msg)
+    def bloqueados(msg)
         get_blocked(msg, 'globales')
     end
 
@@ -137,14 +137,14 @@ class Dankie
         # Chequeo que no esté bloqueado ya
         id = id.to_s
 
-        if @redis.sismember("blacklist:#{group_id}", id)
+        if @redis.sismember("lista_negra:#{group_id}", id)
             @tg.send_message(chat_id: chat_id,
                              reply_to_message: msg.message_id,
                              text: 'Pero cuántas veces te pensás que '\
                                    'podés bloquear a alguien?? ya está en la '\
                                    'lista negra')
         else
-            @redis.sadd("blacklist:#{group_id}", id)
+            @redis.sadd("lista_negra:#{group_id}", id)
             @redis.bgsave
 
             if msg.reply_to_message.nil?
@@ -181,13 +181,13 @@ class Dankie
             end
         end
 
-        if !@redis.sismember("blacklist:#{group_id}", id)
+        if !@redis.sismember("lista_negra:#{group_id}", id)
             @tg.send_message(chat_id: chat_id,
                              reply_to_message: msg.message_id,
                              text: 'No puedo desbloquear a alguien que no '\
                                    'está en la lista negra')
         else
-            @redis.srem("blacklist:#{group_id}", id)
+            @redis.srem("lista_negra:#{group_id}", id)
             @redis.bgsave
 
             if msg.reply_to_message.nil?
@@ -222,7 +222,7 @@ class Dankie
         true
     end
 
-    def validate_dev(user_id, chat_id, message_id, _text = nil, _id = nil)
+    def validar_desarrollador(user_id, chat_id, message_id, _text = nil, _id = nil)
         # Chequeo que quien llama al comando sea o desarrollador
         unless DEVS.include?(user_id)
             @tg.send_message(chat_id: chat_id, reply_to_message: message_id,
@@ -281,7 +281,7 @@ class Dankie
 
     def get_blocked(msg, group_id)
         # Solo para ver si anda
-        miembros = @redis.smembers("blacklist:#{group_id}")
+        miembros = @redis.smembers("lista_negra:#{group_id}")
 
         if miembros.empty?
             @tg.send_message(chat_id: msg.chat.id, text: 'No hay nadie en la lista negra.')
