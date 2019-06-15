@@ -7,13 +7,13 @@ class Dankie
                                    description: 'Muestra el ranking de Nisman')
 
     # TODO: Ponerle algún flag de solo test a este comando
-    #add_handler CommandHandler.new(:darnisman, :_test_dar_nisman)
+    # add_handler CommandHandler.new(:darnisman, :_test_dar_nisman)
 
     def _test_dar_nisman(msg)
         id = msg.reply_to_message ? msg.reply_to_message.from.id : msg.from.id
         mensaje = msg.reply_to_message || msg
 
-        name = if mensaje.from.first_name.empty? then msg.from.id.to_s else html_parser(mensaje.from.first_name) end
+        name = mensaje.from.first_name.empty? ? msg.from.id.to_s : html_parser(mensaje.from.first_name)
 
         @redis.zincrby("pole:#{msg.chat.id}", 1, id)
         @logger.info("#{name} hizo la nisman en #{msg.chat.id}")
@@ -32,7 +32,7 @@ class Dankie
         @redis.setex("pole:#{msg.chat.id}:done", next_pole - msg_time, 'ok')
         @redis.zincrby("pole:#{msg.chat.id}", 1, msg.from.id)
 
-        name = if msg.from.first_name.empty? then "ay no c (#{msg.from.id})" else html_parser(msg.from.first_name) end
+        name = msg.from.first_name.empty? ? "ay no c (#{msg.from.id})" : html_parser(msg.from.first_name)
 
         @logger.info("#{name} hizo la nisman en #{msg.chat.id}")
         @tg.send_message(chat_id: msg.chat.id, parse_mode: 'html',
@@ -41,7 +41,7 @@ class Dankie
     end
 
     def send_pole_ranking(msg)
-        texto = "<b>Ranking de Nisman</b>"
+        texto = '<b>Ranking de Nisman</b>'
         enviado = @tg.send_message(chat_id: msg.chat.id,
                                    parse_mode: 'html',
                                    text: texto + "\n\n<i>cargando...</i>")
@@ -55,28 +55,26 @@ class Dankie
     end
 
     def edit_pole_ranking(enviado, texto)
-
         # Tomo las poles de las bases de datos y seteo los espacios para dígitos
         poles = @redis.zrevrange("pole:#{enviado.chat.id}", 0, -1, with_scores: true)
         digits = poles.first[1].to_i.digits.count
-        
+
         # Tomo el total de poles y lo agrego al título
         nismanes = dame_nismanes(poles)
-        texto << " (" + nismanes + ")\n"
+        texto << ' (' + nismanes + ")\n"
 
         # Tomo otras variables que luego usaré
         chat_id = enviado.chat.id
         indice = 0
 
         poles.each do |val|
-        
             # Armo la línea y el cargando... si es que no es la última línea
             linea = "\n<code>#{format("%#{digits}d", val[1].to_i)}</code> " + get_username_link(enviado.chat.id, val[0])
-            cargando = if indice == poles.length - 1 then "" else "\n<i>cargando...</i>" end
+            cargando = indice == poles.length - 1 ? '' : "\n<i>cargando...</i>"
 
             # Si el mensaje se pasa de los 4096 caracteres, mando uno nuevo
             if texto.length + linea.length + cargando.length > 4096
-               
+
                 # Primero borro el "cargando" del mensaje anterior
                 @tg.edit_message_text(chat_id: chat_id, text: texto,
                                       parse_mode: 'html',
@@ -91,8 +89,8 @@ class Dankie
                                            disable_web_page_preview: true,
                                            disable_notification: true)
                 enviado = Telegram::Bot::Types::Message.new(enviado['result'])
-            
-            # Si no, edito el actual 
+
+            # Si no, edito el actual
             else
                 texto << linea
                 @tg.edit_message_text(chat_id: chat_id, text: texto + cargando,
@@ -103,7 +101,6 @@ class Dankie
             end
 
             indice += 1
-
         end
     end
 
@@ -112,8 +109,6 @@ class Dankie
         poles.each do |iterador|
             acumulador += iterador[1].to_i
         end
-        return acumulador.to_s
+        acumulador.to_s
     end
-
-
 end
