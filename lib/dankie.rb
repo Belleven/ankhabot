@@ -73,7 +73,7 @@ class Dankie
     end
 
     def html_parser(texto)
-        texto.to_s.gsub('&','&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
+        texto.to_s.gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
     end
 
     def get_command(msg)
