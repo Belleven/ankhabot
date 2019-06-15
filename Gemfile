@@ -1,5 +1,6 @@
 source 'https://rubygems.org'
 
+gem 'concurrent-ruby'
 gem 'rake'
 gem 'redis'
 gem 'ruby_reddit_api'

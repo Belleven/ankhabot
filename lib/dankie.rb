@@ -33,8 +33,8 @@ class Dankie
 
     def html_parser(text)
         text = text.to_s.gsub('&', '&amp;')
-        text = text.to_s.gsub('<', '&lt;')
-        text = text.to_s.gsub('>', '&gt;')
+        text = text.gsub('<', '&lt;')
+        text = text.gsub('>', '&gt;')
         text
     end
 
@@ -132,7 +132,7 @@ class Dankie
                             "#{user.username}</a>"
                     elsif !user.first_name.empty?
                         "<a href='tg://user?id=#{user_id}'>" \
-                            "#{user.first_name}</a>"
+                            "#{html_parser(user.first_name)}</a>"
                     else
                         'ay no c (' + user_id + ')'
                     end
