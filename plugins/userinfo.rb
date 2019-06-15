@@ -52,7 +52,7 @@ class Dankie
         username = msg.reply_to_message ? msg.reply_to_message.from.username : msg.from.username
         lastfm = @redis.get("LastFM:#{user_id}")
         nick = @redis.get("Apodo:#{"#{chat_id}-#{user_id}"}")
-        answer = fullname.nil? || fullname.to_s.strip.empty? ? "<b>Cuenta Eliminada</b>\n" : "Nombre de usuario: <b>#{html_parser(fullname)}</b>\n"
+        answer = fullname.nil? || fullname.to_s.strip.empty? ? "<b>ay no c</b>\n" : "Nombre de usuario: <b>#{html_parser(fullname)}</b>\n"
         answer << (username.nil? ? '' : "Alias: <b>#{html_parser(username)}</b>\n")
         answer << (user_id.nil? ? '' : "Id de usuario: #{html_parser(user_id)}\n")
         answer << (nick.nil? ? '' : "Apodo en el grupete: #{html_parser(nick)}\n")

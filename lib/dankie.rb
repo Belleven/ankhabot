@@ -31,13 +31,6 @@ class Dankie
         @handlers ||= []
     end
 
-    def html_parser(text)
-        text = text.to_s.gsub('&', '&amp;')
-        text = text.gsub('<', '&lt;')
-        text = text.gsub('>', '&gt;')
-        text
-    end
-
     # creo que esto es un dispatch si entendí bien
     def dispatch(msg)
         self.class.handlers.each do |handler|
@@ -77,6 +70,10 @@ class Dankie
 
             yield handler.cmd, handler.description if handler.description
         end
+    end
+
+    def html_parser(texto)
+        texto.to_s.gsub('&','&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
     end
 
     def get_command(msg)
