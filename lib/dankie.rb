@@ -53,7 +53,8 @@ class Dankie
         @tg.client.listen do |msg|
             next unless msg&.from&.id
             next if @redis.sismember('blacklist:global', msg.from.id.to_s)
-            next if @redis.sismember("blacklist:#{msg.chat.id}", msg.from.id.to_s)
+            next if msg.is_a?(Telegram::Bot::Types::Message) &&
+                @redis.sismember("blacklist:#{msg.chat.id}", msg.from.id.to_s)
 
             dispatch(msg)
 

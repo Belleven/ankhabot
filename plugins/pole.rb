@@ -2,7 +2,7 @@ require 'concurrent-ruby'
 
 # Extension de dankie para manejar las poles
 class Dankie
-    add_handler MessageHandler.new(:pole)
+    add_handler MessageHandler.new(:pole, allowed_chats: [:group, :supergroup])
     add_handler CommandHandler.new(:nisman, :enviar_ranking_pole,
                                    description: 'Muestra el ranking de Nisman')
 

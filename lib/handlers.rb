@@ -9,14 +9,14 @@ class MessageHandler < Handler
     def initialize(callback, args = {})
         @callback = callback
         @allow_edited = args[:allow_edited] || false
-        @allow_channel = args[:allow_channel] || false
+        @allowed_chats = args[:allowed_chats]&.map(&:to_s) || ['private', 'group', 'supergroup'] # 'channel' es otra opción
         @msg_types = args[:types] || MSG_TYPES
     end
 
     def check_message(bot, msg)
         return if !@allow_edited && msg.edit_date
 
-        return if !@allow_channel && msg.chat.type == 'channel'
+        return unless @allowed_chats.include?(msg.chat.type)
 
         msg_type = nil
         @msg_types.each do |type|
@@ -48,6 +48,7 @@ class CommandHandler < Handler
         cmd = bot.get_command(msg)
         return if @cmd != cmd
 
+        bot.logger.info "CommandHandler: comando \"#{@cmd}\" en #{msg.chat.id}"
         if @allow_params
             bot.public_send(@callback, msg, bot.get_command_params(msg))
         else
@@ -57,4 +58,17 @@ class CommandHandler < Handler
 end
 
 class CallbackQueryHandler < Handler
+    def initialize(callback, patrón, args = {})
+        @callback = callback
+        @patrón = patrón
+    end
+
+    def check_message(bot, msg)
+        return unless msg.is_a? Telegram::Bot::Types::CallbackQuery
+
+        return unless @patrón =~ msg.data
+
+        bot.logger.info "CallbackQueryHandler: patrón #{@patrón} en #{msg.chat.id}"
+        bot.public_send(@callback, msg)
+    end
 end
