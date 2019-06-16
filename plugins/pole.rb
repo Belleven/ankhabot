@@ -60,7 +60,7 @@ class Dankie
         dígitos = poles.first[1].to_i.digits.count
 
         # Tomo el total de poles y lo agrego al título
-        texto << " (#{ calcular_total_poles(poles) })\n"
+        texto << " (#{calcular_total_poles(poles)})\n"
 
         # Tomo otras variables que luego usaré
         chat_id = enviado.chat.id
