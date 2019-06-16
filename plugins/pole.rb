@@ -8,6 +8,12 @@ class Dankie
 
     # TODO: Ponerle algún flag de solo test a este comando
     # add_handler CommandHandler.new(:darnisman, :_test_dar_nisman)
+    # add_handler CommandHandler.new(:borrar_clave_nisman, :_test_borrar_clave_nisman)
+
+    def _test_borrar_clave_nisman(msg)
+        @redis.del("pole:#{msg.chat.id}:done")
+        @tg.send_message(chat_id: msg.chat.id, text: "Borré la clave pa")
+    end
 
     def _test_dar_nisman(msg)
         id = msg.reply_to_message ? msg.reply_to_message.from.id : msg.from.id
@@ -16,7 +22,7 @@ class Dankie
         nombre = mensaje.from.first_name.empty? ? msg.from.id.to_s : html_parser(mensaje.from.first_name)
 
         @redis.zincrby("pole:#{msg.chat.id}", 1, id)
-        @logger.info("#{nombre} hizo la nisman en #{msg.chat.id}")
+        log(Logger::INFO, "#{nombre} hizo la nisman en #{msg.chat.id}", al_canal: false)
         @tg.send_message(chat_id: msg.chat.id, parse_mode: 'html',
                          reply_to_message_id: msg.message_id,
                          text: "<b>#{nombre}</b> hizo la Nisman")
@@ -34,7 +40,7 @@ class Dankie
 
         nombre = msg.from.first_name.empty? ? "ay no c (#{msg.from.id})" : html_parser(msg.from.first_name)
 
-        @logger.info("#{nombre} hizo la nisman en #{msg.chat.id}")
+        log(Logger::INFO, "#{nombre} hizo la nisman en #{msg.chat.id}", al_canal: false)
         @tg.send_message(chat_id: msg.chat.id, parse_mode: 'html',
                          reply_to_message_id: msg.message_id,
                          text: "<b>#{nombre}</b> hizo la Nisman")

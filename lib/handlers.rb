@@ -14,6 +14,7 @@ class MessageHandler < Handler
     end
 
     def check_message(bot, msg)
+        return unless msg.is_a? Telegram::Bot::Types::Message
         return if !@allow_edited && msg.edit_date
 
         return unless @allowed_chats.include?(msg.chat.type)

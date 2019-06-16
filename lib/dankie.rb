@@ -41,6 +41,7 @@ class Dankie
     # Recibe un Hash con los datos de config.yml
     def initialize(args)
         @logger = Logger.new $stderr
+        @canal_logging = args[:canal_logging]
         @tg = TelegramAPI.new args[:tg_token], @logger
         @redis = Redis.new port: args[:redis_port], host: args[:redis_host], password: args[:redis_pass]
         @img = ImageSearcher.new args[:google_image_key], args[:google_image_cx]
@@ -75,6 +76,31 @@ class Dankie
 
     def html_parser(texto)
         texto.to_s.gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
+    end
+
+    def log(nivel, texto, al_canal: false)
+        @logger.log(nivel, texto)
+        return unless al_canal == true
+        nivel = case nivel
+                when Logger::DEBUG
+                    'DEBUG'
+                when Logger::INFO
+                    'INFO'
+                when Logger::WARN
+                    'WARN'
+                when Logger::ERROR
+                    'ERROR'
+                when Logger::FATAL
+                    'FATAL'
+                when Logger::UNKNOWN
+                    'UNKNOWN'
+                end
+
+        enviar = "<pre>[#{Time.now.strftime("%FT%T.%6N")}] -- #{nivel} :"
+        enviar << "\n" << '-'*30 << "</pre>\n"
+        enviar << texto
+        @tg.send_message(chat_id: @canal_logging, text: enviar,
+                         parse_mode: :html, disable_web_page_preview: true)
     end
 
     def get_command(msg)

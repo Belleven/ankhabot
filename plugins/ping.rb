@@ -15,6 +15,6 @@ class Dankie
         text << format("%s: `%.3fs`\n", 'bbdd', time3.to_r - time2.to_r)
         @tg.edit_message_text(chat_id: enviado.chat.id, parse_mode: 'markdown',
                               message_id: enviado.message_id, text: text)
-        @logger.info text.tr("\n", "\t")
+        log(Logger::INFO, text.tr("\n", "\t"), al_canal: true)
     end
 end
