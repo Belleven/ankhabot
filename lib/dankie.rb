@@ -56,14 +56,14 @@ class Dankie
             next unless msg&.from&.id
             next if @redis.sismember('blacklist:global', msg.from.id.to_s)
             next if msg.is_a?(Telegram::Bot::Types::Message) &&
-                @redis.sismember("blacklist:#{msg.chat.id}", msg.from.id.to_s)
+                    @redis.sismember("blacklist:#{msg.chat.id}", msg.from.id.to_s)
 
             dispatch(msg)
 
         rescue Faraday::ConnectionFailed, Net::OpenTimeout => e
             log Logger::ERROR, e, al_canal: true
             retry
-        rescue => e
+        rescue StandardError => e
             log Logger::FATAL, e, al_canal: true
         end
     end
@@ -84,6 +84,7 @@ class Dankie
     def log(nivel, texto, al_canal: false)
         @logger.log(nivel, texto)
         return unless al_canal == true
+
         nivel = case nivel
                 when Logger::DEBUG
                     'DEBUG'
@@ -99,8 +100,8 @@ class Dankie
                     'UNKNOWN'
                 end
 
-        enviar = "<pre>[#{Time.now.strftime("%FT%T.%6N")}] -- #{nivel} :"
-        enviar << "\n" << '-'*30 << "</pre>\n"
+        enviar = "<pre>[#{Time.now.strftime('%FT%T.%6N')}] -- #{nivel} :"
+        enviar << "\n" << '-' * 30 << "</pre>\n"
         enviar << texto
         @tg.send_message(chat_id: @canal_logging, text: enviar,
                          parse_mode: :html, disable_web_page_preview: true)
