@@ -11,9 +11,11 @@ class Dankie
         time3 = Time.new
 
         text = "pong\n"
-        text << format("%s: `%.3fs`\n", 'tg', time2.to_r - time1.to_r)
-        text << format("%s: `%.3fs`\n", 'bbdd', time3.to_r - time2.to_r)
-        @tg.edit_message_text(chat_id: enviado.chat.id, parse_mode: 'markdown',
+        text << format("%s: <code>%.3fs</code>\n", 'tg',
+                       time2.to_r - time1.to_r)
+        text << format("%s: <code>%.3fs</code>\n", 'bbdd',
+                       time3.to_r - time2.to_r)
+        @tg.edit_message_text(chat_id: enviado.chat.id, parse_mode: 'html',
                               message_id: enviado.message_id, text: text)
         log(Logger::INFO, text.tr("\n", "\t"), al_canal: true)
     end
