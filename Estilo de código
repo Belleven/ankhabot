@@ -17,3 +17,5 @@ Clases: NombreClase
 Indentación: usando 4 espacios
 
 Al mandar mensajes en "negrita", "cursiva", etc, usar HTML y NO Markdown
+
+Para las claves de redis: todas tienen que arrancar con el nombre del plugin al que pertenecen, y el separador es ":". Por ejemplo las claves que sean de lista_negra tienen que arrancar con "lista_negra".

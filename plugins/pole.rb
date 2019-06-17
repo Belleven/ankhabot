@@ -1,5 +1,3 @@
-require 'concurrent-ruby'
-
 # Extension de dankie para manejar las poles
 class Dankie
     add_handler MessageHandler.new(:pole)
@@ -7,7 +5,9 @@ class Dankie
                                    description: 'Muestra el ranking de Nisman')
 
     # TODO: Ponerle algún flag de solo test a este comando
-    # add_handler CommandHandler.new(:darnisman, :_test_dar_nisman)
+    add_handler CommandHandler.new(:darnisman, :_test_dar_nisman)
+
+    $semáforo = Semáforo.new
 
     def _test_dar_nisman(msg)
         id = msg.reply_to_message ? msg.reply_to_message.from.id : msg.from.id
@@ -15,20 +15,32 @@ class Dankie
 
         nombre = mensaje.from.first_name.empty? ? msg.from.id.to_s : html_parser(mensaje.from.first_name)
 
+        # Sincronizo para que se frene el comando /nisman hasta que se terminen de registrar la pole
+        $semáforo.bloqueo_uno
+
         @redis.zincrby("pole:#{msg.chat.id}", 1, id)
         @logger.info("#{nombre} hizo la nisman en #{msg.chat.id}")
         @tg.send_message(chat_id: msg.chat.id, parse_mode: 'html',
                          reply_to_message_id: msg.message_id,
                          text: "<b>#{nombre}</b> hizo la Nisman")
+
+        # No olvidarse de desbloquear el semáforo, esto es mucho muy importante
+        $semáforo.desbloqueo_uno
+
     end
 
     def pole(msg)
+     
         return if @redis.exists("pole:#{msg.chat.id}:done")
 
         ahora = Time.now
         próx_pole = @tz.utc_to_local(Time.new(ahora.year, ahora.month, ahora.day + 1))
         próx_pole = próx_pole.to_i
         fecha_msg = @tz.utc_to_local(Time.at(msg.date)).to_i
+        
+        # Sincronizo para que se frene el comando /nisman hasta que se terminen de registrar la pole
+        $semáforo.bloqueo_uno
+
         @redis.setex("pole:#{msg.chat.id}:done", próx_pole - fecha_msg, 'ok')
         @redis.zincrby("pole:#{msg.chat.id}", 1, msg.from.id)
 
@@ -38,10 +50,15 @@ class Dankie
         @tg.send_message(chat_id: msg.chat.id, parse_mode: 'html',
                          reply_to_message_id: msg.message_id,
                          text: "<b>#{nombre}</b> hizo la Nisman")
+
+        # No olvidarse de desbloquear el semáforo, esto es mucho muy importante
+        $semáforo.desbloqueo_uno
+
     end
 
     def enviar_ranking_pole(msg)
         texto = '<b>Ranking de Nisman</b>'
+        
         enviado = @tg.send_message(chat_id: msg.chat.id,
                                    parse_mode: 'html',
                                    text: texto + "\n\n<i>cargando...</i>")
@@ -49,9 +66,17 @@ class Dankie
 
         # en vez de esto debería tener otra lista de plugins pesados que
         # trabajen en un hilo aparte
-        fork do
-            editar_ranking_pole(enviado, texto)
-        end
+
+       	Thread.new{
+           	# Sincronizo para que se frene la captura de la pole hasta que se terminen de mandar los rankings que fueron llamados
+           	$semáforo.bloqueo_muchos
+	
+           	editar_ranking_pole(enviado, texto)        
+	
+           	# No olvidarse de desbloquear el semáforo, esto es mucho muy importante
+           	$semáforo.desbloqueo_muchos
+       	}
+
     end
 
     def editar_ranking_pole(enviado, texto)
