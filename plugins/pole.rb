@@ -8,7 +8,8 @@ class Dankie
     # add_handler CommandHandler.new(:darnisman, :_test_dar_nisman)
     # add_handler CommandHandler.new(:borrar_clave_nisman, :_test_borrar_clave_nisman)
 
- 	$nisman_activas = Concurrent::AtomicFixnum.new(0)
+    # Variables para sincronizar y controlar la cantidad de threads que hay activos
+    $nisman_activas = Concurrent::AtomicFixnum.new(0)
     $semáforo = Semáforo.new
 
     def _test_borrar_clave_nisman(msg)
@@ -61,26 +62,53 @@ class Dankie
     end
 
     def enviar_ranking_pole(msg)
-        texto = '<b>Ranking de Nisman</b>'
+        # Si hay 4 hilos activos entonces no atiendo el comando y aviso de esto
+        if $nisman_activas.value >= 4
+            # Problema improbable que NO puede notar el usuario y por eso no es importante arreglar:
+            # Puede pasar durante el chequeo de este if, si pasa lo siguiente:
+            # - El hilo principal toma el valor de "nisman_activas" de memoria que es 4
+            # - Hay un cambio de contexto
+            # - Uno o más hilos terminan y decrementan el valor de "nisman_activas" que ahora es 3 o menos
+            # Debería poder crearse un nuevo hilo entonces
+            # - PERO el durante el if se trajo un 4 de memoria, con lo cual va a devolver true la comparación 4 >= 4
+            # - NO se va a crear un nuevo hilo cuando debería
+            @tg.send_message(chat_id: msg.chat.id, reply_to_message_id: msg.message_id,
+                             text: 'Disculpame pero hay demasiados comandos /nisman activos en este momento, acá y/o en otros grupetes. Vas a tener que esperar.')
 
-        enviado = @tg.send_message(chat_id: msg.chat.id,
-                                   parse_mode: 'html',
-                                   text: texto + "\n\n<i>cargando...</i>")
-        enviado = Telegram::Bot::Types::Message.new(enviado['result'])
+        else
 
-        # en vez de esto debería tener otra lista de plugins pesados que
-        # trabajen en un hilo aparte
+            texto = '<b>Ranking de Nisman</b>'
+            enviado = @tg.send_message(chat_id: msg.chat.id,
+                                       parse_mode: 'html',
+                                       text: texto + "\n\n<i>cargando...</i>")
+            enviado = Telegram::Bot::Types::Message.new(enviado['result'])
 
-        Thread.new do
-            # Sincronizo para que se frene la captura de la pole hasta que se terminen de mandar los rankings que fueron llamados
-            $semáforo.bloqueo_muchos
+            # Aumento en 1 la cantidad de hilos activos
+            $nisman_activas.increment
 
-            log(Logger::INFO, "#{msg.from.id} pidió el ranking de nisman en el chat #{msg.chat.id}", al_canal: false)
+            # En vez de esto debería tener otra lista de plugins pesados que trabajen en un hilo aparte
+            # --comentario de galera: mmmmm vs dcis? por ahora no hay otros comandos pesados, igual
+            # es mucho más fácil sincronizar 2 hilos en vez de hasta 5
 
-            editar_ranking_pole(enviado, texto)
+            Thread.new do
+                # Sincronizo para que se frene la captura de la pole hasta que se terminen de mandar los rankings que fueron llamados
+                $semáforo.bloqueo_muchos
 
-            # No olvidarse de desbloquear el semáforo, esto es mucho muy importante
-            $semáforo.desbloqueo_muchos
+                log(Logger::INFO, "#{msg.from.id} pidió el ranking de nisman en el chat #{msg.chat.id}", al_canal: false)
+
+                editar_ranking_pole(enviado, texto)
+
+                # No olvidarse de desbloquear el semáforo, esto es mucho muy importante
+                $semáforo.desbloqueo_muchos
+                # Además de habilitar un nuevo hilo
+                $nisman_activas.decrement
+
+                # Posible problema: después de esta instrucción podría haber un cambio de contexto antes de que muera el hilo??
+                # Espero que no, porque si fuese así entonces podría haber más de 4 hilos del comando "/nisman" activos a la vez
+                # Aunque eso no se va a notar en las variables, ni lo va a notar el usuario, pero en un caso super borde podría causar
+                # problemas de eficiencia.
+            end
+
         end
     end
 

@@ -9,7 +9,7 @@ class MessageHandler < Handler
     def initialize(callback, args = {})
         @callback = callback
         @allow_edited = args[:allow_edited] || false
-        @allowed_chats = args[:allowed_chats]&.map(&:to_s) || ['private', 'group', 'supergroup'] # 'channel' es otra opción
+        @allowed_chats = args[:allowed_chats]&.map(&:to_s) || %w[private group supergroup] # 'channel' es otra opción
         @msg_types = args[:types] || MSG_TYPES
     end
 
@@ -59,7 +59,7 @@ class CommandHandler < Handler
 end
 
 class CallbackQueryHandler < Handler
-    def initialize(callback, patrón, args = {})
+    def initialize(callback, patrón, _args = {})
         @callback = callback
         @patrón = patrón
     end
