@@ -76,7 +76,9 @@ class Dankie
        	Thread.new{
            	# Sincronizo para que se frene la captura de la pole hasta que se terminen de mandar los rankings que fueron llamados
            	$semáforo.bloqueo_muchos
-	
+			
+           	log(Logger::INFO, "#{msg.from.id} pidió el ranking de nisman en el chat #{msg.chat.id}", al_canal: false)
+
            	editar_ranking_pole(enviado, texto)        
 	
            	# No olvidarse de desbloquear el semáforo, esto es mucho muy importante
