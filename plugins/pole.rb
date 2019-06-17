@@ -8,6 +8,7 @@ class Dankie
  	# add_handler CommandHandler.new(:darnisman, :_test_dar_nisman)
  	# add_handler CommandHandler.new(:borrar_clave_nisman, :_test_borrar_clave_nisman)
 
+ 	$nisman_activas = Concurrent::AtomicFixnum.new(0)
     $semáforo = Semáforo.new
 
     def _test_borrar_clave_nisman(msg)
