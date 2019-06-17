@@ -257,7 +257,7 @@ class Dankie
                 miembro = @tg.get_chat_member(chat_id: chat_id, user_id: id)
                 miembro = Telegram::Bot::Types::ChatMember.new(miembro['result'])
             rescue Telegram::Bot::Exceptions::ResponseError => e
-                @logger.error(e)
+                log(Logger::ERROR, e, al_canal: true)
                 @tg.send_message(chat_id: chat_id,
                                  reply_to_message: message_id,
                                  text: 'No puedo bloquear esa id, pasame una que sea válida de alguien que esté o haya estado alguna vez en el grupete.')
