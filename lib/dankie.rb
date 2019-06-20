@@ -64,15 +64,15 @@ class Dankie
             begin
                 log Logger::ERROR, excepcion_texto(e), al_canal: true
             rescue StandardError => e
-                log Logger::FATAL, "EXCEPCIÓN LEYENDO LA EXCEPCIÓN", al_canal: true
+                log Logger::FATAL, 'EXCEPCIÓN LEYENDO LA EXCEPCIÓN', al_canal: true
             end
             retry
-        
+
         rescue StandardError => e
             begin
-                log Logger::FATAL, "EXCEPCIÓN LEYENDO LA EXCEPCIÓN", al_canal: true
+                log Logger::FATAL, 'EXCEPCIÓN LEYENDO LA EXCEPCIÓN', al_canal: true
             rescue StandardError => e
-                log Logger::FATAL, "EXCEPCIÓN LEYENDO LA EXCEPCIÓN", al_canal: true
+                log Logger::FATAL, 'EXCEPCIÓN LEYENDO LA EXCEPCIÓN', al_canal: true
             end
         end
     end
@@ -97,8 +97,8 @@ class Dankie
 
     def excepcion_texto(excepcion)
         texto_excepcion = excepcion.to_s
-        texto = if !texto_excepcion.nil? && !texto_excepcion.empty? then html_parser(texto_excepcion) else "EXCEPCIÓN SIN NOMBRE" end
-        lineas = "<pre>" + ('-' * 30) + "</pre>\n"
+        texto = !texto_excepcion.nil? && !texto_excepcion.empty? ? html_parser(texto_excepcion) : 'EXCEPCIÓN SIN NOMBRE'
+        lineas = '<pre>' + ('-' * 30) + "</pre>\n"
 
         unless excepcion.backtrace.nil?
             # La regex turbina esa es para no doxxearnos a los que usamos linux
@@ -109,16 +109,14 @@ class Dankie
             texto << "<pre>#{html_parser(excepcion.backtrace.join("\n").gsub(%r{/home/[^/]+}, '~'))}</pre>"
         end
 
-        return texto
+        texto
     end
 
     def log(nivel, texto, al_canal: false)
-        if texto.nil? || texto.empty? 
-            texto = "LOG SIN NOMBRE" 
-        end
-        
+        texto = 'LOG SIN NOMBRE' if texto.nil? || texto.empty?
+
         @logger.log(nivel, texto)
-        return unless al_canal == true   
+        return unless al_canal == true
 
         nivel = case nivel
                 when Logger::DEBUG
@@ -133,33 +131,31 @@ class Dankie
                     'FATAL'
                 when Logger::UNKNOWN
                     'UNKNOWN'
-                end 
+                end
 
         horario = Time.now.strftime('%FT%T.%6N')
         lineas = '<pre>' + '-' * (8 + horario.length + nivel.length) + "</pre>\n"
-        
-        enviar = "<pre>[#{horario}] -- #{nivel} :</pre>\n" + lineas + texto    
-        @tg.send_message(chat_id: @canal_logging, text: enviar,
-                        parse_mode: :html, disable_web_page_preview: true)
-        
-        rescue StandardError => exc
-            begin
-                lineas = ('-' * 30) + "\n"
-                texto_excepcion = lineas + "\nMientras se manejaba una excepción surgió otra:\n"
-        
-                excepcion = exc.to_s
-                texto_excepcion << if !excepcion.nil? && !excepcion.empty?
-                                    html_parser(exc.to_s)
-                                else
-                                    'ERROR SIN NOMBRE'
-                                end
-        
-                texto_excepcion << "\n" + lineas + lineas + exc.backtrace.join("\n") + "\n" + lineas + lineas + "\n"
-                @logger.log(Logger::FATAL, texto_excepcion)
 
-            rescue StandardError => exc
-                puts "\nFATAL, multiples excepciones.\n"
-            end
+        enviar = "<pre>[#{horario}] -- #{nivel} :</pre>\n" + lineas + texto
+        @tg.send_message(chat_id: @canal_logging, text: enviar,
+                         parse_mode: :html, disable_web_page_preview: true)
+    rescue StandardError => exc
+        begin
+            lineas = ('-' * 30) + "\n"
+            texto_excepcion = lineas + "\nMientras se manejaba una excepción surgió otra:\n"
+
+            excepcion = exc.to_s
+            texto_excepcion << if !excepcion.nil? && !excepcion.empty?
+                                   html_parser(exc.to_s)
+                               else
+                                   'ERROR SIN NOMBRE'
+                            end
+
+            texto_excepcion << "\n" + lineas + lineas + exc.backtrace.join("\n") + "\n" + lineas + lineas + "\n"
+            @logger.log(Logger::FATAL, texto_excepcion)
+        rescue StandardError => exc
+            puts "\nFATAL, multiples excepciones.\n"
+        end
     end
 
     def get_command(msg)
