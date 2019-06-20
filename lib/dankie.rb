@@ -61,10 +61,10 @@ class Dankie
             dispatch(msg)
 
         rescue Faraday::ConnectionFailed, Net::OpenTimeout => e
-            log Logger::ERROR, e.to_s, al_canal: true
+            log Logger::ERROR, e, al_canal: true
             retry
         rescue StandardError => e
-            log Logger::FATAL, e.to_s, al_canal: true
+            log Logger::FATAL, e, al_canal: true
         end
     end
 
@@ -77,11 +77,17 @@ class Dankie
         end
     end
 
+    # El to_s es al pedo, si lo que le pasamos no es un string entonces
+    # tiene que saltar el error para que veamos bien que carajo le estamos pasando
+    # Dejo el diccionario como variable para no tener que crearlo cada vez que se hace
+    # un parseo. Hecho así solo recorre una vez el string en vez de 3.
+    $html_dicc = { '&' => '&amp;', '<' => '&lt;', '>' => '&gt;' }
     def html_parser(texto)
-        texto.to_s.gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
+        texto.gsub(/&|<|>/, $html_dicc)
     end
 
-    def log(nivel, texto, al_canal: false)
+    def log(nivel, excepcion, al_canal: false)
+        texto = excepcion.to_s
         @logger.log(nivel, texto)
         return unless al_canal == true
 
@@ -100,11 +106,42 @@ class Dankie
                     'UNKNOWN'
                 end
 
-        enviar = "<pre>[#{Time.now.strftime('%FT%T.%6N')}] -- #{nivel} :"
-        enviar << "\n" << '-' * 30 << "</pre>\n"
-        enviar << texto
+        horario = Time.now.strftime('%FT%T.%6N')
+        lineas = '<pre>' + '-' * (8 + horario.length + nivel.length) + "</pre>\n"
+
+        enviar = "<pre>[#{horario}] -- #{nivel} :</pre>\n" + lineas
+
+        enviar << if !texto.nil? && !texto.empty?
+                      html_parser(texto)
+                  else
+                      'ERROR SIN NOMBRE'
+                  end
+
+        unless excepcion.backtrace.nil?
+            # La regex turbina esa es para no doxxearnos a los que usamos linux
+            # La regex va entre / /, por eso están la del principio y la del final
+            # \/ es para "/" => \/home\/ es para "/home/"
+            # [^\/]+ es para que detecte todos los caracteres que no sean "/" => /home/user/dankie/... queda
+            # como /dankie/...
+            enviar << "\n" + lineas + lineas + "Rastreo de la excepción:\n" + lineas
+            enviar << "<pre>#{html_parser(excepcion.backtrace.join("\n").gsub(%r{/home/[^/]+}, '~'))}</pre>"
+        end
+
         @tg.send_message(chat_id: @canal_logging, text: enviar,
                          parse_mode: :html, disable_web_page_preview: true)
+    rescue StandardError => exc
+        texto_excepcion = "Mientras se manejaba una excepción surgió otra:\n"
+
+        segunda_excepcion = exc.to_s
+        texto_excepcion << if !segunda_excepcion.nil? && !segunda_excepcion.empty?
+                               html_parser(exc.to_s)
+                           else
+                               'ERROR SIN NOMBRE'
+                           end
+
+        @logger.log(Logger::FATAL, texto_excepcion)
+        lineas = ('-' * 30) + "\n"
+        puts "\n" + lineas + lineas + texto_excepcion + "\n" + lineas + exc.backtrace.join("\n") + "\n" + lineas + lineas + "\n"
     end
 
     def get_command(msg)
