@@ -61,10 +61,10 @@ class Dankie
             dispatch(msg)
 
         rescue Faraday::ConnectionFailed, Net::OpenTimeout => e
-            log Logger::ERROR, e, al_canal: true
+            log Logger::ERROR, e.to_s, al_canal: true
             retry
         rescue StandardError => e
-            log Logger::FATAL, e, al_canal: true
+            log Logger::FATAL, e.to_s, al_canal: true
         end
     end
 
