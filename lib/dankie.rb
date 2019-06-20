@@ -70,7 +70,7 @@ class Dankie
 
         rescue StandardError => e
             begin
-                log Logger::FATAL, 'EXCEPCIÓN LEYENDO LA EXCEPCIÓN', al_canal: true
+                log Logger::FATAL, excepcion_texto(e), al_canal: true
             rescue StandardError => e
                 log Logger::FATAL, 'EXCEPCIÓN LEYENDO LA EXCEPCIÓN', al_canal: true
             end
