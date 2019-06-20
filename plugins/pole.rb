@@ -37,17 +37,20 @@ class Dankie
     end
 
     def pole(msg)
-        return if @redis.exists("pole:#{msg.chat.id}:done")
+        # pole:chat_id:next es un timestamp de la hora de la próxima pole
+        próx_pole = @redis.get("pole:#{msg.chat.id}:próxima").to_i
+        puts Time.at próx_pole, in: '-03:00'
+        # Si la clave no existe, próx_pole vale 0 así que cuenta como hacer la pole
+        return if próx_pole.to_i != 0 && msg.date <= próx_pole
 
-        ahora = Time.now
-        próx_pole = @tz.utc_to_local(Time.new(ahora.year, ahora.month, ahora.day + 1))
-        próx_pole = próx_pole.to_i
-        fecha_msg = @tz.utc_to_local(Time.at(msg.date)).to_i
+        últ_pole = Time.at msg.date, in: '-03:00'
+        próx_pole = Time.new(últ_pole.year, últ_pole.month, últ_pole.day + 1,
+                             0, 0, 0, '-03:00')
 
         # Sincronizo para que se frene el comando /nisman hasta que se terminen de registrar la pole
         $semáforo.bloqueo_uno
 
-        @redis.setex("pole:#{msg.chat.id}:done", próx_pole - fecha_msg, 'ok')
+        @redis.set "pole:#{msg.chat.id}:próxima", próx_pole.to_i
         @redis.zincrby("pole:#{msg.chat.id}", 1, msg.from.id)
         @redis.bgsave
 
