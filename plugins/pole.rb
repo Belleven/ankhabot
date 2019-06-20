@@ -49,6 +49,7 @@ class Dankie
 
         @redis.setex("pole:#{msg.chat.id}:done", próx_pole - fecha_msg, 'ok')
         @redis.zincrby("pole:#{msg.chat.id}", 1, msg.from.id)
+        @redis.bgsave
 
         nombre = msg.from.first_name.empty? ? "ay no c (#{msg.from.id})" : html_parser(msg.from.first_name)
 
