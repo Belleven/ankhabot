@@ -39,7 +39,6 @@ class Dankie
     def pole(msg)
         # pole:chat_id:next es un timestamp de la hora de la próxima pole
         próx_pole = @redis.get("pole:#{msg.chat.id}:próxima").to_i
-        puts Time.at próx_pole, in: '-03:00'
         # Si la clave no existe, próx_pole vale 0 así que cuenta como hacer la pole
         return if próx_pole.to_i != 0 && msg.date <= próx_pole
 
