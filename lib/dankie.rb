@@ -139,21 +139,21 @@ class Dankie
         enviar = "<pre>[#{horario}] -- #{nivel} :</pre>\n" + lineas + texto
         @tg.send_message(chat_id: @canal_logging, text: enviar,
                          parse_mode: :html, disable_web_page_preview: true)
-    rescue StandardError => exc
+    rescue StandardError => e
         begin
             lineas = ('-' * 30) + "\n"
             texto_excepcion = lineas + "\nMientras se manejaba una excepción surgió otra:\n"
 
-            excepcion = exc.to_s
+            excepcion = e.to_s
             texto_excepcion << if !excepcion.nil? && !excepcion.empty?
-                                   html_parser(exc.to_s)
+                                   html_parser(e.to_s)
                                else
                                    'ERROR SIN NOMBRE'
                             end
 
-            texto_excepcion << "\n" + lineas + lineas + exc.backtrace.join("\n") + "\n" + lineas + lineas + "\n"
+            texto_excepcion << "\n" + lineas + lineas + e.backtrace.join("\n") + "\n" + lineas + lineas + "\n"
             @logger.log(Logger::FATAL, texto_excepcion)
-        rescue StandardError => exc
+        rescue StandardError => e
             puts "\nFATAL, multiples excepciones.\n"
         end
     end
