@@ -5,6 +5,7 @@ require_relative 'images.rb'
 require_relative 'last_fm_parser.rb'
 require_relative 'semáforo.rb'
 require 'redis'
+require 'tzinfo'
 require 'set'
 
 class Dankie
@@ -47,6 +48,7 @@ class Dankie
         @img = ImageSearcher.new args[:google_image_key], args[:google_image_cx]
         @user = Telegram::Bot::Types::User.new @tg.get_me['result'] # TODO: validar?
         @lastFM = LastFMParser.new args[:last_fm_api]
+        @tz = TZInfo::Timezone.get args[:timezone]
     end
 
     def run
