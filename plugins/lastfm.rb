@@ -28,7 +28,7 @@ class Dankie
         end
 
         user_id = msg.from.id
-        @redis.set("LastFM:#{user_id}", user)
+        @redis.set("lastfm:#{user_id}", user)
         @redis.bgsave
         txt_done = "Listo #{TROESMAS.sample}. Tu usuario de Last.fm ahora es '#{user}'."
         @tg.send_message(chat_id: msg.chat.id,
@@ -38,7 +38,7 @@ class Dankie
 
     def getlastfm(msg)
         user_id = msg.from.id
-        user = @redis.get("LastFM:#{user_id}")
+        user = @redis.get("lastfm:#{user_id}")
         txt_done = "Por el momento, tu usuario de Last.fm es '#{user}'."
         @tg.send_message(chat_id: msg.chat.id,
                          reply_to_message: msg.message_id,
@@ -52,7 +52,7 @@ class Dankie
 
         amount = 15 if amount > 15
         user_id = msg.from.id
-        user = @redis.get("LastFM:#{user_id}")
+        user = @redis.get("lastfm:#{user_id}")
 
         if user.nil? || (user == '')
             err_txt = "Si no te seteás un usuario, está jodida la cosa #{TROESMAS.sample}."
@@ -80,7 +80,7 @@ class Dankie
 
     def nowplaying(msg)
         user_id = msg.from.id
-        user = @redis.get("LastFM:#{user_id}")
+        user = @redis.get("lastfm:#{user_id}")
 
         if user.nil? || (user == '')
             err_txt = "Si no te seteás un usuario, está jodida la cosa #{TROESMAS.sample}."
