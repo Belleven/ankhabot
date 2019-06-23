@@ -1,6 +1,8 @@
 class Dankie
     add_handler CommandHandler.new(:apodar, :dar_apodo,
                                    description: 'Te cambio el apodo al que me digas (si sos admin, podés cambiárselo a otros)')
+    add_handler CommandHandler.new(:borrarapodo, :borrar_apodo,
+                                   description: 'Te borra el apodo (si sos admin, podés borrar el de cualquiera)')
     add_handler CommandHandler.new(:vos, :obtener_info,
                                    description: 'Devuelve tu información (o la del usuario al que le respondas)')
     add_handler CommandHandler.new(:apodos, :apodos,
@@ -54,6 +56,42 @@ class Dankie
         @tg.send_message(chat_id: mensaje.chat.id, reply_to_message: responde_a, text: texto, parse_mode: 'html')
     end
 
+    def borrar_apodo(mensaje)
+        
+        chat_id = mensaje.chat.id
+
+        # Si no es un grupo entonces chau
+        unless validar_grupo(mensaje.chat.type, chat_id, mensaje.message_id)
+            return
+        end
+
+        # Veo los datazos de quien sea al que le quieren borrar el apodo
+    	if es_administrador(mensaje.from.id, chat_id) && mensaje.reply_to_message
+            id_usuario = mensaje.reply_to_message.from.id
+            nombre = mensaje.reply_to_message.from.first_name
+            apellido = mensaje.reply_to_message.from.last_name
+            responde_a = mensaje.reply_to_message.message_id
+        else
+            id_usuario = mensaje.from.id
+            nombre = mensaje.from.first_name
+            apellido = mensaje.from.last_name
+            responde_a = mensaje.message_id
+        end
+
+        # Si no tenía ningún apodo, entonces aviso
+        if @redis.hget("info_usuario:apodo:#{chat_id}", id_usuario.to_s).nil?
+        	@tg.send_message(chat_id: chat_id, reply_to_message: mensaje.message_id, text: "No podés borrar un apodo que no existe")
+        else
+        	# Si sí tenía, entonces lo borro
+        	@redis.hdel("info_usuario:apodo:#{chat_id}", id_usuario.to_s)
+        	# Hacer algo con los bgsave en un futuro
+        	@redis.bgsave
+        	@tg.send_message(chat_id: chat_id, reply_to_message: mensaje.message_id, text: "Apodo recontra borradísimo")
+        end
+
+    end
+
+
     def obtener_info(mensaje)
         chat_id = mensaje.chat.id
 
@@ -90,7 +128,8 @@ class Dankie
 
         # Chequeo que haya apodos
         apodos = @redis.hgetall("info_usuario:apodo:#{chat_id}")
-        if apodos.nil?
+
+        if apodos.nil? or apodos.empty?
             @tg.send_message(chat_id: chat_id, text: 'No hay nadie apodado en el grupete.')
             return
         end
