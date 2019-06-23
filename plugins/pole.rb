@@ -5,19 +5,19 @@ class Dankie
                                    description: 'Muestra el ranking de Nisman')
 
     # TODO: Ponerle algún flag de solo test a este comando
-    # add_handler CommandHandler.new(:darnisman, :_test_dar_nisman)
-    # add_handler CommandHandler.new(:borrar_clave_nisman, :_test_borrar_clave_nisman)
+    # add_handler CommandHandler.new(:dar_nisman, :_test_dar_pole)
+    # add_handler CommandHandler.new(:reiniciar_nisman, :_test_reiniciar_pole)
 
     # Variables para sincronizar y controlar la cantidad de threads que hay activos
     $nisman_activas = Concurrent::AtomicFixnum.new(0)
     $semáforo = Semáforo.new
 
-    def _test_borrar_clave_nisman(msg)
-        @redis.del("pole:#{msg.chat.id}:done")
+    def _test_reiniciar_pole(msg)
+        @redis.set "pole:#{msg.chat.id}:próxima", msg.date
         @tg.send_message(chat_id: msg.chat.id, text: 'Borré la clave pa')
     end
 
-    def _test_dar_nisman(msg)
+    def _test_dar_pole(msg)
         id = msg.reply_to_message ? msg.reply_to_message.from.id : msg.from.id
         mensaje = msg.reply_to_message || msg
 
