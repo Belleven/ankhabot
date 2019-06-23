@@ -40,7 +40,6 @@ class TelegramAPI
         @client.api.send_chat_action(chat_id: args[:chat_id], action: 'typing')
         # Acá meter el delay
         @client.api.send_message(args)
-    
     rescue Faraday::ConnectionFailed, Net::OpenTimeout => e
         retry
     end
@@ -54,12 +53,12 @@ class TelegramAPI
     # No estaría entendiendo por qué no toma esta función el bot durante /nisman
     # Será porque la llama desde un thread?
     def edit_message_text(args)
-    	puts "\n\nAAAAAAAAA\n\n"
+        puts "\n\nAAAAAAAAA\n\n"
         @client.api.send_chat_action(chat_id: args[:chat_id], action: 'typing')
-        
+
         puts "\n\nAAAAAAAAA\n\n"
         # Meter delay
-        if args[:text].length > 0
+        unless args[:text].empty?
             if args[:text].length > 4096
                 args[:text] = args[:text][0..4095].strip
                 @client.api.edit_message_text(args)
@@ -68,7 +67,6 @@ class TelegramAPI
             end
         end
     end
-
 
     def send_photo(args)
         @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_photo')
@@ -110,17 +108,17 @@ class TelegramAPI
         @client.api.send_chat_action(chat_id: args[:chat_id], action: 'record_audio')
         # Meter delay
         @client.api.send_voice(args)
-    end  
+    end
 
     def send_location(args)
         @client.api.send_chat_action(chat_id: args[:chat_id], action: 'find_location')
         # Meter delay
         @client.api.send_location(args)
-    end  
+    end
 
     def send_sticker(args)
-    	# Meter delay
-    	@client.api.send_sticker(args)
+        # Meter delay
+        @client.api.send_sticker(args)
     end
 
     # Tengo acceso a toda la api de telegram (bot.api) desde la clase Dankie
