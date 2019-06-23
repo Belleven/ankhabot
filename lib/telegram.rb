@@ -37,16 +37,81 @@ class TelegramAPI
         args[:text] = args[:text].strip
         return if args[:text].nil? || args[:text].empty?
 
+        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'typing')
+        # Acá meter el delay
         @client.api.send_message(args)
+    
     rescue Faraday::ConnectionFailed, Net::OpenTimeout => e
-        @client.logger.error(e)
         retry
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        @client.logger.error(e)
-        raise e
     end
 
-    # tengo acceso a toda la api de telegram (bot.api) desde la clase Dankie
+    def forward_message(args)
+        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'typing')
+        # Meter delay
+        @client.api.forward_message(args)
+    end
+
+    #def edit_message_text
+    #	@client.api.send_chat_action(chat_id: args[:chat_id], action: 'typing')
+        # Meter delay
+        # Chequear que no se pase de los 4096 caracteres
+    #    @client.api.edit_message_text(args)
+    #end
+
+
+    def send_photo(args)
+        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_photo')
+        # Meter delay
+        @client.api.send_photo(args)
+    end
+
+    def send_audio(args)
+        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_audio')
+        # Meter delay
+        @client.api.send_audio(args)
+    end
+
+    def send_document(args)
+        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_document')
+        # Meter delay
+        @client.api.send_document(args)
+    end
+
+    def send_video(args)
+        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_video')
+        # Meter delay
+        @client.api.send_video(args)
+    end
+
+    def send_animation(args)
+        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_photo')
+        # Meter delay
+        @client.api.send_animation(args)
+    end
+
+    def send_video_note(args)
+        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_video_note')
+        # Meter delay
+        @client.api.send_video_note(args)
+    end
+
+    def send_voice(args)
+        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'record_audio')
+        # Meter delay
+        @client.api.send_voice(args)
+    end  
+
+    def send_location(args)
+        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'find_location')
+        # Meter delay
+        @client.api.send_location(args)
+    end  
+
+    def send_sticker(args)
+    	# Meter delay
+    	@client.api.send_sticker(args)
+
+    # Tengo acceso a toda la api de telegram (bot.api) desde la clase Dankie
     # suena horrible pero está bueno y pude hacer unos rescue
     def method_missing(method_name, *args)
         super unless @client.api.respond_to?(method_name)
