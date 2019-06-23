@@ -51,12 +51,23 @@ class TelegramAPI
         @client.api.forward_message(args)
     end
 
-    #def edit_message_text
-    #	@client.api.send_chat_action(chat_id: args[:chat_id], action: 'typing')
+    # No estaría entendiendo por qué no toma esta función el bot durante /nisman
+    # Será porque la llama desde un thread?
+    def edit_message_text(args)
+    	puts "\n\nAAAAAAAAA\n\n"
+        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'typing')
+        
+        puts "\n\nAAAAAAAAA\n\n"
         # Meter delay
-        # Chequear que no se pase de los 4096 caracteres
-    #    @client.api.edit_message_text(args)
-    #end
+        if args[:text].length > 0
+            if args[:text].length > 4096
+                args[:text] = args[:text][0..4095].strip
+                @client.api.edit_message_text(args)
+            else
+                @client.api.edit_message_text(args)
+            end
+        end
+    end
 
 
     def send_photo(args)
@@ -110,6 +121,7 @@ class TelegramAPI
     def send_sticker(args)
     	# Meter delay
     	@client.api.send_sticker(args)
+    end
 
     # Tengo acceso a toda la api de telegram (bot.api) desde la clase Dankie
     # suena horrible pero está bueno y pude hacer unos rescue
