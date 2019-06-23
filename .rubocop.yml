@@ -9,3 +9,6 @@ AllCops:
 
 Style/FrozenStringLiteralComment:
         EnforcedStyle: never
+
+Naming/AsciiIdentifiers:
+        Enabled: false
