@@ -57,7 +57,6 @@ class Dankie
     end
 
     def borrar_apodo(mensaje)
-        
         chat_id = mensaje.chat.id
 
         # Si no es un grupo entonces chau
@@ -66,7 +65,7 @@ class Dankie
         end
 
         # Veo los datazos de quien sea al que le quieren borrar el apodo
-    	if es_administrador(mensaje.from.id, chat_id) && mensaje.reply_to_message
+        if es_administrador(mensaje.from.id, chat_id) && mensaje.reply_to_message
             id_usuario = mensaje.reply_to_message.from.id
             nombre = mensaje.reply_to_message.from.first_name
             apellido = mensaje.reply_to_message.from.last_name
@@ -80,17 +79,15 @@ class Dankie
 
         # Si no tenía ningún apodo, entonces aviso
         if @redis.hget("info_usuario:apodo:#{chat_id}", id_usuario.to_s).nil?
-        	@tg.send_message(chat_id: chat_id, reply_to_message: mensaje.message_id, text: "No podés borrar un apodo que no existe")
+            @tg.send_message(chat_id: chat_id, reply_to_message: mensaje.message_id, text: 'No podés borrar un apodo que no existe')
         else
-        	# Si sí tenía, entonces lo borro
-        	@redis.hdel("info_usuario:apodo:#{chat_id}", id_usuario.to_s)
-        	# Hacer algo con los bgsave en un futuro
-        	@redis.bgsave
-        	@tg.send_message(chat_id: chat_id, reply_to_message: mensaje.message_id, text: "Apodo recontra borradísimo")
+            # Si sí tenía, entonces lo borro
+            @redis.hdel("info_usuario:apodo:#{chat_id}", id_usuario.to_s)
+            # Hacer algo con los bgsave en un futuro
+            @redis.bgsave
+            @tg.send_message(chat_id: chat_id, reply_to_message: mensaje.message_id, text: 'Apodo recontra borradísimo')
         end
-
     end
-
 
     def obtener_info(mensaje)
         chat_id = mensaje.chat.id
@@ -129,7 +126,7 @@ class Dankie
         # Chequeo que haya apodos
         apodos = @redis.hgetall("info_usuario:apodo:#{chat_id}")
 
-        if apodos.nil? or apodos.empty?
+        if apodos.nil? || apodos.empty?
             @tg.send_message(chat_id: chat_id, text: 'No hay nadie apodado en el grupete.')
             return
         end

@@ -227,10 +227,10 @@ class Dankie
             @tg.send_message(chat_id: chat_id, reply_to_message: message_id,
                              text: 'Esto solo funciona en grupetes')
             return false
-        
+
         elsif type == 'channel'
             return false
-        
+
         end
 
         true
