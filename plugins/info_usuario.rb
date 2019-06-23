@@ -8,43 +8,43 @@ class Dankie
     add_handler CommandHandler.new(:apodos, :apodos,
                                    description: 'Te doy los apodos de un grupete')
 
-    def dar_apodo(mensaje)
-        chat_id = mensaje.chat.id
+    def dar_apodo(msj)
+        chat_id = msj.chat.id
 
-        unless validar_grupo(mensaje.chat.type, chat_id, mensaje.message_id)
+        unless validar_grupo(msj.chat.type, chat_id, msj.message_id)
             return
         end
 
-        nuevo_apodo = get_command_params(mensaje)
+        nuevo_apodo = get_command_params(msj)
 
         if nuevo_apodo.nil? || nuevo_apodo.empty?
             texto_error = "Si no me pasás un apodo, está jodida la cosa #{TROESMAS.sample}."
-            @tg.send_message(chat_id: chat_id, reply_to_message: mensaje.message_id, text: texto_error)
+            @tg.send_message(chat_id: chat_id, reply_to_message: msj.message_id, text: texto_error)
             return
         elsif nuevo_apodo.length > 100
             texto_error = "Un poquito largo el apodo, no te parece #{TROESMAS.sample}?"
-            @tg.send_message(chat_id: chat_id, reply_to_message: mensaje.message_id, text: texto_error)
+            @tg.send_message(chat_id: chat_id, reply_to_message: msj.message_id, text: texto_error)
             return
         elsif nuevo_apodo.include? "\n"
             texto_error = "Nada de saltos de línea #{TROESMAS.sample}"
-            @tg.send_message(chat_id: chat_id, reply_to_message: mensaje.message_id, text: texto_error)
+            @tg.send_message(chat_id: chat_id, reply_to_message: msj.message_id, text: texto_error)
             return
         elsif nuevo_apodo.include? '‌'
             texto_error = "Nada de caracteres vacíos #{TROESMAS.sample}"
-            @tg.send_message(chat_id: chat_id, reply_to_message: mensaje.message_id, text: texto_error)
+            @tg.send_message(chat_id: chat_id, reply_to_message: msj.message_id, text: texto_error)
             return
         end
 
-        if es_administrador(mensaje.from.id, chat_id) && mensaje.reply_to_message
-            id_usuario = mensaje.reply_to_message.from.id
-            nombre = mensaje.reply_to_message.from.first_name
-            apellido = mensaje.reply_to_message.from.last_name
-            responde_a = mensaje.reply_to_message.message_id
+        if es_administrador(msj.from.id, chat_id) && msj.reply_to_message
+            id_usuario = msj.reply_to_message.from.id
+            nombre = msj.reply_to_message.from.first_name
+            apellido = msj.reply_to_message.from.last_name
+            responde_a = msj.reply_to_message.message_id
         else
-            id_usuario = mensaje.from.id
-            nombre = mensaje.from.first_name
-            apellido = mensaje.from.last_name
-            responde_a = mensaje.message_id
+            id_usuario = msj.from.id
+            nombre = msj.from.first_name
+            apellido = msj.from.last_name
+            responde_a = msj.message_id
         end
 
         # La estructura es un hash de clave "info_usuario:apodo:chat_id",los atributos son las ids de los usuarios
@@ -53,55 +53,49 @@ class Dankie
         @redis.bgsave
 
         texto = "De hoy en adelante, el #{TROESMAS.sample} '#{dame_nombre_completo(nombre, apellido, 'Cuenta eliminada')}' será conocido como '#{html_parser(nuevo_apodo)}'."
-        @tg.send_message(chat_id: mensaje.chat.id, reply_to_message: responde_a, text: texto, parse_mode: 'html')
+        @tg.send_message(chat_id: msj.chat.id, reply_to_message: responde_a, text: texto, parse_mode: 'html')
     end
 
-    def borrar_apodo(mensaje)
-        chat_id = mensaje.chat.id
+    def borrar_apodo(msj)
+        chat_id = msj.chat.id
 
         # Si no es un grupo entonces chau
-        unless validar_grupo(mensaje.chat.type, chat_id, mensaje.message_id)
+        unless validar_grupo(msj.chat.type, chat_id, msj.message_id)
             return
         end
 
         # Veo los datazos de quien sea al que le quieren borrar el apodo
-        if es_administrador(mensaje.from.id, chat_id) && mensaje.reply_to_message
-            id_usuario = mensaje.reply_to_message.from.id
-            nombre = mensaje.reply_to_message.from.first_name
-            apellido = mensaje.reply_to_message.from.last_name
-            responde_a = mensaje.reply_to_message.message_id
+        if es_administrador(msj.from.id, chat_id) && msj.reply_to_message
+            id_usuario = msj.reply_to_message.from.id
         else
-            id_usuario = mensaje.from.id
-            nombre = mensaje.from.first_name
-            apellido = mensaje.from.last_name
-            responde_a = mensaje.message_id
+            id_usuario = msj.from.id
         end
 
         # Si no tenía ningún apodo, entonces aviso
         if @redis.hget("info_usuario:apodo:#{chat_id}", id_usuario.to_s).nil?
-            @tg.send_message(chat_id: chat_id, reply_to_message: mensaje.message_id, text: 'No podés borrar un apodo que no existe')
+            @tg.send_message(chat_id: chat_id, reply_to_message: msj.message_id, text: 'No podés borrar un apodo que no existe')
         else
             # Si sí tenía, entonces lo borro
             @redis.hdel("info_usuario:apodo:#{chat_id}", id_usuario.to_s)
             # Hacer algo con los bgsave en un futuro
             @redis.bgsave
-            @tg.send_message(chat_id: chat_id, reply_to_message: mensaje.message_id, text: 'Apodo recontra borradísimo')
+            @tg.send_message(chat_id: chat_id, reply_to_message: msj.message_id, text: 'Apodo recontra borradísimo')
         end
     end
 
-    def obtener_info(mensaje)
-        chat_id = mensaje.chat.id
+    def obtener_info(msj)
+        chat_id = msj.chat.id
 
-        if mensaje.reply_to_message
-            id_usuario = mensaje.reply_to_message.from.id
-            nombre = mensaje.reply_to_message.from.first_name
-            apellido = mensaje.reply_to_message.from.last_name
-            alias_usuario = mensaje.reply_to_message.from.username
+        if msj.reply_to_message
+            id_usuario = msj.reply_to_message.from.id
+            nombre = msj.reply_to_message.from.first_name
+            apellido = msj.reply_to_message.from.last_name
+            alias_usuario = msj.reply_to_message.from.username
         else
-            id_usuario = mensaje.from.id
-            nombre = mensaje.from.first_name
-            apellido = mensaje.from.last_name
-            alias_usuario = mensaje.from.username
+            id_usuario = msj.from.id
+            nombre = msj.from.first_name
+            apellido = msj.from.last_name
+            alias_usuario = msj.from.username
         end
 
         lastfm = @redis.get("lastfm:#{id_usuario}")
@@ -113,13 +107,13 @@ class Dankie
         respuesta << (apodo.nil? ? '' : "Apodo en el grupete: <b>#{html_parser(apodo)}</b>\n")
         respuesta << (lastfm.nil? ? '' : "Cuenta de LastFM: <b>#{html_parser(lastfm)}</b>")
 
-        @tg.send_message(chat_id: mensaje.chat.id, reply_to_message: mensaje.message_id, parse_mode: 'html', text: respuesta)
+        @tg.send_message(chat_id: msj.chat.id, reply_to_message: msj.message_id, parse_mode: 'html', text: respuesta)
     end
 
-    def apodos(mensaje)
+    def apodos(msj)
         # Chequeo que sea en un grupo
-        chat_id = mensaje.chat.id
-        unless validar_grupo(mensaje.chat.type, chat_id, mensaje.message_id)
+        chat_id = msj.chat.id
+        unless validar_grupo(msj.chat.type, chat_id, msj.message_id)
             return
         end
 
@@ -131,7 +125,7 @@ class Dankie
             return
         end
 
-        texto = "Apodos del grupete #{html_parser(mensaje.chat.title)}\n\n"
+        texto = "Apodos del grupete #{html_parser(msj.chat.title)}\n\n"
         apodos.each do |apodo|
             # Armo la línea
             línea = "- <a href='tg://user?id=#{apodo[0]}'> #{html_parser(apodo[1])}</a>\n"

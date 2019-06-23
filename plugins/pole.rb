@@ -36,38 +36,38 @@ class Dankie
         $semáforo.desbloqueo_uno
     end
 
-    def pole(mensaje)
+    def pole(msj)
         # pole:chat_id:next es un timestamp de la hora de la próxima pole
-        próx_pole = @redis.get("pole:#{mensaje.chat.id}:próxima").to_i
+        próx_pole = @redis.get("pole:#{msj.chat.id}:próxima").to_i
 
         # Si la clave no existe, próx_pole vale 0 así que cuenta como hacer la pole
-        return if próx_pole.to_i != 0 && mensaje.date < próx_pole
+        return if próx_pole.to_i != 0 && msj.date < próx_pole
 
-        últ_pole = Time.at mensaje.date, in: @tz.utc_offset
+        últ_pole = Time.at msj.date, in: @tz.utc_offset
         próx_pole = Time.new(últ_pole.year, últ_pole.month, últ_pole.day + 1,
                              0, 0, 0, @tz.utc_offset)
 
         # Sincronizo para que se frene el comando /nisman hasta que se terminen de registrar la pole
         $semáforo.bloqueo_uno
 
-        @redis.set "pole:#{mensaje.chat.id}:próxima", próx_pole.to_i
-        @redis.zincrby("pole:#{mensaje.chat.id}", 1, mensaje.from.id)
+        @redis.set "pole:#{msj.chat.id}:próxima", próx_pole.to_i
+        @redis.zincrby("pole:#{msj.chat.id}", 1, msj.from.id)
         @redis.bgsave
 
-        nombre = mensaje.from.first_name.empty? ? "ay no c (#{mensaje.from.id})" : html_parser(mensaje.from.first_name)
+        nombre = msj.from.first_name.empty? ? "ay no c (#{msj.from.id})" : html_parser(msj.from.first_name)
 
-        log(Logger::INFO, "#{nombre} hizo la nisman en #{mensaje.chat.id}", al_canal: false)
-        @tg.send_message(chat_id: mensaje.chat.id, parse_mode: 'html',
-                         reply_to_message_id: mensaje.message_id,
+        log(Logger::INFO, "#{nombre} hizo la nisman en #{msj.chat.id}", al_canal: false)
+        @tg.send_message(chat_id: msj.chat.id, parse_mode: 'html',
+                         reply_to_message_id: msj.message_id,
                          text: "<b>#{nombre}</b> hizo la Nisman")
 
         # No olvidarse de desbloquear el semáforo, esto es mucho muy importante
         $semáforo.desbloqueo_uno
     end
 
-    def enviar_ranking_pole(mensaje)
-        chat_id = mensaje.chat.id
-        return unless validar_grupo(mensaje.chat.type, chat_id, mensaje.message_id)
+    def enviar_ranking_pole(msj)
+        chat_id = msj.chat.id
+        return unless validar_grupo(msj.chat.type, chat_id, msj.message_id)
 
         # Si hay 4 hilos activos entonces no atiendo el comando y aviso de esto
         if $nisman_activas.value >= 4
@@ -79,7 +79,7 @@ class Dankie
             # Debería poder crearse un nuevo hilo entonces
             # - PERO el durante el if se trajo un 4 de memoria, con lo cual va a devolver true la comparación 4 >= 4
             # - NO se va a crear un nuevo hilo cuando debería
-            @tg.send_message(chat_id: chat_id, reply_to_message_id: mensaje.message_id,
+            @tg.send_message(chat_id: chat_id, reply_to_message_id: msj.message_id,
                              text: 'Disculpame pero hay demasiados comandos /nisman activos en este momento, acá y/o en otros grupetes. Vas a tener que esperar.')
 
         else
@@ -101,7 +101,7 @@ class Dankie
                 # Sincronizo para que se frene la captura de la pole hasta que se terminen de mandar los rankings que fueron llamados
                 $semáforo.bloqueo_muchos
 
-                log(Logger::INFO, "#{mensaje.from.id} pidió el ranking de nisman en el chat #{mensaje.chat.id}", al_canal: false)
+                log(Logger::INFO, "#{msj.from.id} pidió el ranking de nisman en el chat #{msj.chat.id}", al_canal: false)
 
                 editar_ranking_pole(enviado, texto)
 
