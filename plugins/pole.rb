@@ -12,60 +12,63 @@ class Dankie
     $nisman_activas = Concurrent::AtomicFixnum.new(0)
     $semáforo = Semáforo.new
 
-    def _test_borrar_clave_nisman(msg)
-        @redis.del("pole:#{msg.chat.id}:done")
-        @tg.send_message(chat_id: msg.chat.id, text: 'Borré la clave pa')
+    def _test_borrar_clave_nisman(mensaje)
+        @redis.del("pole:#{mensaje.chat.id}:done")
+        @tg.send_message(chat_id: mensaje.chat.id, text: 'Borré la clave pa')
     end
 
-    def _test_dar_nisman(msg)
-        id = msg.reply_to_message ? msg.reply_to_message.from.id : msg.from.id
-        mensaje = msg.reply_to_message || msg
+    def _test_dar_nisman(mensaje)
+        id = mensaje.reply_to_message ? mensaje.reply_to_message.from.id : mensaje.from.id
+        mensaje = mensaje.reply_to_message || mensaje
 
-        nombre = mensaje.from.first_name.empty? ? msg.from.id.to_s : html_parser(mensaje.from.first_name)
+        nombre = mensaje.from.first_name.empty? ? mensaje.from.id.to_s : html_parser(mensaje.from.first_name)
 
         # Sincronizo para que se frene el comando /nisman hasta que se terminen de registrar la pole
         $semáforo.bloqueo_uno
 
-        @redis.zincrby("pole:#{msg.chat.id}", 1, id)
-        log(Logger::INFO, "#{nombre} hizo la nisman en #{msg.chat.id}", al_canal: false)
-        @tg.send_message(chat_id: msg.chat.id, parse_mode: 'html',
-                         reply_to_message_id: msg.message_id,
+        @redis.zincrby("pole:#{mensaje.chat.id}", 1, id)
+        log(Logger::INFO, "#{nombre} hizo la nisman en #{mensaje.chat.id}", al_canal: false)
+        @tg.send_message(chat_id: mensaje.chat.id, parse_mode: 'html',
+                         reply_to_message_id: mensaje.message_id,
                          text: "<b>#{nombre}</b> hizo la Nisman")
 
         # No olvidarse de desbloquear el semáforo, esto es mucho muy importante
         $semáforo.desbloqueo_uno
     end
 
-    def pole(msg)
+    def pole(mensaje)
         # pole:chat_id:next es un timestamp de la hora de la próxima pole
-        próx_pole = @redis.get("pole:#{msg.chat.id}:próxima").to_i
+        próx_pole = @redis.get("pole:#{mensaje.chat.id}:próxima").to_i
 
         # Si la clave no existe, próx_pole vale 0 así que cuenta como hacer la pole
-        return if próx_pole.to_i != 0 && msg.date < próx_pole
+        return if próx_pole.to_i != 0 && mensaje.date < próx_pole
 
-        últ_pole = Time.at msg.date, in: @tz.utc_offset
+        últ_pole = Time.at mensaje.date, in: @tz.utc_offset
         próx_pole = Time.new(últ_pole.year, últ_pole.month, últ_pole.day + 1,
                              0, 0, 0, @tz.utc_offset)
 
         # Sincronizo para que se frene el comando /nisman hasta que se terminen de registrar la pole
         $semáforo.bloqueo_uno
 
-        @redis.set "pole:#{msg.chat.id}:próxima", próx_pole.to_i
-        @redis.zincrby("pole:#{msg.chat.id}", 1, msg.from.id)
+        @redis.set "pole:#{mensaje.chat.id}:próxima", próx_pole.to_i
+        @redis.zincrby("pole:#{mensaje.chat.id}", 1, mensaje.from.id)
         @redis.bgsave
 
-        nombre = msg.from.first_name.empty? ? "ay no c (#{msg.from.id})" : html_parser(msg.from.first_name)
+        nombre = mensaje.from.first_name.empty? ? "ay no c (#{mensaje.from.id})" : html_parser(mensaje.from.first_name)
 
-        log(Logger::INFO, "#{nombre} hizo la nisman en #{msg.chat.id}", al_canal: false)
-        @tg.send_message(chat_id: msg.chat.id, parse_mode: 'html',
-                         reply_to_message_id: msg.message_id,
+        log(Logger::INFO, "#{nombre} hizo la nisman en #{mensaje.chat.id}", al_canal: false)
+        @tg.send_message(chat_id: mensaje.chat.id, parse_mode: 'html',
+                         reply_to_message_id: mensaje.message_id,
                          text: "<b>#{nombre}</b> hizo la Nisman")
 
         # No olvidarse de desbloquear el semáforo, esto es mucho muy importante
         $semáforo.desbloqueo_uno
     end
 
-    def enviar_ranking_pole(msg)
+    def enviar_ranking_pole(mensaje)
+        chat_id = mensaje.chat.id
+        return unless validar_grupo(mensaje.chat.type, chat_id, mensaje.message_id)
+
         # Si hay 4 hilos activos entonces no atiendo el comando y aviso de esto
         if $nisman_activas.value >= 4
             # Problema improbable que NO puede notar el usuario y por eso no es importante arreglar:
@@ -76,13 +79,13 @@ class Dankie
             # Debería poder crearse un nuevo hilo entonces
             # - PERO el durante el if se trajo un 4 de memoria, con lo cual va a devolver true la comparación 4 >= 4
             # - NO se va a crear un nuevo hilo cuando debería
-            @tg.send_message(chat_id: msg.chat.id, reply_to_message_id: msg.message_id,
+            @tg.send_message(chat_id: chat_id, reply_to_message_id: mensaje.message_id,
                              text: 'Disculpame pero hay demasiados comandos /nisman activos en este momento, acá y/o en otros grupetes. Vas a tener que esperar.')
 
         else
 
             texto = '<b>Ranking de Nisman</b>'
-            enviado = @tg.send_message(chat_id: msg.chat.id,
+            enviado = @tg.send_message(chat_id: chat_id,
                                        parse_mode: 'html',
                                        text: texto + "\n\n<i>cargando...</i>")
             enviado = Telegram::Bot::Types::Message.new(enviado['result'])
@@ -98,7 +101,7 @@ class Dankie
                 # Sincronizo para que se frene la captura de la pole hasta que se terminen de mandar los rankings que fueron llamados
                 $semáforo.bloqueo_muchos
 
-                log(Logger::INFO, "#{msg.from.id} pidió el ranking de nisman en el chat #{msg.chat.id}", al_canal: false)
+                log(Logger::INFO, "#{mensaje.from.id} pidió el ranking de nisman en el chat #{mensaje.chat.id}", al_canal: false)
 
                 editar_ranking_pole(enviado, texto)
 
@@ -119,13 +122,19 @@ class Dankie
     def editar_ranking_pole(enviado, texto)
         # Tomo las poles de las bases de datos y seteo los espacios para dígitos
         poles = @redis.zrevrange("pole:#{enviado.chat.id}", 0, -1, with_scores: true)
+        chat_id = enviado.chat.id
+
+        if poles.nil?
+            @tg.edit_message_text(chat_id: chat_id, text: 'No hay poles en este grupo', message_id: enviado.message_id)
+            return
+        end
+
         dígitos = poles.first[1].to_i.digits.count
 
         # Tomo el total de poles y lo agrego al título
         texto << " (#{calcular_total_poles(poles)})\n"
 
         # Tomo otras variables que luego usaré
-        chat_id = enviado.chat.id
         índice = 0
 
         poles.each do |pole|
