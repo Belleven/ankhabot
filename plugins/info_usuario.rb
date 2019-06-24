@@ -11,9 +11,7 @@ class Dankie
     def dar_apodo(msj)
         chat_id = msj.chat.id
 
-        unless validar_grupo(msj.chat.type, chat_id, msj.message_id)
-            return
-        end
+        return unless validar_grupo(msj.chat.type, chat_id, msj.message_id)
 
         nuevo_apodo = get_command_params(msj)
 
@@ -60,16 +58,14 @@ class Dankie
         chat_id = msj.chat.id
 
         # Si no es un grupo entonces chau
-        unless validar_grupo(msj.chat.type, chat_id, msj.message_id)
-            return
-        end
+        return unless validar_grupo(msj.chat.type, chat_id, msj.message_id)
 
         # Veo los datazos de quien sea al que le quieren borrar el apodo
-        if es_administrador(msj.from.id, chat_id) && msj.reply_to_message
-            id_usuario = msj.reply_to_message.from.id
-        else
-            id_usuario = msj.from.id
-        end
+        id_usuario = if es_administrador(msj.from.id, chat_id) && msj.reply_to_message
+                         msj.reply_to_message.from.id
+                     else
+                         msj.from.id
+                     end
 
         # Si no tenía ningún apodo, entonces aviso
         if @redis.hget("info_usuario:apodo:#{chat_id}", id_usuario.to_s).nil?
@@ -113,9 +109,7 @@ class Dankie
     def apodos(msj)
         # Chequeo que sea en un grupo
         chat_id = msj.chat.id
-        unless validar_grupo(msj.chat.type, chat_id, msj.message_id)
-            return
-        end
+        return unless validar_grupo(msj.chat.type, chat_id, msj.message_id)
 
         # Chequeo que haya apodos
         apodos = @redis.hgetall("info_usuario:apodo:#{chat_id}")
