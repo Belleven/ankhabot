@@ -23,6 +23,6 @@ class Dankie
 
     def cp(msg)
         text = [@c_words[msg.chat.id].sample, @p_words[msg.chat.id].sample].join ' '
-        @tg.send_message(chat_id: msg.chat.id, parse_mode: 'markdown', text: text)
+        @tg.send_message(chat_id: msg.chat.id, parse_mode: 'html', text: html_parser(text))
     end
 end
