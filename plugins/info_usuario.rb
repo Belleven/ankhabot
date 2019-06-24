@@ -16,7 +16,7 @@ class Dankie
         nuevo_apodo = get_command_params(msj)
 
         if nuevo_apodo.nil? || nuevo_apodo.empty?
-            texto_error = "Si no me pasás un apodo, está jodida la cosa #{TROESMAS.sample}."
+            texto_error = "Si no me pasás un apodo, está jodida la cosa #{TROESMAS.sample}"
             @tg.send_message(chat_id: chat_id, reply_to_message: msj.message_id, text: texto_error)
             return
         elsif nuevo_apodo.length > 100
@@ -61,15 +61,17 @@ class Dankie
         return unless validar_grupo(msj.chat.type, chat_id, msj.message_id)
 
         # Veo los datazos de quien sea al que le quieren borrar el apodo
-        id_usuario = if es_administrador(msj.from.id, chat_id) && msj.reply_to_message
-                         msj.reply_to_message.from.id
-                     else
-                         msj.from.id
-                     end
+        if es_administrador(msj.from.id, chat_id) && msj.reply_to_message
+            id_usuario = msj.reply_to_message.from.id
+            texto_error = "No podés borrar un apodo que no existe."
+        else
+            id_usuario = msj.from.id
+            texto_error = "No puedo borrarte el apodo si no tenés ninguno, #{TROESMAS.sample}."
+        end
 
         # Si no tenía ningún apodo, entonces aviso
         if @redis.hget("info_usuario:apodo:#{chat_id}", id_usuario.to_s).nil?
-            @tg.send_message(chat_id: chat_id, reply_to_message: msj.message_id, text: 'No podés borrar un apodo que no existe')
+            @tg.send_message(chat_id: chat_id, reply_to_message: msj.message_id, text: texto_error)
         else
             # Si sí tenía, entonces lo borro
             @redis.hdel("info_usuario:apodo:#{chat_id}", id_usuario.to_s)
@@ -115,7 +117,7 @@ class Dankie
         apodos = @redis.hgetall("info_usuario:apodo:#{chat_id}")
 
         if apodos.nil? || apodos.empty?
-            @tg.send_message(chat_id: chat_id, text: 'No hay nadie apodado en el grupete.')
+            @tg.send_message(chat_id: chat_id, text: 'No hay nadie apodado en el grupete')
             return
         end
 

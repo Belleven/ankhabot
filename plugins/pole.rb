@@ -80,7 +80,7 @@ class Dankie
             # - PERO el durante el if se trajo un 4 de memoria, con lo cual va a devolver true la comparación 4 >= 4
             # - NO se va a crear un nuevo hilo cuando debería
             @tg.send_message(chat_id: chat_id, reply_to_message_id: msj.message_id,
-                             text: 'Disculpame pero hay demasiados comandos /nisman activos en este momento, acá y/o en otros grupetes. Vas a tener que esperar.')
+                             text: 'Disculpame pero hay demasiados comandos nisman activos en este momento, acá y/o en otros grupetes. Vas a tener que esperar.')
 
         else
 
