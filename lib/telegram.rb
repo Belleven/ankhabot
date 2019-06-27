@@ -31,6 +31,99 @@ class TelegramAPI
         resultado
     end
 
+    def forward_message(args)
+        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'typing')
+        # Meter delay
+        @client.api.forward_message(args)
+    rescue Faraday::ConnectionFailed, Net::OpenTimeout
+        retry
+    end
+
+    def edit_message_text(args)
+        # Meter delay
+        unless args[:text].empty?
+            if args[:text].length > 4096
+                args[:text] = args[:text][0..4095].strip
+                @client.api.edit_message_text(args)
+            else
+                @client.api.edit_message_text(args)
+            end
+        end
+    rescue Faraday::ConnectionFailed, Net::OpenTimeout
+        retry
+    end
+
+    def send_photo(args)
+        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_photo')
+        # Meter delay
+        @client.api.send_photo(args)
+    rescue Faraday::ConnectionFailed, Net::OpenTimeout
+        retry
+    end
+
+    def send_audio(args)
+        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_audio')
+        # Meter delay
+        @client.api.send_audio(args)
+    rescue Faraday::ConnectionFailed, Net::OpenTimeout
+        retry
+    end
+
+    def send_document(args)
+        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_document')
+        # Meter delay
+        @client.api.send_document(args)
+    rescue Faraday::ConnectionFailed, Net::OpenTimeout
+        retry
+    end
+
+    def send_video(args)
+        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_video')
+        # Meter delay
+        @client.api.send_video(args)
+    rescue Faraday::ConnectionFailed, Net::OpenTimeout
+        retry
+    end
+
+    def send_animation(args)
+        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_video')
+        # Meter delay
+        @client.api.send_animation(args)
+    rescue Faraday::ConnectionFailed, Net::OpenTimeout
+        retry
+    end
+
+    def send_video_note(args)
+        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_video_note')
+        # Meter delay
+        @client.api.send_video_note(args)
+    rescue Faraday::ConnectionFailed, Net::OpenTimeout
+        retry
+    end
+
+    def send_voice(args)
+        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_audio')
+        # Meter delay
+        @client.api.send_voice(args)
+    rescue Faraday::ConnectionFailed, Net::OpenTimeout
+        retry
+    end
+
+    def send_location(args)
+        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'find_location')
+        # Meter delay
+        @client.api.send_location(args)
+    rescue Faraday::ConnectionFailed, Net::OpenTimeout
+        retry
+    end
+
+    def send_sticker(args)
+        # Meter delay
+        @client.api.send_sticker(args)
+    rescue Faraday::ConnectionFailed, Net::OpenTimeout
+        retry
+    end
+
     private
 
     def delay_y_envio(args)
@@ -42,83 +135,6 @@ class TelegramAPI
         @client.api.send_message(args)
     rescue Faraday::ConnectionFailed, Net::OpenTimeout
         retry
-    end
-
-    def forward_message(args)
-        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'typing')
-        # Meter delay
-        @client.api.forward_message(args)
-    end
-
-    # No estaría entendiendo por qué no toma esta función el bot durante /nisman
-    # Será porque la llama desde un thread?
-    def edit_message_text(args)
-        puts "\n\nAAAAAAAAA\n\n"
-        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'typing')
-
-        puts "\n\nAAAAAAAAA\n\n"
-        # Meter delay
-        unless args[:text].empty?
-            if args[:text].length > 4096
-                args[:text] = args[:text][0..4095].strip
-                @client.api.edit_message_text(args)
-            else
-                @client.api.edit_message_text(args)
-            end
-        end
-    end
-
-    def send_photo(args)
-        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_photo')
-        # Meter delay
-        @client.api.send_photo(args)
-    end
-
-    def send_audio(args)
-        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_audio')
-        # Meter delay
-        @client.api.send_audio(args)
-    end
-
-    def send_document(args)
-        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_document')
-        # Meter delay
-        @client.api.send_document(args)
-    end
-
-    def send_video(args)
-        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_video')
-        # Meter delay
-        @client.api.send_video(args)
-    end
-
-    def send_animation(args)
-        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_photo')
-        # Meter delay
-        @client.api.send_animation(args)
-    end
-
-    def send_video_note(args)
-        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_video_note')
-        # Meter delay
-        @client.api.send_video_note(args)
-    end
-
-    def send_voice(args)
-        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'record_audio')
-        # Meter delay
-        @client.api.send_voice(args)
-    end
-
-    def send_location(args)
-        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'find_location')
-        # Meter delay
-        @client.api.send_location(args)
-    end
-
-    def send_sticker(args)
-        # Meter delay
-        @client.api.send_sticker(args)
     end
 
     # Tengo acceso a toda la api de telegram (bot.api) desde la clase Dankie
