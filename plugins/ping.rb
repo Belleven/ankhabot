@@ -3,7 +3,8 @@ class Dankie
 
     def ping(msg)
         time1 = Time.new
-        enviado = @tg.send_message(chat_id: msg.chat.id, text: 'pong')
+        enviado = @tg.client.api.send_message(chat_id: msg.chat.id,
+                                              text: 'pong')
         enviado = Telegram::Bot::Types::Message.new(enviado['result'])
 
         time2 = Time.new
