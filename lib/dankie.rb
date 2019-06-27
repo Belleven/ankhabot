@@ -222,6 +222,20 @@ class Dankie
         return user_link || 'ay no c (' + user_id + ')'
     end
 
+    def natural(numero)
+        if numero.length < 25
+            begin
+                num = Integer(numero)
+            rescue StandardError
+                return false
+            end
+
+            return num if num > 0
+        end
+
+        false
+    end
+
     def validar_grupo(type, chat_id, message_id)
         if type == 'private'
             @tg.send_message(chat_id: chat_id, reply_to_message: message_id,

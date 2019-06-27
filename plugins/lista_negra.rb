@@ -301,19 +301,4 @@ class Dankie
         # Mando el último cacho
         @tg.send_message(chat_id: chat_id, text: lineas.join(''), parse_mode: 'html', disable_web_page_preview: true, disable_notification: true)
     end
-
-    # Esto tranquilamente puede ir en otro lado así lo podemos reusar
-    def natural(numero)
-        if numero.length < 25
-            begin
-                num = Integer(numero)
-            rescue StandardError
-                return false
-            end
-
-            return num if num > 0
-        end
-
-        false
-    end
 end
