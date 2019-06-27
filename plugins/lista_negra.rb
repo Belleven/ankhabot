@@ -86,7 +86,14 @@ class Dankie
 
                 id = msg.reply_to_message.from.id
 
-                if msg.reply_to_message.from.is_bot
+                if id == @user.id
+            		@tg.send_message(chat_id: chat_id,
+                    		         reply_to_message: msg.message_id,
+                            		 text: 'Ni se te ocurra')
+            		return
+        		end
+
+                elsif msg.reply_to_message.from.is_bot
                     @tg.send_message(chat_id: chat_id,
                                      reply_to_message: msg.message_id,
                                      text: 'Para qué querés bloquear a un '\
