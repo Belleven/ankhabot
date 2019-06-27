@@ -32,7 +32,7 @@ class Dankie
         @handlers ||= []
     end
 
-    # creo que esto es un dispatch si entendí bien
+    # Creo que esto es un dispatch si entendí bien
     def dispatch(msg)
         self.class.handlers.each do |handler|
             handler.check_message(self, msg)
@@ -62,7 +62,8 @@ class Dankie
 
         rescue Faraday::ConnectionFailed, Net::OpenTimeout => e
             begin
-                log Logger::ERROR, excepcion_texto(e), al_canal: true
+                texto, backtrace = excepcion_texto(e)
+                log Logger::ERROR, texto, al_canal: true, backtrace: backtrace
             rescue StandardError => e
                 log Logger::FATAL, 'EXCEPCIÓN LEYENDO LA EXCEPCIÓN', al_canal: true
             end
@@ -70,7 +71,8 @@ class Dankie
 
         rescue StandardError => e
             begin
-                log Logger::FATAL, excepcion_texto(e), al_canal: true
+                texto, backtrace = excepcion_texto(e)
+                log Logger::FATAL, texto, al_canal: true, backtrace: backtrace
             rescue StandardError => e
                 log Logger::FATAL, 'EXCEPCIÓN LEYENDO LA EXCEPCIÓN', al_canal: true
             end
@@ -97,26 +99,34 @@ class Dankie
 
     def excepcion_texto(excepcion)
         texto_excepcion = excepcion.to_s
-        texto = !texto_excepcion.nil? && !texto_excepcion.empty? ? html_parser(texto_excepcion) : 'EXCEPCIÓN SIN NOMBRE'
-        lineas = '<pre>' + ('-' * 30) + "</pre>\n"
+        texto = !(texto_excepcion.nil? || texto_excepcion.empty?) ? texto_excepcion : 'EXCEPCIÓN SIN NOMBRE'
 
-        unless excepcion.backtrace.nil?
+        if excepcion.backtrace.nil?
+            return texto, nil
+        else
             # La regex turbina esa es para no doxxearnos a los que usamos linux
             # / es para "/" => /home/ es para "/home/"
             # [^/]+ es para que detecte todos los caracteres que no sean "/" => /home/user/dankie/... queda
             # como /dankie/...
-            texto << "\n" + lineas + lineas + "Rastreo de la excepción:\n" + lineas
-            texto << "<pre>#{html_parser(excepcion.backtrace.join("\n").gsub(%r{/home/[^/]+}, '~'))}</pre>"
+            return texto, excepcion.backtrace.join("\n").gsub(%r{/home/[^/]+}, '~')
         end
-
-        texto
     end
 
-    def log(nivel, texto, al_canal: false)
+    def log(nivel, texto, al_canal: false, backtrace: nil)
         texto = 'LOG SIN NOMBRE' if texto.nil? || texto.empty?
 
-        @logger.log(nivel, texto)
-        return unless al_canal == true
+        backtrace.nil? ? @logger.log(nivel, texto) : @logger.log(nivel, texto + "\n" + backtrace)
+
+        return unless al_canal
+
+        unless backtrace.nil?
+
+            lineas = '<pre>' + ('-' * 30) + "</pre>\n"
+
+            texto = html_parser(texto)
+            texto << "\n" + lineas + lineas + "Rastreo de la excepción:\n" + lineas
+            texto << "<pre>#{html_parser(backtrace)}</pre>"
+        end
 
         nivel = case nivel
                 when Logger::DEBUG

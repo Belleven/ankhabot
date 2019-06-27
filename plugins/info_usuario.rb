@@ -63,7 +63,7 @@ class Dankie
         # Veo los datazos de quien sea al que le quieren borrar el apodo
         if es_administrador(msj.from.id, chat_id) && msj.reply_to_message
             id_usuario = msj.reply_to_message.from.id
-            texto_error = "No podés borrar un apodo que no existe."
+            texto_error = 'No podés borrar un apodo que no existe.'
         else
             id_usuario = msj.from.id
             texto_error = "No puedo borrarte el apodo si no tenés ninguno, #{TROESMAS.sample}."
