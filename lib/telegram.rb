@@ -40,7 +40,7 @@ class TelegramAPI
         @client.api.send_chat_action(chat_id: args[:chat_id], action: 'typing')
         # Acá meter el delay
         @client.api.send_message(args)
-    rescue Faraday::ConnectionFailed, Net::OpenTimeout => e
+    rescue Faraday::ConnectionFailed, Net::OpenTimeout
         retry
     end
 
