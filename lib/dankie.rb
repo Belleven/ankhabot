@@ -76,6 +76,12 @@ class Dankie
             rescue StandardError => e
                 log Logger::FATAL, 'EXCEPCIÓN LEYENDO LA EXCEPCIÓN', al_canal: true
             end
+
+            # Sacar este raise cuando el bot deje de ser testeadísimo
+            # lo puse porque luke dice que es pesado cuando se pone a mandar
+            # errores en el grupete.
+        	raise
+        
         end
     end
 
