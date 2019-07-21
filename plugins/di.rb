@@ -4,25 +4,25 @@ class Dankie
     add_handler CommandHandler.new(:grita, :grita,
                                    description: 'Te grito lo que me digas')
 
-    def di(msg)
-        text = get_command_params(msg) || msg.reply_to_message&.text || msg.reply_to_message&.caption
+    def di(msj)
+        text = get_command_params(msj) || msj.reply_to_message&.text || msj.reply_to_message&.caption
 
         if text.nil? || text == ''
             text = "Dale #{TROESMAS.sample}, ¿Qué digo?"
-            @tg.send_message(chat_id: msg.chat.id, text: text,
-                             reply_to_message: msg.message_id)
+            @tg.send_message(chat_id: msj.chat.id, text: text,
+                             reply_to_message: msj.message_id)
 
             return
         end
-        @tg.send_message(chat_id: msg.chat.id, text: text)
+        @tg.send_message(chat_id: msj.chat.id, text: text)
     end
 
-    def grita(msg)
-        args = get_command_params(msg) || msg.reply_to_message&.text || msg.reply_to_message&.caption
+    def grita(msj)
+        args = get_command_params(msj) || msj.reply_to_message&.text || msj.reply_to_message&.caption
         if args.nil?
             text = "Dale #{TROESMAS.sample}, ¿Qué grito?"
-            @tg.send_message(chat_id: msg.chat.id, text: text,
-                             reply_to_message: msg.message_id)
+            @tg.send_message(chat_id: msj.chat.id, text: text,
+                             reply_to_message: msj.message_id)
             return
         end
 
@@ -36,10 +36,10 @@ class Dankie
             end
         end
 
-        @tg.send_message(chat_id: msg.chat.id, text: args)
-        @tg.send_message(chat_id: msg.chat.id, text: args.upcase)
+        @tg.send_message(chat_id: msj.chat.id, text: args)
+        @tg.send_message(chat_id: msj.chat.id, text: args.upcase)
 
-        @tg.send_message(chat_id: msg.chat.id,
+        @tg.send_message(chat_id: msj.chat.id,
                          text: args.upcase.tr(' ', '-').chars * ' ')
 
         text = ''
@@ -50,10 +50,10 @@ class Dankie
             text << ' ] '
         end
 
-        @tg.send_message(chat_id: msg.chat.id, text: text)
+        @tg.send_message(chat_id: msj.chat.id, text: text)
 
         large_text&.each do |t|
-            @tg.send_message(chat_id: msg.chat.id, text: t)
+            @tg.send_message(chat_id: msj.chat.id, text: t)
         end
     end
 end

@@ -2,7 +2,7 @@ class Handler
 end
 
 class MessageHandler < Handler
-    MSG_TYPES = %i[text audio document game photo
+    MSJ_TYPES = %i[text audio document game photo
                    sticker video voice video_note contact
                    location venue poll].freeze
 
@@ -10,24 +10,24 @@ class MessageHandler < Handler
         @callback = callback
         @allow_edited = args[:allow_edited] || false
         @allowed_chats = args[:allowed_chats]&.map(&:to_s) || %w[private group supergroup] # 'channel' es otra opción
-        @msg_types = args[:types] || MSG_TYPES
+        @msj_types = args[:types] || MSJ_TYPES
     end
 
-    def check_message(bot, msg)
-        return unless msg.is_a? Telegram::Bot::Types::Message
-        return if !@allow_edited && msg.edit_date
+    def check_message(bot, msj)
+        return unless msj.is_a? Telegram::Bot::Types::Message
+        return if !@allow_edited && msj.edit_date
 
-        return unless @allowed_chats.include?(msg.chat.type)
+        return unless @allowed_chats.include?(msj.chat.type)
 
-        msg_type = nil
-        @msg_types.each do |type|
-            msg_type = msg.send type
-            break if msg_type
+        msj_type = nil
+        @msj_types.each do |type|
+            msj_type = msj.send type
+            break if msj_type
         end
 
-        return unless msg_type
+        return unless msj_type
 
-        bot.public_send(@callback, msg)
+        bot.public_send(@callback, msj)
     end
 end
 
@@ -41,19 +41,19 @@ class CommandHandler < Handler
         @allow_edited = args[:allow_edited] || false
     end
 
-    def check_message(bot, msg)
-        return unless msg.is_a? Telegram::Bot::Types::Message
+    def check_message(bot, msj)
+        return unless msj.is_a? Telegram::Bot::Types::Message
 
-        return if !@allow_edited && msg.edit_date
+        return if !@allow_edited && msj.edit_date
 
-        cmd = bot.get_command(msg)
+        cmd = bot.get_command(msj)
         return if @cmd != cmd
 
-        bot.logger.info "CommandHandler: comando \"#{@cmd}\" en #{msg.chat.id}"
+        bot.logger.info "CommandHandler: comando \"#{@cmd}\" en #{msj.chat.id}"
         if @allow_params
-            bot.public_send(@callback, msg, bot.get_command_params(msg))
+            bot.public_send(@callback, msj, bot.get_command_params(msj))
         else
-            bot.public_send(@callback, msg)
+            bot.public_send(@callback, msj)
         end
     end
 end
@@ -64,12 +64,57 @@ class CallbackQueryHandler < Handler
         @patrón = patrón
     end
 
-    def check_message(bot, msg)
-        return unless msg.is_a? Telegram::Bot::Types::CallbackQuery
+    def check_message(bot, msj)
+        return unless msj.is_a? Telegram::Bot::Types::CallbackQuery
 
-        return unless @patrón =~ msg.data
+        return unless @patrón =~ msj.data
 
-        bot.logger.info "CallbackQueryHandler: patrón #{@patrón} en #{msg.chat.id}"
-        bot.public_send(@callback, msg)
+        bot.logger.info "CallbackQueryHandler: patrón #{@patrón} en #{msj.chat.id}"
+        bot.public_send(@callback, msj)
     end
+end
+
+# Este es el handler general, lo ideal sería que cada vez que se necesite
+# un handler para un tipo de evento que no tenga, se armen uno nuevo y no usen este
+# pero bueno de última queda este por si se necesita.
+# Aunque bueno, eso genera mucho código repetido, veremos qué hacer en un futuro.
+class EventoDeChat < Handler
+    MSJ_TYPES = %i[new_chat_members left_chat_member new_chat_title
+                   new_chat_photo delete_chat_photo group_chat_created
+                   supergroup_chat_created channel_chat_created pinned_message].freeze
+
+    def initialize(callback, args = {})
+        @atributos = args[:types] || MSJ_TYPES
+        @callback = callback
+    end
+
+    def check_message(bot, msj)
+        return unless msj.is_a? Telegram::Bot::Types::Message
+
+        atributo = nil
+        @atributos.each do |tipo|
+            atributo = msj.send tipo
+            break if atributo
+        end
+
+        return unless atributo
+
+        bot.public_send(@callback, msj)
+    end
+end
+
+class NuevosMiembros < Handler
+    def initialize(callback)
+        @callback = callback
+    end
+
+    def check_message(bot, msj)
+        return unless msj.is_a? Telegram::Bot::Types::Message
+        return if msj.new_chat_members.nil? || msj.new_chat_members.empty?
+
+        bot.public_send(@callback, msj)
+    end
+end
+
+class MigrarASupergrupo < Handler
 end
