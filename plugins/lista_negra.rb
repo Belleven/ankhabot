@@ -218,17 +218,6 @@ class Dankie
         end
     end
 
-    def validar_desarrollador(user_id, chat_id, message_id, _text = nil, _id = nil)
-        # Chequeo que quien llama al comando sea o desarrollador
-        unless DEVS.include?(user_id)
-            @tg.send_message(chat_id: chat_id, reply_to_message: message_id,
-                             text: 'Vos no podés usar esto pa')
-            return false
-        end
-
-        true
-    end
-
     def es_admin(user_id, chat_id, message_id, text = nil, _id = nil)
         member = @tg.get_chat_member(chat_id: chat_id, user_id: user_id)
         member = Telegram::Bot::Types::ChatMember.new(member['result'])
