@@ -29,6 +29,12 @@ class TelegramAPI
         end
 
         resultado
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        if e.to_s.include? 'have no rights to send a message'
+            @client.logger.log(Logger::ERROR, 'Me restringieron los mensajes en ' + args[:chat_id].to_s)
+        else
+            raise
+        end
     end
 
     def forward_message(args)
@@ -37,6 +43,12 @@ class TelegramAPI
         @client.api.forward_message(args)
     rescue Faraday::ConnectionFailed, Net::OpenTimeout
         retry
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        if e.to_s.include? 'have no rights to send a message'
+            @client.logger.log(Logger::ERROR, 'Me restringieron los mensajes en ' + args[:chat_id].to_s)
+        else
+            raise
+        end
     end
 
     def edit_message_text(args)
@@ -51,6 +63,12 @@ class TelegramAPI
         end
     rescue Faraday::ConnectionFailed, Net::OpenTimeout
         retry
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        if e.to_s.include? 'have no rights to send a message'
+            @client.logger.log(Logger::ERROR, 'Me restringieron los mensajes en ' + args[:chat_id].to_s)
+        else
+            raise
+        end
     end
 
     def send_photo(args)

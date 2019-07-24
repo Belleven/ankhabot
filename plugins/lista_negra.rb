@@ -218,22 +218,6 @@ class Dankie
         end
     end
 
-    def es_admin(user_id, chat_id, message_id, text = nil, _id = nil)
-        member = @tg.get_chat_member(chat_id: chat_id, user_id: user_id)
-        member = Telegram::Bot::Types::ChatMember.new(member['result'])
-        status = member.status
-
-        # Chequeo que quien llama al comando sea admin del grupete
-        if (status != 'administrator') && (status != 'creator')
-            unless text.nil?
-                @tg.send_message(chat_id: chat_id, reply_to_message: message_id, text: text)
-            end
-            return false
-        end
-
-        true
-    end
-
     def id_en_grupo(message_id, chat_id, id)
         unless id.nil?
 

@@ -70,6 +70,7 @@ class Dankie
             retry
 
         rescue StandardError => e
+
             begin
                 texto, backtrace = excepcion_texto(e)
                 log Logger::FATAL, texto, al_canal: true, backtrace: backtrace
@@ -104,7 +105,7 @@ class Dankie
 
     def excepcion_texto(excepcion)
         texto_excepcion = excepcion.to_s
-        texto = !(texto_excepcion.nil? || texto_excepcion.empty?) ? texto_excepcion : 'EXCEPCIÓN SIN NOMBRE'
+        texto = !(texto_excepcion.nil? || texto_excepcion.empty?) ? '(' + excepcion.class.to_s + ') ' + texto_excepcion : 'EXCEPCIÓN SIN NOMBRE'
 
         if excepcion.backtrace.nil?
             return texto, nil
@@ -270,6 +271,22 @@ class Dankie
         unless DEVS.include?(user_id)
             @tg.send_message(chat_id: chat_id, reply_to_message: message_id,
                              text: 'Vos no podés usar esto pa')
+            return false
+        end
+
+        true
+    end
+
+    def es_admin(user_id, chat_id, message_id, text = nil, _id = nil)
+        member = @tg.get_chat_member(chat_id: chat_id, user_id: user_id)
+        member = Telegram::Bot::Types::ChatMember.new(member['result'])
+        status = member.status
+
+        # Chequeo que quien llama al comando sea admin del grupete
+        if (status != 'administrator') && (status != 'creator')
+            unless text.nil?
+                @tg.send_message(chat_id: chat_id, reply_to_message: message_id, text: text)
+            end
             return false
         end
 
