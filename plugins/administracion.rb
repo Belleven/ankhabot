@@ -9,7 +9,7 @@ class Dankie
                                    description: 'Baneo al usuario que me digas')
 
     def rajar(msj)
-        cumple, miembro = cumple_requisitos(msj, true)
+        cumple, miembro = cumple_requisitos(msj)
 
         if cumple
             id_afectada = msj.reply_to_message.from.id
@@ -35,7 +35,7 @@ class Dankie
     end
 
     def ban(msj)
-        cumple, miembro = cumple_requisitos(msj, true)
+        cumple, miembro = cumple_requisitos(msj)
 
         if cumple
             id_afectada = msj.reply_to_message.from.id
@@ -56,7 +56,7 @@ class Dankie
         end
     end
 
-    def cumple_requisitos(msj, devolver_miembro = false)
+    def cumple_requisitos(msj)
         # Siempre que alguna de estas sea falsa, va a mandar un mensaje de error
 
         # Chequeo que sea en un grupo
@@ -64,18 +64,12 @@ class Dankie
                  # Chequeo que esté respondiendo a un mensaje
                  esta_respondiendo(msj) &&
                  # Chequeo que este bot sea admin en ese grupo y tenga los permisos correspondientes
-                 tengo_permisos(msj)
-
-        # Chequeo que quien llama al comando sea admin, y que quien se vea afectado por el comando no lo sea
-        if devolver_miembro
-            if cumple
-                return chequear_usuarios(msj, devolver_miembro)
-            else
-                return false, nil
-            end
-        else
-            return cumple && chequear_usuarios(msj)
-        end
+                 tengo_permisos(msj) &&
+                 # Chequeo que el usuario que llamó al comando sea admin y que quien se vea afectado no
+                 # Además devuelve el chat_member del usuario afectado (en caso de que pase las validaciones)
+                 # Devuelve una tupla (bool, chat_member), no se bien como funciona pero acá compara el bool con
+                 # los anteriores, y además devuelve el chat_member sin romperse.
+                 chequear_usuarios(msj)
     end
 
     def tengo_permisos(msj)
@@ -108,7 +102,7 @@ class Dankie
         !responde
     end
 
-    def chequear_usuarios(msj, devolver_miembro = false)
+    def chequear_usuarios(msj)
         resultado = false
         miembro = nil
 
@@ -138,10 +132,6 @@ class Dankie
 
         end
 
-        if devolver_miembro
-            return resultado, miembro
-        else
-            return resultado
-        end
+        [resultado, miembro]
     end
 end
