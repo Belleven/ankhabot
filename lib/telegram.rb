@@ -30,8 +30,13 @@ class TelegramAPI
 
         resultado
     rescue Telegram::Bot::Exceptions::ResponseError => e
-        if e.to_s.include? 'have no rights to send a message'
-            @client.logger.log(Logger::ERROR, 'Me restringieron los mensajes en ' + args[:chat_id].to_s)
+        case e.to_s
+        when /have no rights to send a message/
+            @client.logger.log(Logger::ERROR, 'Me restringieron '\
+                               'los mensajes en ' + args[:chat_id].to_s)
+        when /reply message not found/
+            @client.logger.log(Logger::ERROR, 'No puedo responder a un '\
+                               'mensaje borrado en' + args[:chat_id].to_s)
         else
             raise
         end
