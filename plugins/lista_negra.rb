@@ -19,41 +19,41 @@ class Dankie
                                    description: 'Lista de miembros del chat '\
                                                 'bloqueados por el bot')
 
-    def restringir(msg, params)
-        comando_lista_negra(msg, :chequeo_local, :bloquear_usuario, msg.chat.id.to_s,
+    def restringir(msj, params)
+        comando_lista_negra(msj, :chequeo_local, :bloquear_usuario, msj.chat.id.to_s,
                             params, 'Vos no podés usar esto pa')
     end
 
-    def bloquear(msg, params)
-        comando_lista_negra(msg, :validar_desarrollador, :bloquear_usuario, 'globales', params)
+    def bloquear(msj, params)
+        comando_lista_negra(msj, :validar_desarrollador, :bloquear_usuario, 'globales', params)
     end
 
-    def habilitar(msg, params)
-        comando_lista_negra(msg, :es_admin, :desbloquear_usuario,
-                            msg.chat.id.to_s, params, 'Vos no podés usar esto pa')
+    def habilitar(msj, params)
+        comando_lista_negra(msj, :es_admin, :desbloquear_usuario,
+                            msj.chat.id.to_s, params, 'Vos no podés usar esto pa')
     end
 
-    def desbloquear(msg, params)
-        comando_lista_negra(msg, :validar_desarrollador, :desbloquear_usuario, 'globales', params)
+    def desbloquear(msj, params)
+        comando_lista_negra(msj, :validar_desarrollador, :desbloquear_usuario, 'globales', params)
     end
 
-    def bloqueados(msg)
-        get_blocked(msg, 'globales')
+    def bloqueados(msj)
+        get_blocked(msj, 'globales')
     end
 
-    def local_blocked(msg)
-        get_blocked(msg, msg.chat.id.to_s)
+    def local_blocked(msj)
+        get_blocked(msj, msj.chat.id.to_s)
     end
 
     private
 
-    def comando_lista_negra(msg, funcion_validadora, execute_function,
+    def comando_lista_negra(msj, funcion_validadora, execute_function,
                             block_site, params, text = nil)
 
-        type = msg.chat.type
-        chat_id = msg.chat.id
-        message_id = msg.message_id
-        user_id = msg.from.id
+        type = msj.chat.type
+        chat_id = msj.chat.id
+        message_id = msj.message_id
+        user_id = msj.from.id
 
         if params.nil?
             id = nil
@@ -61,7 +61,7 @@ class Dankie
             id = natural(params)
             unless id
                 @tg.send_message(chat_id: chat_id,
-                                 reply_to_message: message_id,
+                                 reply_to_message_id: message_id,
                                  text: 'Pasame un parámetro válido CAPO')
                 return
             end
@@ -72,35 +72,35 @@ class Dankie
            !send(funcion_validadora, user_id, chat_id, message_id, text, id)
             return
         else
-            send(execute_function, msg, block_site, id)
+            send(execute_function, msj, block_site, id)
             return
         end
     end
 
-    def bloquear_usuario(msg, id_grupo, id = nil)
-        chat_id = msg.chat.id
+    def bloquear_usuario(msj, id_grupo, id = nil)
+        chat_id = msj.chat.id
 
         # Chequeo casos turbinas de quien va a ser bloqueado
         if id.nil?
-            if msg.reply_to_message
+            if msj.reply_to_message
 
-                id = msg.reply_to_message.from.id
+                id = msj.reply_to_message.from.id
 
                 if id == @user.id
                     @tg.send_message(chat_id: chat_id,
-                                     reply_to_message: msg.message_id,
+                                     reply_to_message_id: msj.message_id,
                                      text: 'Ni se te ocurra')
                     return
 
-                elsif msg.reply_to_message.from.is_bot
+                elsif msj.reply_to_message.from.is_bot
                     @tg.send_message(chat_id: chat_id,
-                                     reply_to_message: msg.message_id,
+                                     reply_to_message_id: msj.message_id,
                                      text: 'Para qué querés bloquear a un '\
                                         'botazo???? Si ni los puedo leer')
                     return
-                elsif msg.reply_to_message.from.first_name.empty?
+                elsif msj.reply_to_message.from.first_name.empty?
                     @tg.send_message(chat_id: chat_id,
-                                     reply_to_message: msg.message_id,
+                                     reply_to_message_id: msj.message_id,
                                      text: 'Para qué querés bloquear a una '\
                                         'cuenta eliminada? Si ya no jode')
                     return
@@ -108,20 +108,20 @@ class Dankie
 
             else
                 @tg.send_message(chat_id: chat_id,
-                                 reply_to_message: msg.message_id,
+                                 reply_to_message_id: msj.message_id,
                                  text: 'Dale capo a quién ignoro???')
                 return
             end
         end
 
-        if id == msg.from.id
+        if id == msj.from.id
             @tg.send_message(chat_id: chat_id,
-                             reply_to_message: msg.message_id,
+                             reply_to_message_id: msj.message_id,
                              text: 'Cómo te vas a autobloquear papurri??')
             return
         elsif id == @user.id
             @tg.send_message(chat_id: chat_id,
-                             reply_to_message: msg.message_id,
+                             reply_to_message_id: msj.message_id,
                              text: 'Ni se te ocurra')
             return
         end
@@ -129,14 +129,14 @@ class Dankie
         # Chequeo que no sea desarrollador ni admin del grupete
         if DEVS.include?(id)
             @tg.send_message(chat_id: chat_id,
-                             reply_to_message: msg.message_id,
+                             reply_to_message_id: msj.message_id,
                              text: 'No podés bloquear a un desarrollador pa')
             return
         end
 
         # Si es un bloqueo local chequeo que no se bloquee a un admin
-        if (id_grupo != 'globales') && es_admin(id, chat_id, msg.message_id)
-            @tg.send_message(chat_id: chat_id, reply_to_message: msg.message_id, text: 'No podés bloquear admines')
+        if (id_grupo != 'globales') && es_admin(id, chat_id, msj.message_id)
+            @tg.send_message(chat_id: chat_id, reply_to_message_id: msj.message_id, text: 'No podés bloquear admines')
             return
         end
 
@@ -145,7 +145,7 @@ class Dankie
 
         if @redis.sismember("lista_negra:#{id_grupo}", id)
             @tg.send_message(chat_id: chat_id,
-                             reply_to_message: msg.message_id,
+                             reply_to_message_id: msj.message_id,
                              text: 'Pero cuántas veces te pensás que '\
                                    'podés bloquear a alguien?? ya está en la '\
                                    'lista negra')
@@ -153,7 +153,7 @@ class Dankie
             @redis.sadd("lista_negra:#{id_grupo}", id)
             @redis.bgsave
 
-            if msg.reply_to_message.nil?
+            if msj.reply_to_message.nil?
                 if id_grupo == 'globales'
                     @tg.send_message(chat_id: chat_id, text: 'ya no te doy bola ' + id + ' ¬_¬')
                 else
@@ -164,7 +164,7 @@ class Dankie
                 end
             else
                 @tg.send_message(chat_id: chat_id,
-                                 reply_to_message: msg.reply_to_message.message_id,
+                                 reply_to_message_id: msj.reply_to_message.message_id,
                                  text: 'ya no te doy bola ' + get_username_link(chat_id, id) + ' ¬_¬',
                                  parse_mode: 'html',
                                  disable_web_page_preview: true,
@@ -173,15 +173,15 @@ class Dankie
         end
     end
 
-    def desbloquear_usuario(msg, id_grupo, id = nil)
-        chat_id = msg.chat.id
+    def desbloquear_usuario(msj, id_grupo, id = nil)
+        chat_id = msj.chat.id
 
         if id.nil?
-            if msg.reply_to_message
-                id = msg.reply_to_message.from.id
+            if msj.reply_to_message
+                id = msj.reply_to_message.from.id
             else
                 @tg.send_message(chat_id: chat_id,
-                                 reply_to_message: msg.message_id,
+                                 reply_to_message_id: msj.message_id,
                                  text: 'Dale capo a quién designoro???')
                 return
             end
@@ -189,14 +189,14 @@ class Dankie
 
         if !@redis.sismember("lista_negra:#{id_grupo}", id)
             @tg.send_message(chat_id: chat_id,
-                             reply_to_message: msg.message_id,
+                             reply_to_message_id: msj.message_id,
                              text: 'No puedo desbloquear a alguien que no '\
                                    'está en la lista negra')
         else
             @redis.srem("lista_negra:#{id_grupo}", id)
             @redis.bgsave
 
-            if msg.reply_to_message.nil?
+            if msj.reply_to_message.nil?
 
                 if id_grupo == 'globales'
                     @tg.send_message(chat_id: chat_id, text: 'ola de nuevo ' + id.to_s + ' nwn')
@@ -209,7 +209,7 @@ class Dankie
 
             else
                 @tg.send_message(chat_id: chat_id,
-                                 reply_to_message: msg.reply_to_message.message_id,
+                                 reply_to_message_id: msj.reply_to_message.message_id,
                                  text: 'ola de nuevo ' + get_username_link(chat_id, id) + ' nwn',
                                  parse_mode: 'html',
                                  disable_web_page_preview: true,
@@ -228,14 +228,14 @@ class Dankie
             rescue Telegram::Bot::Exceptions::ResponseError => e
                 log(Logger::ERROR, e, al_canal: true)
                 @tg.send_message(chat_id: chat_id,
-                                 reply_to_message: message_id,
+                                 reply_to_message_id: message_id,
                                  text: 'No puedo bloquear esa id, pasame una que sea válida de alguien que esté o haya estado alguna vez en el grupete.')
                 return false
             end
 
             if miembro.user.first_name.nil?
                 @tg.send_message(chat_id: chat_id,
-                                 reply_to_message: message_id,
+                                 reply_to_message_id: message_id,
                                  text: 'Para qué querés bloquear a una cuenta eliminada? Si ya no jode')
                 return false
             end
@@ -248,14 +248,14 @@ class Dankie
         es_admin(user_id, chat_id, message_id, text) && id_en_grupo(message_id, chat_id, id)
     end
 
-    def get_blocked(msg, id_grupo)
+    def get_blocked(msj, id_grupo)
         # Solo para ver si anda
         miembros = @redis.smembers("lista_negra:#{id_grupo}")
 
         if miembros.empty?
-            @tg.send_message(chat_id: msg.chat.id, text: 'No hay nadie en la lista negra.')
+            @tg.send_message(chat_id: msj.chat.id, text: 'No hay nadie en la lista negra.')
         else
-            mandar_lista_ids(msg.chat.id, miembros, id_grupo == 'globales')
+            mandar_lista_ids(msj.chat.id, miembros, id_grupo == 'globales')
         end
     end
 
@@ -271,13 +271,21 @@ class Dankie
             if tamaño < 4096
                 lineas << '- ' + (es_global ? miembro : get_username_link(chat_id, miembro)) + "\n"
             else
-                @tg.send_message(chat_id: chat_id, text: lineas.join(''), parse_mode: 'html', disable_web_page_preview: true, disable_notification: true)
+                @tg.send_message(chat_id: chat_id,
+                                 text: lineas.join(''),
+                                 parse_mode: :html,
+                                 disable_web_page_preview: true,
+                                 disable_notification: true)
                 lineas = ['- ' + miembro + "\n"]
                 tamaño = 3 + miembro.length
             end
         end
 
         # Mando el último cacho
-        @tg.send_message(chat_id: chat_id, text: lineas.join(''), parse_mode: 'html', disable_web_page_preview: true, disable_notification: true)
+        @tg.send_message(chat_id: chat_id,
+                         text: lineas.join(''),
+                         parse_mode: :html,
+                         disable_web_page_preview: true,
+                         disable_notification: true)
     end
 end

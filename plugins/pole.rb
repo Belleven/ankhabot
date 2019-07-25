@@ -28,7 +28,7 @@ class Dankie
 
         @redis.zincrby("pole:#{mensaje.chat.id}", 1, id)
         log(Logger::INFO, "#{nombre} hizo la nisman en #{mensaje.chat.id}", al_canal: false)
-        @tg.send_message(chat_id: mensaje.chat.id, parse_mode: 'html',
+        @tg.send_message(chat_id: mensaje.chat.id, parse_mode: :html,
                          reply_to_message_id: mensaje.message_id,
                          text: "<b>#{nombre}</b> hizo la Nisman")
 
@@ -57,7 +57,7 @@ class Dankie
         nombre = msj.from.first_name.empty? ? "ay no c (#{msj.from.id})" : html_parser(msj.from.first_name)
 
         log(Logger::INFO, "#{nombre} hizo la nisman en #{msj.chat.id}", al_canal: false)
-        @tg.send_message(chat_id: msj.chat.id, parse_mode: 'html',
+        @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
                          reply_to_message_id: msj.message_id,
                          text: "<b>#{nombre}</b> hizo la Nisman")
 
@@ -86,7 +86,7 @@ class Dankie
 
             texto = '<b>Ranking de Nisman</b>'
             enviado = @tg.send_message(chat_id: chat_id,
-                                       parse_mode: 'html',
+                                       parse_mode: :html,
                                        text: texto + "\n\n<i>cargando...</i>")
             enviado = Telegram::Bot::Types::Message.new(enviado['result'])
 
@@ -149,7 +149,7 @@ class Dankie
 
                 # Primero borro el "cargando" del mensaje anterior
                 @tg.edit_message_text(chat_id: chat_id, text: texto,
-                                      parse_mode: 'html',
+                                      parse_mode: :html,
                                       message_id: enviado.message_id,
                                       disable_web_page_preview: true,
                                       disable_notification: true)
@@ -157,7 +157,7 @@ class Dankie
                 # Después mando el nuevo mensaje
                 texto = línea
                 enviado = @tg.send_message(chat_id: chat_id, text: texto + cargando,
-                                           parse_mode: 'html',
+                                           parse_mode: :html,
                                            disable_web_page_preview: true,
                                            disable_notification: true)
                 enviado = Telegram::Bot::Types::Message.new(enviado['result'])
@@ -166,7 +166,7 @@ class Dankie
             else
                 texto << línea
                 @tg.edit_message_text(chat_id: chat_id, text: texto + cargando,
-                                      parse_mode: 'html',
+                                      parse_mode: :html,
                                       message_id: enviado.message_id,
                                       disable_web_page_preview: true,
                                       disable_notification: true)

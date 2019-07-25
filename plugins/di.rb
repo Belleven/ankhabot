@@ -10,7 +10,7 @@ class Dankie
         if text.nil? || text == ''
             text = "Dale #{TROESMAS.sample}, ¿Qué digo?"
             @tg.send_message(chat_id: msj.chat.id, text: text,
-                             reply_to_message: msj.message_id)
+                             reply_to_message_id: msj.message_id)
 
             return
         end
@@ -22,7 +22,7 @@ class Dankie
         if args.nil?
             text = "Dale #{TROESMAS.sample}, ¿Qué grito?"
             @tg.send_message(chat_id: msj.chat.id, text: text,
-                             reply_to_message: msj.message_id)
+                             reply_to_message_id: msj.message_id)
             return
         end
 

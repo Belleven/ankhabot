@@ -17,23 +17,23 @@ class Dankie
 
         if nuevo_apodo.nil? || nuevo_apodo.empty?
             texto_error = "Si no me pasás un apodo, está jodida la cosa #{TROESMAS.sample}"
-            @tg.send_message(chat_id: chat_id, reply_to_message: msj.message_id, text: texto_error)
+            @tg.send_message(chat_id: chat_id, reply_to_message_id: msj.message_id, text: texto_error)
             return
         elsif nuevo_apodo.length > 100
             texto_error = "Un poquito largo el apodo, no te parece #{TROESMAS.sample}?"
-            @tg.send_message(chat_id: chat_id, reply_to_message: msj.message_id, text: texto_error)
+            @tg.send_message(chat_id: chat_id, reply_to_message_id: msj.message_id, text: texto_error)
             return
         elsif nuevo_apodo.include? "\n"
             texto_error = "Nada de saltos de línea #{TROESMAS.sample}"
-            @tg.send_message(chat_id: chat_id, reply_to_message: msj.message_id, text: texto_error)
+            @tg.send_message(chat_id: chat_id, reply_to_message_id: msj.message_id, text: texto_error)
             return
         elsif nuevo_apodo.include? '‌'
             texto_error = "Nada de caracteres vacíos #{TROESMAS.sample}"
-            @tg.send_message(chat_id: chat_id, reply_to_message: msj.message_id, text: texto_error)
+            @tg.send_message(chat_id: chat_id, reply_to_message_id: msj.message_id, text: texto_error)
             return
         end
 
-        if es_administrador(msj.from.id, chat_id) && msj.reply_to_message
+        if es_admin(msj.from.id, chat_id, msj.message_id) && msj.reply_to_message
             id_usuario = msj.reply_to_message.from.id
             nombre = msj.reply_to_message.from.first_name
             apellido = msj.reply_to_message.from.last_name
@@ -51,7 +51,7 @@ class Dankie
         @redis.bgsave
 
         texto = "De hoy en adelante, el #{TROESMAS.sample} '#{dame_nombre_completo(nombre, apellido, 'Cuenta eliminada')}' será conocido como '#{html_parser(nuevo_apodo)}'."
-        @tg.send_message(chat_id: msj.chat.id, reply_to_message: responde_a, text: texto, parse_mode: 'html')
+        @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: responde_a, text: texto, parse_mode: :html)
     end
 
     def borrar_apodo(msj)
@@ -61,7 +61,7 @@ class Dankie
         return unless validar_grupo(msj.chat.type, chat_id, msj.message_id)
 
         # Veo los datazos de quien sea al que le quieren borrar el apodo
-        if es_administrador(msj.from.id, chat_id) && msj.reply_to_message
+        if es_admin(msj.from.id, chat_id, msj.message_id) && msj.reply_to_message
             id_usuario = msj.reply_to_message.from.id
             texto_error = 'No podés borrar un apodo que no existe.'
         else
@@ -71,13 +71,13 @@ class Dankie
 
         # Si no tenía ningún apodo, entonces aviso
         if @redis.hget("info_usuario:apodo:#{chat_id}", id_usuario.to_s).nil?
-            @tg.send_message(chat_id: chat_id, reply_to_message: msj.message_id, text: texto_error)
+            @tg.send_message(chat_id: chat_id, reply_to_message_id: msj.message_id, text: texto_error)
         else
             # Si sí tenía, entonces lo borro
             @redis.hdel("info_usuario:apodo:#{chat_id}", id_usuario.to_s)
             # Hacer algo con los bgsave en un futuro
             @redis.bgsave
-            @tg.send_message(chat_id: chat_id, reply_to_message: msj.message_id, text: 'Apodo recontra borradísimo')
+            @tg.send_message(chat_id: chat_id, reply_to_message_id: msj.message_id, text: 'Apodo recontra borradísimo')
         end
     end
 
@@ -105,7 +105,7 @@ class Dankie
         respuesta << (apodo.nil? ? '' : "Apodo en el grupete: <b>#{html_parser(apodo)}</b>\n")
         respuesta << (lastfm.nil? ? '' : "Cuenta de LastFM: <b>#{html_parser(lastfm)}</b>")
 
-        @tg.send_message(chat_id: msj.chat.id, reply_to_message: msj.message_id, parse_mode: 'html', text: respuesta)
+        @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id, parse_mode: :html, text: respuesta)
     end
 
     def apodos(msj)
@@ -126,7 +126,7 @@ class Dankie
             # Armo la línea
             línea = "- <a href='tg://user?id=#{apodo[0]}'> #{html_parser(apodo[1])}</a>\n"
             if texto.length + línea.length > 4096
-                @tg.send_message(chat_id: chat_id, parse_mode: 'html', text: texto, disable_notification: true)
+                @tg.send_message(chat_id: chat_id, parse_mode: :html, text: texto, disable_notification: true)
                 texto = línea
             else
                 texto << línea
@@ -135,7 +135,7 @@ class Dankie
 
         # Si me quedó algo por mandar lo hago
         unless texto.empty?
-            @tg.send_message(chat_id: chat_id, parse_mode: 'html', text: texto, disable_notification: true)
+            @tg.send_message(chat_id: chat_id, parse_mode: :html, text: texto, disable_notification: true)
         end
     end
 end
@@ -146,14 +146,4 @@ def dame_nombre_completo(nombre, apellido, nombre_suplente)
     else
         html_parser(nombre + (apellido ? " #{apellido}" : ''))
     end
-end
-
-def es_administrador(id_usuario, chat_id)
-    # Robada de Blacklist. En algún momento las sacaré a un utils
-    member = @tg.get_chat_member(chat_id: chat_id, user_id: id_usuario)
-    member = Telegram::Bot::Types::ChatMember.new(member['result'])
-    status = member.status
-
-    # Chequeo que quien llama al comando sea admin del grupete
-    (status == 'administrator') || (status == 'creator')
 end

@@ -1,12 +1,12 @@
 class Dankie
     add_handler MessageHandler.new(:x2)
-    def x2(msg)
-        return unless msg.text
+    def x2(msj)
+        return unless msj.text
 
-        text = msg&.reply_to_message&.text || msg&.reply_to_message&.caption
+        text = msj&.reply_to_message&.text || msj&.reply_to_message&.caption
         return unless text
 
-        message = msg.text.split(' ').first
+        message = msj.text.split(' ').first
         return unless (r = /^[xX*](\d+)/) =~ message
 
         n = message.gsub(r, '\\1').to_i
@@ -24,6 +24,6 @@ class Dankie
             text = '""'
         end
 
-        @tg.send_message(chat_id: msg.chat.id, text: text)
+        @tg.send_message(chat_id: msj.chat.id, text: text)
     end
 end

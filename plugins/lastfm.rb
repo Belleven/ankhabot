@@ -16,55 +16,55 @@ class Dankie
                                                 'Pasame un número así te paso '\
                                                 'más de 1 canción (máx 15).')
 
-    def setlastfm(msg)
-        user = get_command_params(msg)
+    def setlastfm(msj)
+        user = get_command_params(msj)
 
         if user.nil? || (user == '')
             err_txt = "Si no me pasás un usuario, está jodida la cosa #{TROESMAS.sample}."
-            @tg.send_message(chat_id: msg.chat.id,
-                             reply_to_message: msg.message_id,
+            @tg.send_message(chat_id: msj.chat.id,
+                             reply_to_message_id: msj.message_id,
                              text: err_txt)
             return
         end
 
-        user_id = msg.from.id
+        user_id = msj.from.id
         @redis.set("lastfm:#{user_id}", user)
         @redis.bgsave
         txt_done = "Listo #{TROESMAS.sample}. Tu usuario de Last.fm ahora es '#{user}'."
-        @tg.send_message(chat_id: msg.chat.id,
-                         reply_to_message: msg.message_id,
+        @tg.send_message(chat_id: msj.chat.id,
+                         reply_to_message_id: msj.message_id,
                          text: txt_done)
     end
 
-    def getlastfm(msg)
-        user_id = msg.from.id
+    def getlastfm(msj)
+        user_id = msj.from.id
         user = @redis.get("lastfm:#{user_id}")
         txt_done = "Por el momento, tu usuario de Last.fm es '#{user}'."
-        @tg.send_message(chat_id: msg.chat.id,
-                         reply_to_message: msg.message_id,
+        @tg.send_message(chat_id: msj.chat.id,
+                         reply_to_message_id: msj.message_id,
                          text: txt_done)
     end
 
-    def recentplayed(msg)
-        amount = get_command_params(msg).to_i
+    def recentplayed(msj)
+        amount = get_command_params(msj).to_i
 
         amount = 1 if amount <= 0
 
         amount = 15 if amount > 15
-        user_id = msg.from.id
+        user_id = msj.from.id
         user = @redis.get("lastfm:#{user_id}")
 
         if user.nil? || (user == '')
             err_txt = "Si no te seteás un usuario, está jodida la cosa #{TROESMAS.sample}."
-            @tg.send_message(chat_id: msg.chat.id,
-                             reply_to_message: msg.message_id,
+            @tg.send_message(chat_id: msj.chat.id,
+                             reply_to_message_id: msj.message_id,
                              text: err_txt)
             return
         end
 
         np = @lastFM.now_playing user, amount
 
-        valid = valid_recent_tracks(msg, np)
+        valid = valid_recent_tracks(msj, np)
         return unless valid
 
         out = "Canciones recientes del usuario: \n\n"
@@ -73,26 +73,26 @@ class Dankie
             x += 1
             out += "<b>#{x}.</b> #{track['artist']['#text']} - <b>#{track['name']}</b> [#{track['album']['#text']}]\n"
         end
-        @tg.send_message(chat_id: msg.chat.id, parse_mode: 'html',
-                         reply_to_message: msg.message_id,
+        @tg.send_message(chat_id: msj.chat.id, parse_mode: 'html',
+                         reply_to_message_id: msj.message_id,
                          text: out)
     end
 
-    def nowplaying(msg)
-        user_id = msg.from.id
+    def nowplaying(msj)
+        user_id = msj.from.id
         user = @redis.get("lastfm:#{user_id}")
 
         if user.nil? || (user == '')
             err_txt = "Si no te seteás un usuario, está jodida la cosa #{TROESMAS.sample}."
-            @tg.send_message(chat_id: msg.chat.id,
-                             reply_to_message: msg.message_id,
+            @tg.send_message(chat_id: msj.chat.id,
+                             reply_to_message_id: msj.message_id,
                              text: err_txt)
             return
         end
 
         np = @lastFM.now_playing user, 1
 
-        valid = valid_recent_tracks(msg, np)
+        valid = valid_recent_tracks(msj, np)
         return unless valid
 
         out = "Mirate este temón: \n"
@@ -101,20 +101,20 @@ class Dankie
         out << "💿: #{np[0]['album']['#text']}"
         out << "<a href=\"#{np[0]['image'][2]['#text']}\">\u200d</a>"
 
-        @tg.send_message(chat_id: msg.chat.id, parse_mode: 'html',
-                         reply_to_message: msg.message_id,
+        @tg.send_message(chat_id: msj.chat.id, parse_mode: 'html',
+                         reply_to_message_id: msj.message_id,
                          text: out)
     end
 
-    def valid_recent_tracks(msg, arr)
+    def valid_recent_tracks(msj, arr)
         if arr.empty?
-            @tg.send_message(chat_id: msg.chat.id, parse_mode: 'html',
-                             reply_to_message: msg.message_id,
+            @tg.send_message(chat_id: msj.chat.id, parse_mode: 'html',
+                             reply_to_message_id: msj.message_id,
                              text: "No encontré que hayas escuchado ninguna canción #{TROESMAS.sample}.")
             return false
         elsif arr[0] == 'error'
-            @tg.send_message(chat_id: msg.chat.id, parse_mode: 'html',
-                             reply_to_message: msg.message_id,
+            @tg.send_message(chat_id: msj.chat.id, parse_mode: 'html',
+                             reply_to_message_id: msj.message_id,
                              text: "Alto error #{TROESMAS.sample}. \n<b>#{arr[1]}</b>")
             return false
         end

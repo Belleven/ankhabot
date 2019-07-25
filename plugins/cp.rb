@@ -26,15 +26,13 @@ class Dankie
 
     def cp(msj)
         if @palabras_c[msj.chat.id].empty? || @palabras_p[msj.chat.id].empty?
-            @tg.send_chat_action(chat_id: msj.chat.id, action: 'typing')
             @tg.send_message(chat_id: msj.chat.id,
-                             text: 'Manden mas mensajes papus')
+                             text: 'Manden más mensajes papus')
         end
 
         cp = [@palabras_c[msj.chat.id].sample, @palabras_p[msj.chat.id].sample]
         texto = cp.join ' '
 
-        @tg.send_chat_action(chat_id: msj.chat.id, action: 'typing')
         @tg.send_message(chat_id: msj.chat.id, text: texto)
     end
 end

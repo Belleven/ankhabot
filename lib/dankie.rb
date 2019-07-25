@@ -254,7 +254,7 @@ class Dankie
 
     def validar_grupo(type, chat_id, message_id)
         if type == 'private'
-            @tg.send_message(chat_id: chat_id, reply_to_message: message_id,
+            @tg.send_message(chat_id: chat_id, reply_to_message_id: message_id,
                              text: 'Esto solo funciona en grupetes')
             return false
 
@@ -269,7 +269,7 @@ class Dankie
     def validar_desarrollador(user_id, chat_id, message_id, _text = nil, _id = nil)
         # Chequeo que quien llama al comando sea o desarrollador
         unless DEVS.include?(user_id)
-            @tg.send_message(chat_id: chat_id, reply_to_message: message_id,
+            @tg.send_message(chat_id: chat_id, reply_to_message_id: message_id,
                              text: 'Vos no podés usar esto pa')
             return false
         end
@@ -286,7 +286,7 @@ class Dankie
         # Si no lo es, manda mensaje de error
         if (status != 'administrator') && (status != 'creator')
             unless text.nil?
-                @tg.send_message(chat_id: chat_id, reply_to_message: message_id, text: text)
+                @tg.send_message(chat_id: chat_id, reply_to_message_id: message_id, text: text)
             end
             return false
         end

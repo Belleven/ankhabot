@@ -60,16 +60,16 @@ class Dankie
         # Siempre que alguna de estas sea falsa, va a mandar un mensaje de error
 
         # Chequeo que sea en un grupo
-        cumple = validar_grupo(msj.chat.type, msj.chat.id, msj.message_id) &&
-                 # Chequeo que esté respondiendo a un mensaje
-                 esta_respondiendo(msj) &&
-                 # Chequeo que este bot sea admin en ese grupo y tenga los permisos correspondientes
-                 tengo_permisos(msj) &&
-                 # Chequeo que el usuario que llamó al comando sea admin y que quien se vea afectado no
-                 # Además devuelve el chat_member del usuario afectado (en caso de que pase las validaciones)
-                 # Devuelve una tupla (bool, chat_member), no se bien como funciona pero acá compara el bool con
-                 # los anteriores, y además devuelve el chat_member sin romperse.
-                 chequear_usuarios(msj)
+        validar_grupo(msj.chat.type, msj.chat.id, msj.message_id) &&
+            # Chequeo que esté respondiendo a un mensaje
+            esta_respondiendo(msj) &&
+            # Chequeo que este bot sea admin en ese grupo y tenga los permisos correspondientes
+            tengo_permisos(msj) &&
+            # Chequeo que el usuario que llamó al comando sea admin y que quien se vea afectado no
+            # Además devuelve el chat_member del usuario afectado (en caso de que pase las validaciones)
+            # Devuelve una tupla (bool, chat_member), no se bien como funciona pero acá compara el bool con
+            # los anteriores, y además devuelve el chat_member sin romperse.
+            chequear_usuarios(msj)
     end
 
     def tengo_permisos(msj)

@@ -12,6 +12,6 @@ class Dankie
             text << line
         end
 
-        @tg.send_message(chat_id: msg.chat.id, parse_mode: 'html', text: text)
+        @tg.send_message(chat_id: msg.chat.id, parse_mode: :html, text: text)
     end
 end

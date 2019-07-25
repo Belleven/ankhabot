@@ -16,7 +16,7 @@ class Dankie
                        time2.to_r - time1.to_r)
         text << format("%s: <code>%.3fs</code>\n", 'bbdd',
                        time3.to_r - time2.to_r)
-        @tg.edit_message_text(chat_id: enviado.chat.id, parse_mode: 'html',
+        @tg.edit_message_text(chat_id: enviado.chat.id, parse_mode: :html,
                               message_id: enviado.message_id, text: text)
         log(Logger::INFO, text.tr("\n", "\t"), al_canal: true)
     end
