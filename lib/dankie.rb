@@ -283,6 +283,7 @@ class Dankie
         status = member.status
 
         # Chequeo que quien llama al comando sea admin del grupete
+        # Si no lo es, manda mensaje de error
         if (status != 'administrator') && (status != 'creator')
             unless text.nil?
                 @tg.send_message(chat_id: chat_id, reply_to_message: message_id, text: text)
