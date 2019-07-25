@@ -1,5 +1,5 @@
 class Dankie
-    add_handler CommandHandler.new(:salir, :salir)
+    add_handler Handler::Comando.new(:salir, :salir)
 
     def salir(msj)
         if validar_desarrollador(msj.from.id, msj.chat.id, msj.message_id) && validar_grupo(msj.chat.type, msj.chat.id, msj.message_id)

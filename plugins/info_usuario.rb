@@ -1,12 +1,12 @@
 class Dankie
-    add_handler CommandHandler.new(:apodar, :dar_apodo,
-                                   description: 'Te cambio el apodo al que me digas (si sos admin, podés cambiárselo a otros)')
-    add_handler CommandHandler.new(:borrarapodo, :borrar_apodo,
-                                   description: 'Te borra el apodo (si sos admin, podés borrar el de cualquiera)')
-    add_handler CommandHandler.new(:vos, :obtener_info,
-                                   description: 'Devuelve tu información (o la del usuario al que le respondas)')
-    add_handler CommandHandler.new(:apodos, :apodos,
-                                   description: 'Te doy los apodos de un grupete')
+    add_handler Handler::Comando.new(:apodar, :dar_apodo,
+                                     description: 'Te cambio el apodo al que me digas (si sos admin, podés cambiárselo a otros)')
+    add_handler Handler::Comando.new(:borrarapodo, :borrar_apodo,
+                                     description: 'Te borra el apodo (si sos admin, podés borrar el de cualquiera)')
+    add_handler Handler::Comando.new(:vos, :obtener_info,
+                                     description: 'Devuelve tu información (o la del usuario al que le respondas)')
+    add_handler Handler::Comando.new(:apodos, :apodos,
+                                     description: 'Te doy los apodos de un grupete')
 
     def dar_apodo(msj)
         chat_id = msj.chat.id

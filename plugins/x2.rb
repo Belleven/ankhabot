@@ -1,5 +1,6 @@
 class Dankie
-    add_handler MessageHandler.new(:x2)
+    add_handler Handler::Mensaje.new(:x2)
+
     def x2(msj)
         return unless msj.text
 

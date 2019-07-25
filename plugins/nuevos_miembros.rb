@@ -1,5 +1,5 @@
 class Dankie
-    add_handler NuevosMiembros.new(:nuevos_miembros)
+    add_handler Handler::NuevosMiembros.new(:nuevos_miembros)
 
     def nuevos_miembros(msj)
         if msj.new_chat_members.any? { |miembro| miembro.id == @user.id }

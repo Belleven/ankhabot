@@ -1,23 +1,23 @@
 class Dankie
-    add_handler CommandHandler.new(:restringir, :restringir,
-                                   description: 'Restringe a alguien en el chat '\
-                                                'para que no interactúe con el bot '\
-                                                '(solo admins)',
-                                   allow_params: true)
+    add_handler Handler::Comando.new(:restringir, :restringir,
+                                     description: 'Restringe a alguien en el chat '\
+                                                  'para que no interactúe con el bot '\
+                                                  '(solo admins)',
+                                     allow_params: true)
 
-    add_handler CommandHandler.new(:habilitar, :habilitar,
-                                   description: 'Habilita a alguien en el '\
-                                                'chat de para que pueda interactuar con el '\
-                                                'bot (solo admins)',
-                                   allow_params: true)
+    add_handler Handler::Comando.new(:habilitar, :habilitar,
+                                     description: 'Habilita a alguien en el '\
+                                                  'chat de para que pueda interactuar con el '\
+                                                  'bot (solo admins)',
+                                     allow_params: true)
 
-    add_handler CommandHandler.new(:bloquear, :bloquear, allow_params: true)
-    add_handler CommandHandler.new(:desbloquear, :desbloquear, allow_params: true)
+    add_handler Handler::Comando.new(:bloquear, :bloquear, allow_params: true)
+    add_handler Handler::Comando.new(:desbloquear, :desbloquear, allow_params: true)
 
-    add_handler CommandHandler.new(:bloqueados, :bloqueados)
-    add_handler CommandHandler.new(:restringidos, :local_blocked,
-                                   description: 'Lista de miembros del chat '\
-                                                'bloqueados por el bot')
+    add_handler Handler::Comando.new(:bloqueados, :bloqueados)
+    add_handler Handler::Comando.new(:restringidos, :local_blocked,
+                                     description: 'Lista de miembros del chat '\
+                                                  'bloqueados por el bot')
 
     def restringir(msj, params)
         comando_lista_negra(msj, :chequeo_local, :bloquear_usuario, msj.chat.id.to_s,

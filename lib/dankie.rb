@@ -88,7 +88,7 @@ class Dankie
     # Permite iterar sobre los comandos del bot, y sus descripciones
     def self.commands
         @handlers.each do |handler|
-            next unless handler.is_a? CommandHandler
+            next unless handler.is_a? Handler::Comando
 
             yield handler.cmd, handler.description if handler.description
         end

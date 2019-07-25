@@ -1,8 +1,8 @@
 # Extension de dankie para manejar las poles
 class Dankie
-    add_handler MessageHandler.new(:pole, allowed_chats: %i[group supergroup])
-    add_handler CommandHandler.new(:nisman, :enviar_ranking_pole,
-                                   description: 'Muestra el ranking de Nisman')
+    add_handler Handler::Mensaje.new(:pole, allowed_chats: %i[group supergroup])
+    add_handler Handler::Comando.new(:nisman, :enviar_ranking_pole,
+                                     description: 'Muestra el ranking de Nisman')
 
     # TODO: Ponerle algún flag de solo test a este comando
     # add_handler CommandHandler.new(:dar_nisman, :_test_dar_pole)

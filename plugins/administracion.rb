@@ -1,12 +1,12 @@
 class Dankie
-    add_handler CommandHandler.new(:rajar, :rajar,
-                                   description: 'Echo al usuario que me digas')
-    add_handler CommandHandler.new(:kick, :rajar,
-                                   description: 'Echo al usuario que me digas')
-    add_handler CommandHandler.new(:ban, :ban,
-                                   description: 'Baneo al usuario que me digas')
-    add_handler CommandHandler.new(:nisban, :ban,
-                                   description: 'Baneo al usuario que me digas')
+    add_handler Handler::Comando.new(:rajar, :rajar,
+                                     description: 'Echo al usuario que me digas')
+    add_handler Handler::Comando.new(:kick, :rajar,
+                                     description: 'Echo al usuario que me digas')
+    add_handler Handler::Comando.new(:ban, :ban,
+                                     description: 'Baneo al usuario que me digas')
+    add_handler Handler::Comando.new(:nisban, :ban,
+                                     description: 'Baneo al usuario que me digas')
 
     def rajar(msj)
         cumple, miembro = cumple_requisitos(msj)

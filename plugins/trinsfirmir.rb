@@ -1,9 +1,9 @@
 require 'telegram/bot'
 
 class Dankie
-    add_handler CommandHandler.new(:trinsfirmir, :trinsfirmir,
-                                   description: 'Convierte un texto a isti '\
-                                                'firmiti')
+    add_handler Handler::Comando.new(:trinsfirmir, :trinsfirmir,
+                                     description: 'Convierte un texto a isti '\
+                                                  'firmiti')
 
     def trinsfirmir(msj)
         unless (text = msj&.reply_to_message&.text || msj&.reply_to_message&.caption)
