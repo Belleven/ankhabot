@@ -33,9 +33,9 @@ class Dankie
     end
 
     # Creo que esto es un dispatch si entendí bien
-    def dispatch(msg)
+    def dispatch(msj)
         self.class.handlers.each do |handler|
-            handler.check_message(self, msg)
+            handler.check_message(self, msj)
         end
     end
 
@@ -52,13 +52,13 @@ class Dankie
     end
 
     def run
-        @tg.client.listen do |msg|
-            next unless msg&.from&.id
-            next if @redis.sismember('blacklist:global', msg.from.id.to_s)
-            next if msg.is_a?(Telegram::Bot::Types::Message) &&
-                    @redis.sismember("blacklist:#{msg.chat.id}", msg.from.id.to_s)
+        @tg.client.listen do |msj|
+            next unless msj&.from&.id
+            next if @redis.sismember('blacklist:global', msj.from.id.to_s)
+            next if msj.is_a?(Telegram::Bot::Types::Message) &&
+                    @redis.sismember("blacklist:#{msj.chat.id}", msj.from.id.to_s)
 
-            dispatch(msg)
+            dispatch(msj)
 
         rescue Faraday::ConnectionFailed, Net::OpenTimeout => e
             begin
@@ -174,13 +174,13 @@ class Dankie
         end
     end
 
-    def get_command(msg)
-        cmd = _parse_command(msg)
+    def get_command(msj)
+        cmd = _parse_command(msj)
         cmd[:command]
     end
 
-    def get_command_params(msg)
-        cmd = _parse_command(msg)
+    def get_command_params(msj)
+        cmd = _parse_command(msj)
         cmd[:params]
     end
 
@@ -188,8 +188,8 @@ class Dankie
 
     # Analiza un texto y se fija si es un comando válido, devuelve el comando
     # y el resto del texto
-    def _parse_command(msg)
-        unless (text = msg.text || msg.caption)
+    def _parse_command(msj)
+        unless (text = msj.text || msj.caption)
             return { command: nil, params: nil }
         end
 
@@ -210,7 +210,7 @@ class Dankie
                 command = arr[1]&.downcase.to_sym
                 params = arr[2]
 
-            elsif msg.reply_to_message&.from&.id == @user.id # responde al bot
+            elsif msj.reply_to_message&.from&.id == @user.id # responde al bot
                 command, params = text.split ' ', 2
                 command.downcase!
             end
@@ -292,5 +292,13 @@ class Dankie
         end
 
         true
+    end
+
+    def grupo_del_msj(msj)
+        if msj.chat.title.nil?
+            msj.chat.id.to_s
+        else
+            msj.chat.title + ' (' + msj.chat.id.to_s + ')'
+        end
     end
 end

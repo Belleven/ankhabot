@@ -72,10 +72,10 @@ module Handler
         end
     end
 
-    # Este es el handler general, lo ideal sería que cada vez que se necesite
-    # un handler para un tipo de evento que no tenga, se armen uno nuevo y no usen este
-    # pero bueno de última queda este por si se necesita.
-    # Aunque bueno, eso genera mucho código repetido, veremos qué hacer en un futuro.
+    # Este es un handler general, el problema de usarlo para cada evento de chat
+    # es que hay que meter un if en cada funcion que lo necesite (un if para chequear
+    # el tipo de evento de chat que es). Creo que se podría pasar como argumento los tipos
+    # de eventos de chat que aceptaría cada handler.
     class EventoDeChat
         MSJ_TYPES = %i[new_chat_members left_chat_member new_chat_title
                        new_chat_photo delete_chat_photo group_chat_created
