@@ -7,23 +7,37 @@ class Dankie
                                      description: 'Baneo al usuario que me digas')
     add_handler Handler::Comando.new(:nisban, :ban,
                                      description: 'Baneo al usuario que me digas')
+    add_handler Handler::Comando.new(:desban, :desban,
+                                     description: 'Baneo al usuario que me digas')
+
+    def desban(msj)
+        unless msj.reply_to_message.nil?
+            resultado = @tg.get_chat_member(chat_id: msj.chat.id, user_id: msj.reply_to_message.from.id)['result']
+            puts "\n\n\n" + resultado.to_s + "\n\n\n"
+            resultado = @tg.unban_chat_member(chat_id: msj.chat.id, user_id: msj.reply_to_message.from.id)
+            puts "\n\n\n" + resultado.to_s + "\n\n\n"
+            resultado = @tg.get_chat_member(chat_id: msj.chat.id, user_id: msj.reply_to_message.from.id)['result']
+            puts "\n\n\n" + resultado.to_s + "\n\n\n"
+        end
+    end
 
     # Comando /rajar /kick
     def rajar(msj)
+        # Función que uso para chequear que se cumplan condiciones específicas del comando
         chequeo_afectado = proc do |miembro|
             miembro['status'] == 'left' || miembro['status'] == 'kicked' ||
                 (miembro['status'] == 'restricted' && !miembro['is_member'])
         end
+        # Función para moderar el grupete
+        func_moderadora = proc do |chat_id, id_afectada|
+            @tg.unban_chat_member(chat_id: chat_id, user_id: id_afectada)
+        end
+
         error_afectado = 'No voy a echar a alguien que no estaba en el grupo '\
                          'al momento de mandar este comando'
-
-        moderar = proc do |msj, id_afectada|
-            usar_kick_member(msj, id_afectada) &&
-                usar_unban_member(msj, id_afectada)
-        end
         despedida = 'Ni nos vimos'
 
-        aplicar_moderación(msj, chequeo_afectado, error_afectado, moderar, despedida)
+        aplicar_moderación(msj, chequeo_afectado, func_moderadora, error_afectado, despedida)
     end
 
     # Comando /ban /nisban
@@ -31,19 +45,19 @@ class Dankie
         chequeo_afectado = proc do |miembro|
             miembro['status'] == 'kicked'
         end
+        func_moderadora = proc do |chat_id, id_afectada|
+            @tg.kick_chat_member(chat_id: chat_id, user_id: id_afectada)
+        end
+
         error_afectado = 'No puedo a banear a alguien que ya lo estaba '\
                          'al momento de mandar este comando'
-
-        moderar = proc do |msj, id_afectada|
-            usar_kick_member(msj, id_afectada)
-        end
         despedida = 'Pero mirá el ban que te comiste'
 
-        aplicar_moderación(msj, chequeo_afectado, error_afectado, moderar, despedida)
+        aplicar_moderación(msj, chequeo_afectado, func_moderadora, error_afectado, despedida)
     end
 
-    # Función que chequea los requisitos y ejecuta el comando
-    def aplicar_moderación(msj, chequeo_afectado, error_afectado, moderar, despedida)
+    # Función que chequea los requisitos y ejecuta finalmente el comando moderador
+    def aplicar_moderación(msj, chequeo_afectado, func_moderadora, error_afectado, despedida)
         cumple, miembro = cumple_requisitos(msj)
 
         if cumple
@@ -53,7 +67,7 @@ class Dankie
                 @tg.send_message(chat_id: msj.chat.id,
                                  text: error_afectado,
                                  reply_to_message_id: msj.message_id)
-            elsif moderar.call(msj, id_afectada)
+            elsif moderar(msj, id_afectada, func_moderadora)
                 @tg.send_message(chat_id: msj.chat.id,
                                  text: despedida + ' ' + get_username_link(msj.chat.id, id_afectada),
                                  reply_to_message_id: msj.reply_to_message.message_id,
@@ -75,7 +89,7 @@ class Dankie
             esta_respondiendo(msj) &&
             # Chequeo que el bot sea admin en ese grupo y tenga los permisos correspondientes
             # 'Necesito' y 'No tengo' son para los mensajes de error
-            tiene_permisos(msj, @user.id, 'Necesito', 'No tengo') &&
+            tiene_permisos(msj, @user.id, 'can_restrict_members', 'Necesito', 'No tengo') &&
             # Chequeo que el usuario que llamó al comando sea admin y que quién se vea afectado no
             # Además devuelve el chat_member del usuario afectado (en caso de que pase las validaciones)
             # Devuelve una tupla (bool, chat_member), no se bien cómo funciona pero acá compara el bool con
@@ -83,24 +97,25 @@ class Dankie
             chequear_usuarios(msj)
     end
 
-    def tiene_permisos(msj, id_usuario, error_no_admin, error_no_permisos)
+    # Chequea que el miembro sea admin y tenga los permisos adecuados
+    def tiene_permisos(msj, id_usuario, permiso, error_no_admin, error_no_permisos)
         miembro = @tg.get_chat_member(chat_id: msj.chat.id, user_id: id_usuario)['result']
-        permisos = true
+        tiene_autorización = true
 
         if miembro['status'] != 'creator'
             if miembro['status'] != 'administrator'
-                permisos = false
+                tiene_autorización = false
                 @tg.send_message(chat_id: msj.chat.id,
                                  text: error_no_admin + ' ser admin para hacer eso',
                                  reply_to_message_id: msj.message_id)
-            elsif !miembro['can_restrict_members']
-                permisos = false
+            elsif !miembro[permiso]
+                tiene_autorización = false
                 @tg.send_message(chat_id: msj.chat.id,
                                  text: error_no_permisos + ' permisos para restringir/suspender usuarios',
                                  reply_to_message_id: msj.message_id)
             end
         end
-        permisos
+        tiene_autorización
     end
 
     # Chequea que se esté respondiendo un mensaje
@@ -125,7 +140,7 @@ class Dankie
                              reply_to_message_id: msj.message_id)
 
         # Chequeo que quien llame al comando sea admin y tenga permisos para restringir usuarios
-        elsif tiene_permisos(msj, msj.from.id, 'Tenés que', 'No tenés')
+        elsif tiene_permisos(msj, msj.from.id, 'can_restrict_members', 'Tenés que', 'No tenés')
 
             # Chequeo si a quien le afecta el comando es admin, y de ser necesario, devuelvo el estatus
             miembro = @tg.get_chat_member(chat_id: msj.chat.id, user_id: msj.reply_to_message.from.id)['result']
@@ -143,50 +158,31 @@ class Dankie
         [resultado, miembro]
     end
 
-    # Parámetros y mensajes de error por si falla kick_chat_member
-    def usar_kick_member(msj, id_afectada)
-        args = { chat_id: msj.chat.id, user_id: id_afectada }
-        error_permisos = 'Me restringieron los permisos o me sacaron el admin '\
-    					 'mientras se ejecutaba el comando, y por '\
-    					 'ahora no puedo sacar a nadie del grupete'
-        error_admin = 'El miembro al que tratás de restringir fue '\
-        			  'convertido en admin mientras se ejecutaba este comando '\
-        			  'y no puedo hacerle nada'
-        funcion = proc do |args|
-            @tg.kick_chat_member(args)
-        end
-
-        ban_desban_handleado(funcion, args, msj, error_permisos, error_admin)
-    end
-
-    # Parámetros y mensajes de error por si falla unban_chat_member
-    def usar_unban_member(msj, id_afectada)
-        args = { chat_id: msj.chat.id, user_id: id_afectada }
-        funcion = proc do |args|
-            @tg.unban_chat_member(args)
-        end
-        ban_desban_handleado(funcion, args, msj)
-    end
-
-    # Ejecución de kick/unban con manejo de excepciones
-    def ban_desban_handleado(funcion, args, msj, error_permisos = 'error_permisos', error_admin = 'error_admin')
-        funcion.call(args)
-        true
+    def moderar(msj, id_afectada, funcion)
+        funcion.call(msj.chat.id, id_afectada)['result']
     rescue Telegram::Bot::Exceptions::ResponseError => e
         case e.to_s
         when %r{not enough rights to restrict/unrestrict chat member}
-            @logger.log(Logger::ERROR, error_permisos + ' en ' + grupo_del_msj(msj))
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: error_permisos,
-                             reply_to_message_id: msj.message_id)
+            error_permisos = 'Me restringieron los permisos o me sacaron el admin '\
+                             'mientras se ejecutaba el comando, y por '\
+                             'ahora no puedo sacar a nadie del grupete'
+            log_y_aviso(msj, error_permisos)
         when /user is an administrator of the chat/
-            @logger.log(Logger::ERROR, error_admin + ' en ' + grupo_del_msj(msj))
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: error_admin,
-                             reply_to_message_id: msj.message_id)
+            error_admin = 'El miembro al que tratás de restringir fue '\
+                          'convertido en admin mientras se ejecutaba este comando '\
+                          'y no puedo hacerle nada'
+            log_y_aviso(msj, error_admin)
         else
             raise
         end
+
         false
+    end
+
+    def log_y_aviso(msj, error)
+        @logger.log(Logger::ERROR, error + ' en ' + grupo_del_msj(msj))
+        @tg.send_message(chat_id: msj.chat.id,
+                         text: error,
+                         reply_to_message_id: msj.message_id)
     end
 end
