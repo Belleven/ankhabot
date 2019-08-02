@@ -46,7 +46,7 @@ class Dankie
         @tg = TelegramAPI.new args[:tg_token], @logger
         @redis = Redis.new port: args[:redis_port], host: args[:redis_host], password: args[:redis_pass]
         @img = ImageSearcher.new args[:google_image_key], args[:google_image_cx]
-        @user = Telegram::Bot::Types::User.new @tg.get_me['result'] # TODO: validar?
+        @user = Telegram::Bot::Types::User.new @tg.get_me['result']
         @lastFM = LastFMParser.new args[:last_fm_api]
         @tz = TZInfo::Timezone.get args[:timezone]
     end
@@ -220,22 +220,26 @@ class Dankie
     end
 
     def get_username_link(chat_id, user_id)
-        user = @tg.get_chat_member(chat_id: chat_id, user_id: user_id)
-        user = Telegram::Bot::Types::ChatMember.new(user['result']).user
-        user_link = if user.username
-                        "<a href='https://telegram.me/#{user.username}'>" \
-                            "#{user.username}</a>"
-                    elsif !user.first_name.empty?
-                        "<a href='tg://user?id=#{user_id}'>" \
-                            "#{html_parser(user.first_name)}</a>"
-                    else
-                        'ay no c (' + user_id + ')'
-                    end
+        usuario = @tg.get_chat_member(chat_id: chat_id, user_id: user_id)
+        usuario = Telegram::Bot::Types::ChatMember.new(user['result']).user
+        user_link = crear_link_alias(usuario)
     rescue Telegram::Bot::Exceptions::ResponseError => e
         user_link = nil
         @logger.error(e)
     ensure
         return user_link || 'ay no c (' + user_id + ')'
+    end
+
+    def crear_link_alias(usuario)
+        if usuario.username
+            "<a href='https://telegram.me/#{usuario.username}'>" \
+                "#{usuario.username}</a>"
+        elsif !usuario.first_name.empty?
+            "<a href='tg://user?id=#{usuario.id}'>" \
+                "#{html_parser(usuario.first_name)}</a>"
+        else
+            'ay no c (' + user_id + ')'
+        end
     end
 
     def natural(numero)
