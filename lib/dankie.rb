@@ -221,13 +221,13 @@ class Dankie
 
     def get_username_link(chat_id, user_id)
         usuario = @tg.get_chat_member(chat_id: chat_id, user_id: user_id)
-        usuario = Telegram::Bot::Types::ChatMember.new(user['result']).user
-        user_link = crear_link_alias(usuario)
+        usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
+        link_usuario = crear_link_alias(usuario)
     rescue Telegram::Bot::Exceptions::ResponseError => e
-        user_link = nil
+        link_usuario = nil
         @logger.error(e)
     ensure
-        return user_link || 'ay no c (' + user_id + ')'
+        return link_usuario || 'ay no c (' + user_id.to_s + ')'
     end
 
     def crear_link_alias(usuario)

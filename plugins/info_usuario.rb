@@ -17,19 +17,27 @@ class Dankie
 
         if nuevo_apodo.nil? || nuevo_apodo.empty?
             texto_error = "Si no me pasás un apodo, está jodida la cosa #{TROESMAS.sample}"
-            @tg.send_message(chat_id: chat_id, reply_to_message_id: msj.message_id, text: texto_error)
+            @tg.send_message(chat_id: chat_id,
+                             reply_to_message_id: msj.message_id,
+                             text: texto_error)
             return
         elsif nuevo_apodo.length > 100
             texto_error = "Un poquito largo el apodo, no te parece #{TROESMAS.sample}?"
-            @tg.send_message(chat_id: chat_id, reply_to_message_id: msj.message_id, text: texto_error)
+            @tg.send_message(chat_id: chat_id,
+                             reply_to_message_id: msj.message_id,
+                             text: texto_error)
             return
         elsif nuevo_apodo.include? "\n"
             texto_error = "Nada de saltos de línea #{TROESMAS.sample}"
-            @tg.send_message(chat_id: chat_id, reply_to_message_id: msj.message_id, text: texto_error)
+            @tg.send_message(chat_id: chat_id,
+                             reply_to_message_id: msj.message_id,
+                             text: texto_error)
             return
         elsif nuevo_apodo.include? '‌'
             texto_error = "Nada de caracteres vacíos #{TROESMAS.sample}"
-            @tg.send_message(chat_id: chat_id, reply_to_message_id: msj.message_id, text: texto_error)
+            @tg.send_message(chat_id: chat_id,
+                             reply_to_message_id: msj.message_id,
+                             text: texto_error)
             return
         end
 
@@ -50,8 +58,13 @@ class Dankie
         @redis.hset("info_usuario:apodo:#{chat_id}", id_usuario.to_s, nuevo_apodo)
         @redis.bgsave
 
-        texto = "De hoy en adelante, el #{TROESMAS.sample} '#{dame_nombre_completo(nombre, apellido, 'Cuenta eliminada')}' será conocido como '#{html_parser(nuevo_apodo)}'."
-        @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: responde_a, text: texto, parse_mode: :html)
+        texto = "De hoy en adelante, el #{TROESMAS.sample} "\
+        		"'#{dame_nombre_completo(nombre, apellido, 'Cuenta eliminada')}' "\
+        		"será conocido como '#{html_parser(nuevo_apodo)}'."
+        @tg.send_message(chat_id: msj.chat.id,
+                         reply_to_message_id: responde_a,
+                         text: texto,
+                         parse_mode: :html)
     end
 
     def borrar_apodo(msj)
@@ -71,13 +84,17 @@ class Dankie
 
         # Si no tenía ningún apodo, entonces aviso
         if @redis.hget("info_usuario:apodo:#{chat_id}", id_usuario.to_s).nil?
-            @tg.send_message(chat_id: chat_id, reply_to_message_id: msj.message_id, text: texto_error)
+            @tg.send_message(chat_id: chat_id,
+                             reply_to_message_id: msj.message_id,
+                             text: texto_error)
         else
             # Si sí tenía, entonces lo borro
             @redis.hdel("info_usuario:apodo:#{chat_id}", id_usuario.to_s)
             # Hacer algo con los bgsave en un futuro
             @redis.bgsave
-            @tg.send_message(chat_id: chat_id, reply_to_message_id: msj.message_id, text: 'Apodo recontra borradísimo')
+            @tg.send_message(chat_id: chat_id,
+                             reply_to_message_id: msj.message_id,
+                             text: 'Apodo recontra borradísimo')
         end
     end
 
@@ -105,7 +122,10 @@ class Dankie
         respuesta << (apodo.nil? ? '' : "Apodo en el grupete: <b>#{html_parser(apodo)}</b>\n")
         respuesta << (lastfm.nil? ? '' : "Cuenta de LastFM: <b>#{html_parser(lastfm)}</b>")
 
-        @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id, parse_mode: :html, text: respuesta)
+        @tg.send_message(chat_id: msj.chat.id,
+                         reply_to_message_id: msj.message_id,
+                         parse_mode: :html,
+                         text: respuesta)
     end
 
     def apodos(msj)
@@ -117,7 +137,8 @@ class Dankie
         apodos = @redis.hgetall("info_usuario:apodo:#{chat_id}")
 
         if apodos.nil? || apodos.empty?
-            @tg.send_message(chat_id: chat_id, text: 'No hay nadie apodado en el grupete')
+            @tg.send_message(chat_id: chat_id,
+                             text: 'No hay nadie apodado en el grupete')
             return
         end
 
@@ -126,7 +147,10 @@ class Dankie
             # Armo la línea
             línea = "- <a href='tg://user?id=#{apodo[0]}'> #{html_parser(apodo[1])}</a>\n"
             if texto.length + línea.length > 4096
-                @tg.send_message(chat_id: chat_id, parse_mode: :html, text: texto, disable_notification: true)
+                @tg.send_message(chat_id: chat_id,
+                                 parse_mode: :html,
+                                 text: texto,
+                                 disable_notification: true)
                 texto = línea
             else
                 texto << línea
@@ -135,7 +159,10 @@ class Dankie
 
         # Si me quedó algo por mandar lo hago
         unless texto.empty?
-            @tg.send_message(chat_id: chat_id, parse_mode: :html, text: texto, disable_notification: true)
+            @tg.send_message(chat_id: chat_id,
+                             parse_mode: :html,
+                             text: texto,
+                             disable_notification: true)
         end
     end
 end

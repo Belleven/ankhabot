@@ -10,18 +10,6 @@ class Dankie
     add_handler Handler::Comando.new(:desban, :desban,
                                      description: 'Baneo al usuario que me digas')
 
-    def desban(msj)
-        if msj.entities && !msj.entities.empty?
-            texto = ''
-            msj.entities.each do |elemento|
-                texto << elemento.to_s + "\n"
-            end
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: texto,
-                             reply_to_message_id: msj.message_id)
-        end
-    end
-
     # Comando /rajar /kick
     def rajar(msj)
         # Función que uso para chequear que se cumplan condiciones específicas del comando
@@ -57,12 +45,14 @@ class Dankie
         aplicar_moderación(msj, chequeo_afectado, func_moderadora, error_afectado, despedida)
     end
 
+    private
+
     # Función que chequea los requisitos y ejecuta finalmente el comando moderador
     def aplicar_moderación(msj, chequeo_afectado, func_moderadora, error_afectado, despedida)
         cumple, miembro, razón = cumple_requisitos(msj)
 
         if cumple
-            id_afectada = msj.reply_to_message.from.id
+            id_afectada = miembro['user']['id']
 
             if chequeo_afectado.call(miembro)
                 @tg.send_message(chat_id: msj.chat.id,
@@ -72,7 +62,7 @@ class Dankie
                 razón = razón.nil? ? '' : ".\nRazón: " + razón + (razón[-1] == '.' ? '' : '.')
                 @tg.send_message(chat_id: msj.chat.id,
                                  text: despedida + ' ' + get_username_link(msj.chat.id, id_afectada) + razón,
-                                 reply_to_message_id: msj.reply_to_message.message_id,
+                                 reply_to_message_id: msj.reply_to_message.nil? ? msj.message_id : msj.reply_to_message.message_id,
                                  parse_mode: :html,
                                  disable_web_page_preview: true,
                                  disable_notification: true)
@@ -86,19 +76,25 @@ class Dankie
         cumple = false
         miembro = nil
         razón = nil
+
         # Chequeo que sea en un grupo (implementada en Dankie.rb)
         if validar_grupo(msj.chat.type, msj.chat.id, msj.message_id)
             # Chequeo que esté pasando una id para afectar
-            id_afectada, razón = dar_id_afectada(msj)
+            id_afectada, razón, alias_id = dar_id_afectada(msj)
 
-            if !id_afectada.nil? &&
-               # Chequeo que el bot sea admin en ese grupo y tenga los permisos correspondientes
-               # 'Necesito' y 'No tengo' son para los mensajes de error
-               tiene_permisos(msj, @user.id, 'can_restrict_members', 'Necesito', 'No tengo')
+            if id_afectada && razón && razón.length > 233
+                @tg.send_message(chat_id: msj.chat.id,
+                                 text: "No puedo ejecutar el comando\n"\
+                                 'Razón: la razón es muy larga.',
+                                 reply_to_message_id: msj.message_id)
+            elsif !id_afectada.nil? &&
+                  # Chequeo que el bot sea admin en ese grupo y tenga los permisos correspondientes
+                  # 'Necesito' y 'No tengo' son para los mensajes de error
+                  tiene_permisos(msj, @user.id, 'can_restrict_members', 'Necesito', 'No tengo')
 
                 # Chequeo que el usuario que llamó al comando sea admin y que quién se vea afectado no
                 # Además devuelve el chat_member del usuario afectado.
-                cumple, miembro = chequear_usuarios(msj, id_afectada)
+                cumple, miembro = chequear_usuarios(msj, id_afectada, alias_id)
             end
         end
         [cumple, miembro, razón]
@@ -106,10 +102,12 @@ class Dankie
 
     # Chequea que el miembro sea admin y tenga los permisos adecuados
     def tiene_permisos(msj, id_usuario, permiso, error_no_admin, error_no_permisos)
-        miembro = @tg.get_chat_member(chat_id: msj.chat.id, user_id: id_usuario)['result']
+        miembro = obtener_miembro(msj.chat.id, id_usuario)
         tiene_autorización = true
 
-        if miembro['status'] != 'creator'
+        if !miembro
+            tiene_autorización = false
+        elsif miembro['status'] != 'creator'
             if miembro['status'] != 'administrator'
                 tiene_autorización = false
                 @tg.send_message(chat_id: msj.chat.id,
@@ -130,10 +128,11 @@ class Dankie
         razón = nil
         id_afectada = nil
         args_mensaje = get_command_params(msj)
+        alias_id = false
 
         # Si el mensaje tiene argumentos, reviso si me sirven para identificar
         # al usuario y/o si tiene la razón del baneo/kickeo/etc
-        id_afectada, razón = id_y_razón(msj, args_mensaje.strip) if args_mensaje
+        id_afectada, razón, alias_id = id_y_razón(msj, args_mensaje.strip) if args_mensaje
 
         # Si está respondiendo a un mensaje y no se obtuvo un id de los argumentos
         # toma el id de ese miembro para ser afectado. Notar que la razón de baneo/kick/etc
@@ -146,11 +145,18 @@ class Dankie
         # Si no se pudo obtener id, aviso
         if id_afectada.nil?
             @tg.send_message(chat_id: msj.chat.id,
-                             text: 'Si no me decís contra quien usar el comando '\
+                             text: 'Si no me decís contra quién usar esto '\
                                    'no puedo hacer nada papurri. Tenés que pasarme '\
-                                   'SOLO al miembro que querés que afecte con el '\
-                                   'comando: dame su id, alias (mención si no tiene alias) '\
-                                   'o respondé un mensaje suyo.',
+                                   'SOLO UN miembro al que quieras que afecte: dame '\
+                                   'su id, alias (mención si no tiene alias) '\
+                                   'o respondé un mensaje suyo. También podés acompañar '\
+                                   'el comando con una razón (de hasta 233 caracteres) de '\
+                                   'por qué estás usando esto, '\
+                                   "con el siguiente formato ''/comando usuario razón'', "\
+                                   "o ''/comando razón'' si estás respondiendo a un mensaje "\
+                                   '(notar que si en este caso la razón empieza con un usuario, '\
+                                   'entonces el comando lo va a afectar a él). Si ponés varios '\
+                                   'usuarios, solo va a afectar al primero.',
                              reply_to_message_id: msj.message_id)
         # Al botazo no le pueden afectar los comandos
         elsif id_afectada == @user.id
@@ -160,13 +166,14 @@ class Dankie
             id_afectada = nil
         end
 
-        [id_afectada, razón]
+        [id_afectada, razón, alias_id]
     end
 
     def id_y_razón(msj, args_mensaje)
         id = nil
         lista_entidades = nil
         razón = nil
+        alias_id = false
 
         if msj.entities && !msj.entities.empty?
             texto = msj.text
@@ -181,18 +188,18 @@ class Dankie
 
             # Si se llama al comando así -> "/comando" entonces eso ya
             # cuenta como una entidad
-            entidad = if lista_entidades.length == 2 &&
-                         lista_entidades[0].type == 'bot_command' &&
-                         lista_entidades[0].offset == 0
+            if lista_entidades.length >= 2 &&
+               lista_entidades[0].type == 'bot_command' &&
+               lista_entidades[0].offset == 0
 
-                          lista_entidades[1]
-                      # msj.entities.lenght == 1, por ejemplo si se llama
-                      # así -> "!comando"
-                      else
-                          lista_entidades[0]
-                         end
+                entidad = lista_entidades[1]
+            # msj.entities.length == 1, por ejemplo si se llama
+            # así -> "!comando"
+            elsif !lista_entidades.empty?
+                entidad = lista_entidades[0]
+            end
 
-            # Veo si efectivamente había una entidad que ocupaba todo el argumento del comando
+            # Veo si efectivamente había una entidad que ocupaba el principio del argumento del comando
             # (me parece mal chequear que ocupe todo el texto acá, porque
             # podría ser un hashtag por ejemplo y estaría chequeando cosas al
             # pedo, pero bueno las posibilidades de eso son muy bajas y prefiero
@@ -203,50 +210,63 @@ class Dankie
                 # Me fijo si era un alias
                 if entidad.type == 'mention'
                     # TODO: algo que relacione alias con id
-                    razón = texto[(entidad.offset + entidad.length)..-1]
+                    alias_id = texto[entidad.offset..(entidad.offset + entidad.length - 1)]
+                    razón = texto[(entidad.offset + entidad.length)..-1].strip
+                    razón = nil if razón.empty?
                 # Me fijo si era una mención de usuario sin alias
                 elsif entidad.type == 'text_mention'
                     id = entidad.user.id
-                    razón = texto[(entidad.offset + entidad.length)..-1]
+                    razón = texto[(entidad.offset + entidad.length)..-1].strip
+                    razón = nil if razón.empty?
                 end
-               end
-
-        # Si no tengo entidades, entonces chequeo si me pasaron una id
-        else
-            lista_palabras = args_mensaje.split
-            primer_palabra = natural(lista_palabras.first)
-
-            if primer_palabra
-                id = primer_palabra
-                razón = lista_palabras[1, -1].join(' ')
             end
         end
+        # Si no logré nada con las entidades, entonces chequeo si me pasaron una id como texto
+        id, razón = id_numérica_y_razón(args_mensaje) if id.nil?
 
         # Si hay más de dos entidades, se que no es un caso que
         # quiero (solo permito banear/desbanear de a 1)
         razón = args_mensaje if id.nil?
 
-        [id, razón]
+        [id, razón, alias_id]
     end
 
-    def chequear_usuarios(msj, id_afectada)
+    def id_numérica_y_razón(args_mensaje)
+        lista_palabras = args_mensaje.split
+        primer_palabra = natural(lista_palabras.first)
+
+        if primer_palabra
+            [primer_palabra, lista_palabras[1..-1].join(' ')]
+        else
+            [nil, nil]
+        end
+    end
+
+    def chequear_usuarios(msj, id_afectada, alias_id)
         resultado = false
         miembro = nil
 
         # Chequeo que quien llame al comando sea admin y tenga permisos para restringir usuarios
         if tiene_permisos(msj, msj.from.id, 'can_restrict_members', 'Tenés que', 'No tenés')
 
-            # Chequeo si a quien le afecta el comando es admin, y de ser necesario, devuelvo el estatus
-            miembro = @tg.get_chat_member(chat_id: msj.chat.id, user_id: id_afectada)['result']
+            miembro = obtener_miembro(msj.chat.id, id_afectada)
 
-            if miembro['status'] == 'administrator' || miembro['status'] == 'creator'
-                @tg.send_message(chat_id: msj.chat.id,
-                                 text: 'No podés usar este comando contra un admin',
-                                 reply_to_message_id: msj.message_id)
-            else
-                resultado = true
+            if miembro
+                # Chequeo si a quien le afecta el comando es admin, y de ser necesario, devuelvo el estatus
+                if miembro['status'] == 'administrator' || miembro['status'] == 'creator'
+                    @tg.send_message(chat_id: msj.chat.id,
+                                     text: 'No podés usar este comando contra un admin',
+                                     reply_to_message_id: msj.message_id)
+                elsif alias_id && (!miembro['status']['username'] ||
+                        miembro['status']['username'] != alias_id)
+                    @tg.send_message(chat_id: msj.chat.id,
+                                     text: 'No reconozco ese alias, lo más probable es que '\
+                    		     	   	'haya sido cambiado recientemente',
+                                     reply_to_message_id: msj.message_id)
+                else
+                    resultado = true
+                end
             end
-
         end
 
         [resultado, miembro]
@@ -271,6 +291,21 @@ class Dankie
         end
 
         false
+    end
+
+    def obtener_miembro(chat_id, user_id)
+        @tg.get_chat_member(chat_id: chat_id, user_id: user_id)['result']
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        case e.to_s
+        when /USER_ID_INVALID/
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: "Disculpame pero no puedo reconocer esta ID: #{user_id}",
+                             reply_to_message_id: msj.message_id)
+        else
+            raise
+        end
+
+        nil
     end
 
     def log_y_aviso(msj, error)
