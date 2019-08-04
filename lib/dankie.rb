@@ -219,15 +219,15 @@ class Dankie
         { command: command&.to_sym, params: params }
     end
 
-    def get_username_link(chat_id, user_id)
-        usuario = @tg.get_chat_member(chat_id: chat_id, user_id: user_id)
+    def get_username_link(chat_id, usuario_id)
+        usuario = @tg.get_chat_member(chat_id: chat_id, user_id: usuario_id)
         usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
         link_usuario = crear_link(usuario)
     rescue Telegram::Bot::Exceptions::ResponseError => e
         link_usuario = nil
         @logger.error(e)
     ensure
-        return link_usuario || 'ay no c (' + user_id.to_s + ')'
+        return link_usuario || 'ay no c (' + usuario_id.to_s + ')'
     end
 
     def crear_link(usuario)
@@ -238,7 +238,7 @@ class Dankie
             "<a href='tg://user?id=#{usuario.id}'>" \
                 "#{html_parser(usuario.first_name)}</a>"
         else
-            'ay no c (' + user_id + ')'
+            'ay no c (' + usuario.id + ')'
         end
     end
 
@@ -256,9 +256,9 @@ class Dankie
         false
     end
 
-    def validar_grupo(type, chat_id, message_id)
+    def validar_grupo(type, chat_id, mensaje_id)
         if type == 'private'
-            @tg.send_message(chat_id: chat_id, reply_to_message_id: message_id,
+            @tg.send_message(chat_id: chat_id, reply_to_message_id: mensaje_id,
                              text: 'Esto solo funciona en grupetes')
             return false
 
@@ -270,10 +270,10 @@ class Dankie
         true
     end
 
-    def validar_desarrollador(user_id, chat_id, message_id, _text = nil, _id = nil)
+    def validar_desarrollador(usuario_id, chat_id, mensaje_id, _text = nil, _id = nil)
         # Chequeo que quien llama al comando sea o desarrollador
-        unless DEVS.include?(user_id)
-            @tg.send_message(chat_id: chat_id, reply_to_message_id: message_id,
+        unless DEVS.include?(usuario_id)
+            @tg.send_message(chat_id: chat_id, reply_to_message_id: mensaje_id,
                              text: 'Vos no podés usar esto pa')
             return false
         end
@@ -281,8 +281,8 @@ class Dankie
         true
     end
 
-    def es_admin(user_id, chat_id, message_id, text = nil, _id = nil)
-        member = @tg.get_chat_member(chat_id: chat_id, user_id: user_id)
+    def es_admin(usuario_id, chat_id, mensaje_id, text = nil, _id = nil)
+        member = @tg.get_chat_member(chat_id: chat_id, user_id: usuario_id)
         member = Telegram::Bot::Types::ChatMember.new(member['result'])
         status = member.status
 
@@ -290,7 +290,7 @@ class Dankie
         # Si no lo es, manda mensaje de error
         if (status != 'administrator') && (status != 'creator')
             unless text.nil?
-                @tg.send_message(chat_id: chat_id, reply_to_message_id: message_id, text: text)
+                @tg.send_message(chat_id: chat_id, reply_to_message_id: mensaje_id, text: text)
             end
             return false
         end
