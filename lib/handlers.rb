@@ -72,10 +72,10 @@ module Handler
         end
     end
 
-    # Este es un handler general, el problema de usarlo para cada evento de chat
-    # es que hay que meter un if en cada funcion que lo necesite (un if para chequear
-    # el tipo de evento de chat que es). Creo que se podría pasar como argumento los tipos
-    # de eventos de chat que aceptaría cada handler.
+    # Inicializarlo con el tipo de atributos que querés que soporte el handler
+    # (los posibles son los de MSJ_TYPES). Lo podés inicializar con un solo
+    # elemento (como string o símbolo) o con una lista no vacía de elementos
+    # (strings o símbolos). Si no le pasás ningún tipo, toma todos los de MSJ_TYPES.
     class EventoDeChat
         MSJ_TYPES = %i[new_chat_members left_chat_member new_chat_title
                        new_chat_photo delete_chat_photo group_chat_created
@@ -86,7 +86,7 @@ module Handler
                 @atributos = MSJ_TYPES
             elsif tipo.is_a?(String) || tipo.is_a?(Symbol)
                 @atributos = [tipo].map(&:to_sym)
-            elsif tipo.is_a? Array
+            elsif tipo.is_a? Array && !tipo.empty?
                 tipo.each do |_elem|
                     unless tipo.is_a?(String) || tipo.is_a?(Symbol)
                         raise "#{atributo} no es un String ni un Symbol"
@@ -94,7 +94,7 @@ module Handler
                 end
                 @atributos = tipo.map(&:to_sym)
             else
-                raise "''tipo'' solo puede ser un String, Symbol o un Array de Strings"
+                raise "''tipo'' solo puede ser un String, Symbol o un Array no vacío de String/Symbol"
             end
 
             @atributos.each do |atributo|
