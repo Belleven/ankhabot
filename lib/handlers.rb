@@ -2,7 +2,7 @@ module Handler
     class Mensaje
         MSJ_TYPES = %i[text audio document game photo
                        sticker video voice video_note contact
-                       location venue poll].freeze
+                       location venue poll reply_markup].freeze
 
         def initialize(callback, args = {})
             @callback = callback
@@ -77,9 +77,15 @@ module Handler
     # elemento (como string o símbolo) o con una lista no vacía de elementos
     # (strings o símbolos). Si no le pasás ningún tipo, toma todos los de MSJ_TYPES.
     class EventoDeChat
+        # migrate_to_chat_id NO ESTÁ porque decidimos ignorar los mensajes
+        # que contengan ese campo (ya que van a ser los últimos que existan
+        # en ese chat y pueden generar quilombetes). Para saber cuándo un
+        # grupo migra a supergrupo dejamos migrate_from_chat_id
         MSJ_TYPES = %i[new_chat_members left_chat_member new_chat_title
                        new_chat_photo delete_chat_photo group_chat_created
-                       supergroup_chat_created channel_chat_created pinned_message].freeze
+                       supergroup_chat_created channel_chat_created
+                       migrate_from_chat_id pinned_message invoice
+                       successful_payment connected_website passport_data].freeze
 
         def initialize(callback, tipo = nil)
             if tipo.nil?
