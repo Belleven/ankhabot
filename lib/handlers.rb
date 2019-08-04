@@ -20,10 +20,10 @@ module Handler
             msj_type = nil
             @msj_types.each do |type|
                 msj_type = msj.send type
-                break if msj_type
+                break if msj_type && (msj_type.is_a?(Array) ? !msj_type.empty? : true)
             end
 
-            return unless msj_type
+            return unless msj_type && (msj_type.is_a?(Array) ? !msj_type.empty? : true)
 
             bot.public_send(@callback, msj)
         end
@@ -72,17 +72,37 @@ module Handler
         end
     end
 
-    # Este es el handler general, lo ideal sería que cada vez que se necesite
-    # un handler para un tipo de evento que no tenga, se armen uno nuevo y no usen este
-    # pero bueno de última queda este por si se necesita.
-    # Aunque bueno, eso genera mucho código repetido, veremos qué hacer en un futuro.
+    # Inicializarlo con el tipo de atributos que querés que soporte el handler
+    # (los posibles son los de MSJ_TYPES). Lo podés inicializar con un solo
+    # elemento (como string o símbolo) o con una lista no vacía de elementos
+    # (strings o símbolos). Si no le pasás ningún tipo, toma todos los de MSJ_TYPES.
     class EventoDeChat
         MSJ_TYPES = %i[new_chat_members left_chat_member new_chat_title
                        new_chat_photo delete_chat_photo group_chat_created
                        supergroup_chat_created channel_chat_created pinned_message].freeze
 
-        def initialize(callback, args = {})
-            @atributos = args[:types] || MSJ_TYPES
+        def initialize(callback, tipo = nil)
+            if tipo.nil?
+                @atributos = MSJ_TYPES
+            elsif tipo.is_a?(String) || tipo.is_a?(Symbol)
+                @atributos = [tipo].map(&:to_sym)
+            elsif tipo.is_a? Array && !tipo.empty?
+                tipo.each do |_elem|
+                    unless tipo.is_a?(String) || tipo.is_a?(Symbol)
+                        raise "#{atributo} no es un String ni un Symbol"
+                    end
+                end
+                @atributos = tipo.map(&:to_sym)
+            else
+                raise "''tipo'' solo puede ser un String, Symbol o un Array no vacío de String/Symbol"
+            end
+
+            @atributos.each do |atributo|
+                unless MSJ_TYPES.include? atributo
+                    raise "#{atributo} no es un tipo válido"
+                end
+            end
+
             @callback = callback
         end
 
@@ -92,29 +112,12 @@ module Handler
             atributo = nil
             @atributos.each do |tipo|
                 atributo = msj.send tipo
-                break if atributo
+                break if atributo && (atributo.is_a?(Array) ? !atributo.empty? : true)
             end
 
-            return unless atributo
+            return unless atributo && (atributo.is_a?(Array) ? !atributo.empty? : true)
 
             bot.public_send(@callback, msj)
         end
-    end
-
-    # Volar estas dos, usar solo EventoDeChat y ver como parametrizarlo bien
-    class NuevosMiembros
-        def initialize(callback)
-            @callback = callback
-        end
-
-        def check_message(bot, msj)
-            return unless msj.is_a? Telegram::Bot::Types::Message
-            return if msj.new_chat_members.nil? || msj.new_chat_members.empty?
-
-            bot.public_send(@callback, msj)
-        end
-    end
-
-    class MigrarASupergrupo
     end
 end

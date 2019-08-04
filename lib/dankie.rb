@@ -33,9 +33,9 @@ class Dankie
     end
 
     # Creo que esto es un dispatch si entendí bien
-    def dispatch(msg)
+    def dispatch(msj)
         self.class.handlers.each do |handler|
-            handler.check_message(self, msg)
+            handler.check_message(self, msj)
         end
     end
 
@@ -46,19 +46,19 @@ class Dankie
         @tg = TelegramAPI.new args[:tg_token], @logger
         @redis = Redis.new port: args[:redis_port], host: args[:redis_host], password: args[:redis_pass]
         @img = ImageSearcher.new args[:google_image_key], args[:google_image_cx]
-        @user = Telegram::Bot::Types::User.new @tg.get_me['result'] # TODO: validar?
+        @user = Telegram::Bot::Types::User.new @tg.get_me['result']
         @lastFM = LastFMParser.new args[:last_fm_api]
         @tz = TZInfo::Timezone.get args[:timezone]
     end
 
     def run
-        @tg.client.listen do |msg|
-            next unless msg&.from&.id
-            next if @redis.sismember('blacklist:global', msg.from.id.to_s)
-            next if msg.is_a?(Telegram::Bot::Types::Message) &&
-                    @redis.sismember("blacklist:#{msg.chat.id}", msg.from.id.to_s)
+        @tg.client.listen do |msj|
+            next unless msj&.from&.id
+            next if @redis.sismember('blacklist:global', msj.from.id.to_s)
+            next if msj.is_a?(Telegram::Bot::Types::Message) &&
+                    @redis.sismember("blacklist:#{msj.chat.id}", msj.from.id.to_s)
 
-            dispatch(msg)
+            dispatch(msj)
 
         rescue Faraday::ConnectionFailed, Net::OpenTimeout => e
             begin
@@ -174,13 +174,13 @@ class Dankie
         end
     end
 
-    def get_command(msg)
-        cmd = _parse_command(msg)
+    def get_command(msj)
+        cmd = _parse_command(msj)
         cmd[:command]
     end
 
-    def get_command_params(msg)
-        cmd = _parse_command(msg)
+    def get_command_params(msj)
+        cmd = _parse_command(msj)
         cmd[:params]
     end
 
@@ -188,8 +188,8 @@ class Dankie
 
     # Analiza un texto y se fija si es un comando válido, devuelve el comando
     # y el resto del texto
-    def _parse_command(msg)
-        unless (text = msg.text || msg.caption)
+    def _parse_command(msj)
+        unless (text = msj.text || msj.caption)
             return { command: nil, params: nil }
         end
 
@@ -210,7 +210,7 @@ class Dankie
                 command = arr[1]&.downcase.to_sym
                 params = arr[2]
 
-            elsif msg.reply_to_message&.from&.id == @user.id # responde al bot
+            elsif msj.reply_to_message&.from&.id == @user.id # responde al bot
                 command, params = text.split ' ', 2
                 command.downcase!
             end
@@ -219,23 +219,27 @@ class Dankie
         { command: command&.to_sym, params: params }
     end
 
-    def get_username_link(chat_id, user_id)
-        user = @tg.get_chat_member(chat_id: chat_id, user_id: user_id)
-        user = Telegram::Bot::Types::ChatMember.new(user['result']).user
-        user_link = if user.username
-                        "<a href='https://telegram.me/#{user.username}'>" \
-                            "#{user.username}</a>"
-                    elsif !user.first_name.empty?
-                        "<a href='tg://user?id=#{user_id}'>" \
-                            "#{html_parser(user.first_name)}</a>"
-                    else
-                        'ay no c (' + user_id + ')'
-                    end
+    def get_username_link(chat_id, usuario_id)
+        usuario = @tg.get_chat_member(chat_id: chat_id, user_id: usuario_id)
+        usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
+        link_usuario = crear_link(usuario)
     rescue Telegram::Bot::Exceptions::ResponseError => e
-        user_link = nil
+        link_usuario = nil
         @logger.error(e)
     ensure
-        return user_link || 'ay no c (' + user_id + ')'
+        return link_usuario || 'ay no c (' + usuario_id.to_s + ')'
+    end
+
+    def crear_link(usuario)
+        if usuario.username
+            "<a href='https://telegram.me/#{usuario.username}'>" \
+                "#{usuario.username}</a>"
+        elsif !usuario.first_name.empty?
+            "<a href='tg://user?id=#{usuario.id}'>" \
+                "#{html_parser(usuario.first_name)}</a>"
+        else
+            'ay no c (' + usuario.id + ')'
+        end
     end
 
     def natural(numero)
@@ -252,9 +256,9 @@ class Dankie
         false
     end
 
-    def validar_grupo(type, chat_id, message_id)
+    def validar_grupo(type, chat_id, mensaje_id)
         if type == 'private'
-            @tg.send_message(chat_id: chat_id, reply_to_message_id: message_id,
+            @tg.send_message(chat_id: chat_id, reply_to_message_id: mensaje_id,
                              text: 'Esto solo funciona en grupetes')
             return false
 
@@ -266,10 +270,10 @@ class Dankie
         true
     end
 
-    def validar_desarrollador(user_id, chat_id, message_id, _text = nil, _id = nil)
+    def validar_desarrollador(usuario_id, chat_id, mensaje_id, _text = nil, _id = nil)
         # Chequeo que quien llama al comando sea o desarrollador
-        unless DEVS.include?(user_id)
-            @tg.send_message(chat_id: chat_id, reply_to_message_id: message_id,
+        unless DEVS.include?(usuario_id)
+            @tg.send_message(chat_id: chat_id, reply_to_message_id: mensaje_id,
                              text: 'Vos no podés usar esto pa')
             return false
         end
@@ -277,8 +281,8 @@ class Dankie
         true
     end
 
-    def es_admin(user_id, chat_id, message_id, text = nil, _id = nil)
-        member = @tg.get_chat_member(chat_id: chat_id, user_id: user_id)
+    def es_admin(usuario_id, chat_id, mensaje_id, text = nil, _id = nil)
+        member = @tg.get_chat_member(chat_id: chat_id, user_id: usuario_id)
         member = Telegram::Bot::Types::ChatMember.new(member['result'])
         status = member.status
 
@@ -286,11 +290,19 @@ class Dankie
         # Si no lo es, manda mensaje de error
         if (status != 'administrator') && (status != 'creator')
             unless text.nil?
-                @tg.send_message(chat_id: chat_id, reply_to_message_id: message_id, text: text)
+                @tg.send_message(chat_id: chat_id, reply_to_message_id: mensaje_id, text: text)
             end
             return false
         end
 
         true
+    end
+
+    def grupo_del_msj(msj)
+        if msj.chat.title.nil?
+            msj.chat.id.to_s
+        else
+            msj.chat.title + ' (' + msj.chat.id.to_s + ')'
+        end
     end
 end

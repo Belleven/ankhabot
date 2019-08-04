@@ -44,8 +44,11 @@ class Dankie
         # Si la clave no existe, próx_pole vale 0 así que cuenta como hacer la pole
         return if próx_pole.to_i != 0 && msj.date < próx_pole
 
-        últ_pole = Time.at msj.date, in: @tz.utc_offset
-        próx_pole = Time.new(últ_pole.year, últ_pole.month, últ_pole.day + 1,
+        # Tomo el datetime del mensaje polero y le sumo 1 día
+        # 86400 es un día en segundos -> 24*60*60 = 86400
+        mañana = (Time.at msj.date, in: @tz.utc_offset) + 86_400
+        # La próxima pole va a ser en el día de "mañana" pero a las 00:00:00
+        próx_pole = Time.new(mañana.year, mañana.month, mañana.day,
                              0, 0, 0, @tz.utc_offset)
 
         # Sincronizo para que se frene el comando /nisman hasta que se terminen de registrar la pole

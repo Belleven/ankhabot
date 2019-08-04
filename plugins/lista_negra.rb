@@ -249,13 +249,25 @@ class Dankie
     end
 
     def get_blocked(msj, id_grupo)
-        # Solo para ver si anda
+        usuario_id = msj.from.id
+        chat_id = msj.chat.id
+        mensaje_id = msj.message_id
+
+        es_global = id_grupo == 'globales'
+        error_admin = 'Solo los admins pueden usar esto'
         miembros = @redis.smembers("lista_negra:#{id_grupo}")
 
-        if miembros.empty?
-            @tg.send_message(chat_id: msj.chat.id, text: 'No hay nadie en la lista negra.')
-        else
-            mandar_lista_ids(msj.chat.id, miembros, id_grupo == 'globales')
+        if (es_global && validar_desarrollador(usuario_id, chat_id, mensaje_id)) ||
+           (!es_global && es_admin(usuario_id, chat_id, mensaje_id, error_admin))
+
+            if miembros.empty?
+                extra = es_global ? '.' : ' del grupete.'
+                @tg.send_message(chat_id: chat_id,
+                                 text: 'No hay nadie en la lista negra' + extra,
+                                 reply_to_message_id: mensaje_id)
+            else
+                mandar_lista_ids(chat_id, miembros, es_global)
+            end
         end
     end
 
