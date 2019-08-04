@@ -1,6 +1,7 @@
 # Extension de dankie para manejar las poles
 class Dankie
     add_handler Handler::Mensaje.new(:pole, allowed_chats: %i[group supergroup])
+    add_handler Handler::EventoDeChat.new(:pole)
     add_handler Handler::Comando.new(:nisman, :enviar_ranking_pole,
                                      description: 'Muestra el ranking de Nisman')
 
