@@ -19,6 +19,8 @@ class Dankie
                                      description: 'Lista de miembros del chat '\
                                                   'bloqueados por el bot')
 
+    add_handler Handler::EventoDeChat.new(:lista_negra_supergrupo, :migrate_from_chat_id)
+
     def restringir(msj, params)
         comando_lista_negra(msj, :chequeo_local, :bloquear_usuario, msj.chat.id.to_s,
                             params, 'Vos no podés usar esto pa')
@@ -43,6 +45,15 @@ class Dankie
 
     def local_blocked(msj)
         get_blocked(msj, msj.chat.id.to_s)
+    end
+
+    # Para cuando un grupo se convierte en supergrupo
+    def lista_negra_supergrupo(msj)
+        vieja_id = msj.migrate_from_chat_id
+        nueva_id = msj.chat.id
+        if @redis.exists("lista_negra:#{vieja_id}")
+            @redis.rename("lista_negra:#{vieja_id}", "lista_negra:#{nueva_id}")
+        end
     end
 
     private

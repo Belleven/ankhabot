@@ -28,7 +28,7 @@ def imprimir_todas_las_claves(patron = '')
 
             elsif $redis.type(clave) == 'zset'
 
-                valores = $redis.zrange(clave, 0, -1)
+                valores = $redis.zrevrange(clave, 0, -1, with_scores: true)
                 puts 'CONJUNTO ORDENADO: ' + clave + "\nELEMENTOS: "
                 valores.each do |atributo|
                     puts ' ' + atributo[0].to_s + ': ' + atributo[1].to_s
