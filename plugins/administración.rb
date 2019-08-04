@@ -60,7 +60,7 @@ class Dankie
             elsif moderar(msj, miembro.user.id, func_moderadora)
                 razón = razón.nil? ? '' : ".\nRazón: " + razón + (razón[-1] == '.' ? '' : '.')
                 @tg.send_message(chat_id: msj.chat.id,
-                                 text: despedida + ' ' + crear_link(miembro.user) + razón,
+                                 text: despedida + ' ' + crear_enlace(miembro.user) + razón,
                                  reply_to_message_id: msj.reply_to_message.nil? ? msj.message_id : msj.reply_to_message.message_id,
                                  parse_mode: :html,
                                  disable_web_page_preview: true,

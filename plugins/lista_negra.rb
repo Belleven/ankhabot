@@ -157,7 +157,7 @@ class Dankie
                 if id_grupo == 'globales'
                     @tg.send_message(chat_id: chat_id, text: 'ya no te doy bola ' + id + ' ¬_¬')
                 else
-                    @tg.send_message(chat_id: chat_id, text: 'ya no te doy bola ' + get_username_link(chat_id, id) + ' ¬_¬',
+                    @tg.send_message(chat_id: chat_id, text: 'ya no te doy bola ' + obtener_enlace_usuario(chat_id, id) + ' ¬_¬',
                                      parse_mode: 'html',
                                      disable_web_page_preview: true,
                                      disable_notification: true)
@@ -165,7 +165,7 @@ class Dankie
             else
                 @tg.send_message(chat_id: chat_id,
                                  reply_to_message_id: msj.reply_to_message.message_id,
-                                 text: 'ya no te doy bola ' + get_username_link(chat_id, id) + ' ¬_¬',
+                                 text: 'ya no te doy bola ' + obtener_enlace_usuario(chat_id, id) + ' ¬_¬',
                                  parse_mode: 'html',
                                  disable_web_page_preview: true,
                                  disable_notification: true)
@@ -201,7 +201,7 @@ class Dankie
                 if id_grupo == 'globales'
                     @tg.send_message(chat_id: chat_id, text: 'ola de nuevo ' + id.to_s + ' nwn')
                 else
-                    @tg.send_message(chat_id: chat_id, text: 'ola de nuevo ' + get_username_link(chat_id, id) + ' nwn',
+                    @tg.send_message(chat_id: chat_id, text: 'ola de nuevo ' + obtener_enlace_usuario(chat_id, id) + ' nwn',
                                      parse_mode: 'html',
                                      disable_web_page_preview: true,
                                      disable_notification: true)
@@ -210,7 +210,7 @@ class Dankie
             else
                 @tg.send_message(chat_id: chat_id,
                                  reply_to_message_id: msj.reply_to_message.message_id,
-                                 text: 'ola de nuevo ' + get_username_link(chat_id, id) + ' nwn',
+                                 text: 'ola de nuevo ' + obtener_enlace_usuario(chat_id, id) + ' nwn',
                                  parse_mode: 'html',
                                  disable_web_page_preview: true,
                                  disable_notification: true)
@@ -281,7 +281,7 @@ class Dankie
 
             # Mando blocazos de 4096 caracteres
             if tamaño < 4096
-                lineas << '- ' + (es_global ? miembro : get_username_link(chat_id, miembro)) + "\n"
+                lineas << '- ' + (es_global ? miembro : obtener_enlace_usuario(chat_id, miembro)) + "\n"
             else
                 @tg.send_message(chat_id: chat_id,
                                  text: lineas.join(''),
