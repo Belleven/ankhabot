@@ -14,8 +14,8 @@ class Dankie
     def rajar(msj)
         # Función que uso para chequear que se cumplan condiciones específicas del comando
         chequeo_afectado = proc do |miembro|
-            miembro['status'] == 'left' || miembro['status'] == 'kicked' ||
-                (miembro['status'] == 'restricted' && !miembro['is_member'])
+            miembro.status == 'left' || miembro.status == 'kicked' ||
+                (miembro.status == 'restricted' && !miembro.is_member)
         end
         # Función para moderar el grupete
         func_moderadora = proc do |chat_id, id_afectada|
@@ -32,7 +32,7 @@ class Dankie
     # Comando /ban /nisban
     def ban(msj)
         chequeo_afectado = proc do |miembro|
-            miembro['status'] == 'kicked'
+            miembro.status == 'kicked'
         end
         func_moderadora = proc do |chat_id, id_afectada|
             @tg.kick_chat_member(chat_id: chat_id, user_id: id_afectada)
@@ -52,16 +52,15 @@ class Dankie
         cumple, miembro, razón = cumple_requisitos(msj)
 
         if cumple
-            id_afectada = miembro['user']['id']
-
+            miembro = Telegram::Bot::Types::ChatMember.new(miembro)
             if chequeo_afectado.call(miembro)
                 @tg.send_message(chat_id: msj.chat.id,
                                  text: error_afectado,
                                  reply_to_message_id: msj.message_id)
-            elsif moderar(msj, id_afectada, func_moderadora)
+            elsif moderar(msj, miembro.user.id, func_moderadora)
                 razón = razón.nil? ? '' : ".\nRazón: " + razón + (razón[-1] == '.' ? '' : '.')
                 @tg.send_message(chat_id: msj.chat.id,
-                                 text: despedida + ' ' + get_username_link(msj.chat.id, id_afectada) + razón,
+                                 text: despedida + ' ' + crear_link(miembro.user) + razón,
                                  reply_to_message_id: msj.reply_to_message.nil? ? msj.message_id : msj.reply_to_message.message_id,
                                  parse_mode: :html,
                                  disable_web_page_preview: true,

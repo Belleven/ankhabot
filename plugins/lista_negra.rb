@@ -251,9 +251,13 @@ class Dankie
     def get_blocked(msj, id_grupo)
         # Solo para ver si anda
         miembros = @redis.smembers("lista_negra:#{id_grupo}")
+        es_global = id_grupo == 'globales'
 
         if miembros.empty?
-            @tg.send_message(chat_id: msj.chat.id, text: 'No hay nadie en la lista negra.')
+            extra = es_global ? '.' : ' del grupete.'
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: 'No hay nadie en la lista negra' + extra,
+                             reply_to_message_id: msj.message_id)
         else
             mandar_lista_ids(msj.chat.id, miembros, id_grupo == 'globales')
         end

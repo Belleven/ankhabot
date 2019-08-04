@@ -222,7 +222,7 @@ class Dankie
     def get_username_link(chat_id, user_id)
         usuario = @tg.get_chat_member(chat_id: chat_id, user_id: user_id)
         usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
-        link_usuario = crear_link_alias(usuario)
+        link_usuario = crear_link(usuario)
     rescue Telegram::Bot::Exceptions::ResponseError => e
         link_usuario = nil
         @logger.error(e)
@@ -230,7 +230,7 @@ class Dankie
         return link_usuario || 'ay no c (' + user_id.to_s + ')'
     end
 
-    def crear_link_alias(usuario)
+    def crear_link(usuario)
         if usuario.username
             "<a href='https://telegram.me/#{usuario.username}'>" \
                 "#{usuario.username}</a>"
