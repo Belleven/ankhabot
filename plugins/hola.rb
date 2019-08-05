@@ -4,7 +4,7 @@ class Dankie
     def hola(msj)
         frases = ['hola', 'holis', 'aló', 'buenos dias', 'holi', 'holu',
                   'buenos días', 'buenas', 'wenas', 'ola']
-        respuesta = 'Hola ' + primer_nombre(msj.from)
+        respuesta = ['Hola ', 'Hola a todos, menos a '].sample + primer_nombre(msj.from)
         responder(msj, frases, respuesta)
     end
 
