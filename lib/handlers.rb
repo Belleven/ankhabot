@@ -6,49 +6,49 @@ module Handler
 
         def initialize(callback, args = {})
             @callback = callback
-            @allow_edited = args[:allow_edited] || false
-            @allowed_chats = args[:allowed_chats]&.map(&:to_s) || %w[private group supergroup] # 'channel' es otra opción
-            @msj_types = args[:types] || MSJ_TYPES
+            @permitir_editados = args[:permitir_editados] || false
+            @chats_permitidos = args[:chats_permitidos]&.map(&:to_s) || %w[private group supergroup] # 'channel' es otra opción
+            @tipos = args[:tipos] || MSJ_TYPES
         end
 
         def check_message(bot, msj)
             return unless msj.is_a? Telegram::Bot::Types::Message
-            return if !@allow_edited && msj.edit_date
+            return if !@permitir_editados && msj.edit_date
 
-            return unless @allowed_chats.include?(msj.chat.type)
+            return unless @chats_permitidos.include?(msj.chat.type)
 
-            msj_type = nil
-            @msj_types.each do |type|
-                msj_type = msj.send type
-                break if msj_type && (msj_type.is_a?(Array) ? !msj_type.empty? : true)
+            tipo_msj = nil
+            @tipos.each do |tipo|
+                tipo_msj = msj.send tipo
+                break if tipo_msj && (tipo_msj.is_a?(Array) ? !tipo_msj.empty? : true)
             end
 
-            return unless msj_type && (msj_type.is_a?(Array) ? !msj_type.empty? : true)
+            return unless tipo_msj && (tipo_msj.is_a?(Array) ? !tipo_msj.empty? : true)
 
             bot.public_send(@callback, msj)
         end
     end
 
     class Comando
-        attr_reader :cmd, :description
+        attr_reader :cmd, :descripción
         def initialize(cmd, callback, args = {})
             @cmd = cmd
             @callback = callback
-            @description = args[:description]
-            @allow_params = args[:allow_params] || false
-            @allow_edited = args[:allow_edited] || false
+            @descripción = args[:descripción]
+            @permitir_params = args[:permitir_params] || false
+            @permitir_editados = args[:permitir_editados] || false
         end
 
         def check_message(bot, msj)
             return unless msj.is_a? Telegram::Bot::Types::Message
 
-            return if !@allow_edited && msj.edit_date
+            return if !@permitir_editados && msj.edit_date
 
             cmd = bot.get_command(msj)
             return if @cmd != cmd
 
             bot.logger.info "CommandHandler: comando \"#{@cmd}\" en #{msj.chat.id}"
-            if @allow_params
+            if @permitir_params
                 bot.public_send(@callback, msj, bot.get_command_params(msj))
             else
                 bot.public_send(@callback, msj)
@@ -74,7 +74,7 @@ module Handler
 
     # Inicializarlo con el tipo de atributos que querés que soporte el handler
     # (los posibles son los de MSJ_TYPES). Lo podés inicializar con un solo
-    # elemento (como string o símbolo) o con una lista no vacía de elementos
+    # elemento (como símbolo) o con una lista no vacía de elementos
     # (strings o símbolos). Si no le pasás ningún tipo, toma todos los de MSJ_TYPES.
     class EventoDeChat
         # migrate_to_chat_id NO ESTÁ porque decidimos ignorar los mensajes
@@ -87,28 +87,16 @@ module Handler
                        migrate_from_chat_id pinned_message invoice
                        successful_payment connected_website passport_data].freeze
 
-        def initialize(callback, tipo = nil)
-            if tipo.nil?
-                @atributos = MSJ_TYPES
-            elsif tipo.is_a?(String) || tipo.is_a?(Symbol)
-                @atributos = [tipo].map(&:to_sym)
-            elsif tipo.is_a? Array && !tipo.empty?
-                tipo.each do |_elem|
-                    unless tipo.is_a?(String) || tipo.is_a?(Symbol)
-                        raise "#{atributo} no es un String ni un Symbol"
-                    end
-                end
-                @atributos = tipo.map(&:to_sym)
-            else
-                raise "''tipo'' solo puede ser un String, Symbol o un Array no vacío de String/Symbol"
-            end
+        def initialize(callback, args = {})
+            @tipos = args[:tipos] || MSJ_TYPES
 
-            @atributos.each do |atributo|
+            @tipos.each do |atributo|
                 unless MSJ_TYPES.include? atributo
                     raise "#{atributo} no es un tipo válido"
                 end
             end
 
+            @chats_permitidos = args[:chats]&.map(&:to_s) || %w[private group supergroup] # 'channel' es otra opción
             @callback = callback
         end
 
@@ -116,7 +104,7 @@ module Handler
             return unless msj.is_a? Telegram::Bot::Types::Message
 
             atributo = nil
-            @atributos.each do |tipo|
+            @tipos.each do |tipo|
                 atributo = msj.send tipo
                 break if atributo && (atributo.is_a?(Array) ? !atributo.empty? : true)
             end

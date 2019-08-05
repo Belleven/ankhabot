@@ -2,10 +2,10 @@ require 'telegram/bot'
 
 class Dankie
     add_handler Handler::Comando.new(:recarga, :recarga,
-                                     description: 'Recarga la bala y gira la '\
+                                     descripción: 'Recarga la bala y gira la '\
                                                   'ruleta (6 ranuras)')
     add_handler Handler::Comando.new(:dispara, :dispara,
-                                     description: 'Dispara la próxima bala')
+                                     descripción: 'Dispara la próxima bala')
     @@juegos = {}
 
     def recarga(msj)

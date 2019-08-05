@@ -1,8 +1,8 @@
 # Extensión de Dankie para generar mensajes cp
 class Dankie
-    add_handler Handler::Mensaje.new(:añadir_palabras_cp, types: [:text])
+    add_handler Handler::Mensaje.new(:añadir_palabras_cp, tipos: [:text])
     add_handler Handler::Comando.new(:cp, :cp,
-                                     description: 'genera una posible '\
+                                     descripción: 'genera una posible '\
                                                   'definición de la sigla cp, '\
                                                   'usando texto del chat')
 

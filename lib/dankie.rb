@@ -90,7 +90,7 @@ class Dankie
         @handlers.each do |handler|
             next unless handler.is_a? Handler::Comando
 
-            yield handler.cmd, handler.description if handler.description
+            yield handler.cmd, handler.descripción if handler.descripción
         end
     end
 

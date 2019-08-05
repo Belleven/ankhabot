@@ -1,6 +1,6 @@
 class Dankie
     add_handler Handler::Comando.new(:rekt, :rekt,
-                                     description: 'Informa a un usuario si ha '\
+                                     descripción: 'Informa a un usuario si ha '\
                                                   'sido destruido')
 
     def rekt(msj)

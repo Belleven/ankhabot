@@ -1,14 +1,14 @@
 class Dankie
     add_handler Handler::Comando.new(:rajar, :rajar,
-                                     description: 'Echo al usuario que me digas')
+                                     descripción: 'Echo al usuario que me digas')
     add_handler Handler::Comando.new(:kick, :rajar,
-                                     description: 'Echo al usuario que me digas')
+                                     descripción: 'Echo al usuario que me digas')
     add_handler Handler::Comando.new(:ban, :ban,
-                                     description: 'Baneo al usuario que me digas')
+                                     descripción: 'Baneo al usuario que me digas')
     add_handler Handler::Comando.new(:nisban, :ban,
-                                     description: 'Baneo al usuario que me digas')
+                                     descripción: 'Baneo al usuario que me digas')
     add_handler Handler::Comando.new(:desban, :desban,
-                                     description: 'Baneo al usuario que me digas')
+                                     descripción: 'Baneo al usuario que me digas')
 
     # Comando /rajar /kick
     def rajar(msj)
