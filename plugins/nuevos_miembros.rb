@@ -32,14 +32,4 @@ class Dankie
             @tg.send_message(chat_id: msj.chat.id, text: texto + extra)
         end
     end
-
-    private
-
-    def primer_nombre(usuario)
-        if usuario.first_name.nil?
-            "ay no c (#{usuario.id})"
-        else
-            usuario.first_name
-        end
-    end
 end

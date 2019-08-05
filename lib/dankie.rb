@@ -312,4 +312,12 @@ class Dankie
 
         @redis.rename(vieja_clave, nueva_clave) if @redis.exists(vieja_clave)
     end
+
+    def primer_nombre(usuario)
+        if usuario.first_name.nil?
+            "ay no c (#{usuario.id})"
+        else
+            usuario.first_name
+        end
+    end
 end
