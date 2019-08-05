@@ -33,6 +33,8 @@ class Dankie
         end
     end
 
+    private
+
     def primer_nombre(usuario)
         if usuario.first_name.nil?
             "ay no c (#{usuario.id})"

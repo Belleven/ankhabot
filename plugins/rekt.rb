@@ -4,11 +4,11 @@ class Dankie
                                                   'sido destruido')
 
     def rekt(msj)
-        text = "☐ Not rekt\n"
+        texto = "☐ Not rekt\n"
 
-        3.times { text << REKT.sample + "\n" }
+        3.times { texto << REKT.sample + "\n" }
 
-        @tg.send_message(chat_id: msj.chat.id, text: text,
+        @tg.send_message(chat_id: msj.chat.id, text: texto,
                          reply_to_message_id: msj&.reply_to_message&.message_id)
     end
 end

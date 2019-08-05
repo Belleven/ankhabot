@@ -7,6 +7,7 @@ class Dankie
                                      descripción: 'Devuelve tu información (o la del usuario al que le respondas)')
     add_handler Handler::Comando.new(:apodos, :apodos,
                                      descripción: 'Te doy los apodos de un grupete')
+    add_handler Handler::EventoDeChat.new(:info_usuario_supergrupo, tipos: [:migrate_from_chat_id])
 
     def dar_apodo(msj)
         chat_id = msj.chat.id
@@ -163,12 +164,21 @@ class Dankie
                              disable_notification: true)
         end
     end
-end
 
-def dame_nombre_completo(nombre, apellido, nombre_suplente)
-    if nombre.empty?
-        nombre_suplente
-    else
-        html_parser(nombre + (apellido ? " #{apellido}" : ''))
+    def info_usuario_supergrupo(msj)
+        # Esta función está definida en dankie.rb
+        cambiar_claves_supergrupo(msj.migrate_from_chat_id,
+                                  msj.chat.id,
+                                  'info_usuario:apodo:')
+    end
+
+    private
+
+    def dame_nombre_completo(nombre, apellido, nombre_suplente)
+        if nombre.empty?
+            nombre_suplente
+        else
+            html_parser(nombre + (apellido ? " #{apellido}" : ''))
+        end
     end
 end

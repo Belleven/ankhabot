@@ -4,27 +4,27 @@ class Dankie
     def x2(msj)
         return unless msj.text
 
-        text = msj&.reply_to_message&.text || msj&.reply_to_message&.caption
-        return unless text
+        texto = msj&.reply_to_message&.text || msj&.reply_to_message&.caption
+        return unless texto
 
-        message = msj.text.split(' ').first
-        return unless (r = /^[xX*](\d+)/) =~ message
+        mensaje = msj.text.split(' ').first
+        return unless (r = /^[xX*](\d+)/) =~ mensaje
 
-        n = message.gsub(r, '\\1').to_i
-        text << ' '
+        n = mensaje.gsub(r, '\\1').to_i
+        texto << ' '
 
-        n = (4096 / text.length) + 1 if (text.length * n - 1) > 4096
+        n = (4096 / texto.length) + 1 if (texto.length * n - 1) > 4096
 
         if n.positive?
-            text *= n
+            texto *= n
             cansado = '... ya fue, me cansé.'
-            if text.length >= 4096 - cansado.length
-                text = text[0..(4096 - cansado.length - 1)] + cansado
+            if texto.length >= 4096 - cansado.length
+                texto = texto[0..(4096 - cansado.length - 1)] + cansado
             end
         else
-            text = '""'
+            texto = '""'
         end
 
-        @tg.send_message(chat_id: msj.chat.id, text: text)
+        @tg.send_message(chat_id: msj.chat.id, text: texto)
     end
 end

@@ -29,7 +29,6 @@ class Dankie
 
         user_id = msj.from.id
         @redis.set("lastfm:#{user_id}", user)
-        @redis.bgsave
         txt_done = "Listo #{TROESMAS.sample}. Tu usuario de Last.fm ahora es '#{user}'."
         @tg.send_message(chat_id: msj.chat.id,
                          reply_to_message_id: msj.message_id,

@@ -4,6 +4,7 @@ class Dankie
     add_handler Handler::EventoDeChat.new(:pole)
     add_handler Handler::Comando.new(:nisman, :enviar_ranking_pole,
                                      descripción: 'Muestra el ranking de Nisman')
+    add_handler Handler::EventoDeChat.new(:pole_supergrupo, tipos: [:migrate_from_chat_id])
 
     # TODO: Ponerle algún flag de solo test a este comando
     # add_handler CommandHandler.new(:dar_nisman, :_test_dar_pole)
@@ -29,7 +30,8 @@ class Dankie
 
         @redis.zincrby("pole:#{mensaje.chat.id}", 1, id)
         log(Logger::INFO, "#{nombre} hizo la nisman en #{mensaje.chat.id}", al_canal: false)
-        @tg.send_message(chat_id: mensaje.chat.id, parse_mode: :html,
+        @tg.send_message(chat_id: mensaje.chat.id,
+                         parse_mode: :html,
                          reply_to_message_id: mensaje.message_id,
                          text: "<b>#{nombre}</b> hizo la Nisman")
 
@@ -56,7 +58,6 @@ class Dankie
 
         @redis.set "pole:#{msj.chat.id}:próxima", próx_pole.to_i
         @redis.zincrby("pole:#{msj.chat.id}", 1, msj.from.id)
-        @redis.bgsave
 
         nombre = msj.from.first_name.empty? ? "ay no c (#{msj.from.id})" : html_parser(msj.from.first_name)
 
@@ -70,8 +71,8 @@ class Dankie
     end
 
     def enviar_ranking_pole(msj)
-        chat_id = msj.chat.id
-        return unless validar_grupo(msj.chat.type, chat_id, msj.message_id)
+        id_chat = msj.chat.id
+        return unless validar_grupo(msj.chat.type, id_chat, msj.message_id)
 
         # Si hay 4 hilos activos entonces no atiendo el comando y aviso de esto
         if $nisman_activas.value >= 4
@@ -83,13 +84,16 @@ class Dankie
             # Debería poder crearse un nuevo hilo entonces
             # - PERO el durante el if se trajo un 4 de memoria, con lo cual va a devolver true la comparación 4 >= 4
             # - NO se va a crear un nuevo hilo cuando debería
-            @tg.send_message(chat_id: chat_id, reply_to_message_id: msj.message_id,
-                             text: 'Disculpame pero hay demasiados comandos nisman activos en este momento, acá y/o en otros grupetes. Vas a tener que esperar.')
+            @tg.send_message(chat_id: id_chat,
+                             reply_to_message_id: msj.message_id,
+                             text: 'Disculpame pero hay demasiados comandos nisman '\
+                                   'activos en este momento, acá y/o en otros grupetes. '\
+                                   'Vas a tener que esperar.')
 
         else
 
             texto = '<b>Ranking de Nisman</b>'
-            enviado = @tg.send_message(chat_id: chat_id,
+            enviado = @tg.send_message(chat_id: id_chat,
                                        parse_mode: :html,
                                        text: texto + "\n\n<i>cargando...</i>")
             enviado = Telegram::Bot::Types::Message.new(enviado['result'])
@@ -123,13 +127,28 @@ class Dankie
         end
     end
 
+    # Para cuando un grupo se convierte en supergrupo
+    def pole_supergrupo(msj)
+        cambiar_claves_supergrupo(msj.migrate_from_chat_id,
+                                  msj.chat.id,
+                                  'pole:')
+        cambiar_claves_supergrupo(msj.migrate_from_chat_id,
+                                  msj.chat.id,
+                                  'pole:',
+                                  ':próxima')
+    end
+
+    private
+
     def editar_ranking_pole(enviado, texto)
         # Tomo las poles de las bases de datos y seteo los espacios para dígitos
         poles = @redis.zrevrange("pole:#{enviado.chat.id}", 0, -1, with_scores: true)
-        chat_id = enviado.chat.id
+        id_chat = enviado.chat.id
 
         if poles.nil?
-            @tg.edit_message_text(chat_id: chat_id, text: 'No hay poles en este grupo', message_id: enviado.message_id)
+            @tg.edit_message_text(chat_id: id_chat,
+                                  text: 'No hay poles en este grupo',
+                                  message_id: enviado.message_id)
             return
         end
 
@@ -152,7 +171,7 @@ class Dankie
             if texto.length + línea.length + cargando.length > 4096
 
                 # Primero borro el "cargando" del mensaje anterior
-                @tg.edit_message_text(chat_id: chat_id, text: texto,
+                @tg.edit_message_text(chat_id: id_chat, text: texto,
                                       parse_mode: :html,
                                       message_id: enviado.message_id,
                                       disable_web_page_preview: true,
@@ -160,7 +179,7 @@ class Dankie
 
                 # Después mando el nuevo mensaje
                 texto = línea
-                enviado = @tg.send_message(chat_id: chat_id, text: texto + cargando,
+                enviado = @tg.send_message(chat_id: id_chat, text: texto + cargando,
                                            parse_mode: :html,
                                            disable_web_page_preview: true,
                                            disable_notification: true)
@@ -169,7 +188,7 @@ class Dankie
             # Si no, edito el actual
             else
                 texto << línea
-                @tg.edit_message_text(chat_id: chat_id, text: texto + cargando,
+                @tg.edit_message_text(chat_id: id_chat, text: texto + cargando,
                                       parse_mode: :html,
                                       message_id: enviado.message_id,
                                       disable_web_page_preview: true,

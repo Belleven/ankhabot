@@ -37,6 +37,10 @@ class TelegramAPI
         when /reply message not found/
             @client.logger.log(Logger::ERROR, 'No puedo responder a un '\
                                'mensaje borrado en' + args[:chat_id].to_s)
+        when /bot was kicked from the supergroup chat/
+            @client.logger.log(Logger::ERROR, 'Me echaron de este '\
+            								  'grupete: ' + args[:chat_id].to_s + ', y '\
+            								  'no puedo mandar mensajes')
         else
             raise
         end
@@ -82,6 +86,14 @@ class TelegramAPI
         @client.api.send_photo(args)
     rescue Faraday::ConnectionFailed, Net::OpenTimeout
         retry
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        case e.to_s
+        when /not enough rights to send photos to the chat/
+            @client.logger.log(Logger::ERROR, 'Me restringieron '\
+                               'las imágenes en ' + args[:chat_id].to_s)
+        else
+            raise
+        end
     end
 
     def send_audio(args)
@@ -145,6 +157,14 @@ class TelegramAPI
         @client.api.send_sticker(args)
     rescue Faraday::ConnectionFailed, Net::OpenTimeout
         retry
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        case e.to_s
+        when /not enough rights to send stickers to the chat/
+            @client.logger.log(Logger::ERROR, 'Me restringieron '\
+                               'los stickers en ' + args[:chat_id].to_s)
+        else
+            raise
+        end
     end
 
     private

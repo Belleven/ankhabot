@@ -1,9 +1,9 @@
 class Dankie
     add_handler Handler::Comando.new(:ping, :ping, descripción: 'Hace ping')
 
-    def ping(msg)
+    def ping(msj)
         time1 = Time.new
-        enviado = @tg.client.api.send_message(chat_id: msg.chat.id,
+        enviado = @tg.client.api.send_message(chat_id: msj.chat.id,
                                               text: 'pong')
         enviado = Telegram::Bot::Types::Message.new(enviado['result'])
 

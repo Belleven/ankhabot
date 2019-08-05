@@ -98,9 +98,9 @@ class Dankie
     # tiene que saltar el error para que veamos bien que carajo le estamos pasando
     # Dejo el diccionario como variable para no tener que crearlo cada vez que se hace
     # un parseo. Hecho así solo recorre una vez el string en vez de 3.
-    $html_dicc = { '&' => '&amp;', '<' => '&lt;', '>' => '&gt;' }
+    $html_dicc = { '&' => '&amp;', '<' => '&lt;', '>' => '&gt;', '"' => '&quot;' }
     def html_parser(texto)
-        texto.gsub(/&|<|>/, $html_dicc)
+        texto.gsub(/&|<|>|\"/, $html_dicc)
     end
 
     def excepcion_texto(excepcion)
@@ -304,5 +304,12 @@ class Dankie
         else
             msj.chat.title + ' (' + msj.chat.id.to_s + ')'
         end
+    end
+
+    def cambiar_claves_supergrupo(vieja_id, nueva_id, texto_antes = '', texto_después = '')
+        vieja_clave = texto_antes + vieja_id.to_s + texto_después
+        nueva_clave = texto_antes + nueva_id.to_s + texto_después
+
+        @redis.rename(vieja_clave, nueva_clave) if @redis.exists(vieja_clave)
     end
 end

@@ -6,18 +6,20 @@ class Dankie
                                                   'firmiti')
 
     def trinsfirmir(msj)
-        unless (text = msj&.reply_to_message&.text || msj&.reply_to_message&.caption)
-            text = "Respondele a algo que tenga texto, #{TROESMAS.sample}."
-            @tg.send_message(chat_id: msj.chat.id, text: text)
+        unless (texto = msj&.reply_to_message&.text || msj&.reply_to_message&.caption)
+            texto = "Respondele a algo que tenga texto, #{TROESMAS.sample}."
+            @tg.send_message(chat_id: msj.chat.id, text: texto)
             return
         end
 
-        text.gsub!(/[aeiou]/, 'i')
-        text.gsub!(/[AEIOU]/, 'I')
-        text.gsub!(/[áéíóú]/, 'í')
-        text.gsub!(/[ÁÉÍÓÚ]/, 'Í')
+        texto.gsub!(/[aeouäëöüâêôûàèòù]/, 'i')
+        texto.gsub!(/[AEOUÄËÖÜÂÊÔÛÀÈÒÙ]/, 'I')
+        texto.gsub!(/[áéóú]/, 'í')
+        texto.gsub!(/[ÁÉÓÚ]/, 'Í')
 
-        @tg.send_message(chat_id: msj.chat.id, text: text)
-        @tg.send_sticker(chat_id: msj.chat.id, sticker: 'BQADAgADQQEAAksODwABJlVW31Lsf6sC')
+        @tg.send_message(chat_id: msj.chat.id,
+                         text: texto)
+        @tg.send_sticker(chat_id: msj.chat.id,
+                         sticker: 'BQADAgADQQEAAksODwABJlVW31Lsf6sC')
     end
 end
