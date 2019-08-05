@@ -56,7 +56,6 @@ class Dankie
         # La estructura es un hash de clave "info_usuario:apodo:chat_id",los atributos son las ids de los usuarios
         # y el valor de cada atributo es el apodo correspondiente
         @redis.hset("info_usuario:apodo:#{chat_id}", id_usuario.to_s, nuevo_apodo)
-        @redis.bgsave
 
         texto = "De hoy en adelante, el #{TROESMAS.sample} "\
         		"'#{dame_nombre_completo(nombre, apellido, 'Cuenta eliminada')}' "\
@@ -91,7 +90,6 @@ class Dankie
             # Si sí tenía, entonces lo borro
             @redis.hdel("info_usuario:apodo:#{chat_id}", id_usuario.to_s)
             # Hacer algo con los bgsave en un futuro
-            @redis.bgsave
             @tg.send_message(chat_id: chat_id,
                              reply_to_message_id: msj.message_id,
                              text: 'Apodo recontra borradísimo')
