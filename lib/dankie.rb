@@ -376,9 +376,8 @@ class Dankie
 
                     # Me fijo si esa entidad efectivamente era un alias
                     if entidad.type == 'mention'
-                        alias_usuario = texto[entidad.offset..(entidad.offset + entidad.length - 1)]
-                        # El [1..-1] es para borrar el @ que mete la entidad al principio
-                        alias_usuario = alias_usuario[1..-1].strip
+                        # La entidad arranca con un @, por eso el + 1
+                        alias_usuario = texto[(entidad.offset + 1)..(entidad.offset + entidad.length - 1)].strip
                         id_afectada = obtener_id_de_alias(alias_usuario)
                     # Me fijo si esa entidad efectivamente era una mención de usuario sin alias
                     elsif entidad.type == 'text_mention'
