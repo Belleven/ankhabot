@@ -112,7 +112,7 @@ class Dankie
                 @tg.send_message(chat_id: msj.chat.id,
                                  text: error_no_admin + ' ser admin para hacer eso',
                                  reply_to_message_id: msj.message_id)
-            # Chequep si tiene el permiso
+            # Chequeo si tiene el permiso
             elsif !(miembro.send permiso)
                 tiene_autorización = false
                 @tg.send_message(chat_id: msj.chat.id,
