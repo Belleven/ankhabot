@@ -23,7 +23,7 @@ class Dankie
         alias_actual = usuario.username
         id_usuario = usuario.id.to_s
 
-        alias_antiguo = @redis.hmget('alias', id_usuario)
+        alias_antiguo = obtener_alias_de_id(id_usuario)
 
         # Si tiene alias ahora
         if alias_actual
