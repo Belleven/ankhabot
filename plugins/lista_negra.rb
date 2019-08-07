@@ -27,7 +27,7 @@ class Dankie
     end
 
     def bloquear(msj, params)
-        comando_lista_negra(msj, :validar_desarrollador, :bloquear_usuario, 'globales', params)
+        comando_lista_negra(msj, :validar_desarrollador, :bloquear_usuario, 'global', params)
     end
 
     def habilitar(msj, params)
@@ -36,11 +36,11 @@ class Dankie
     end
 
     def desbloquear(msj, params)
-        comando_lista_negra(msj, :validar_desarrollador, :desbloquear_usuario, 'globales', params)
+        comando_lista_negra(msj, :validar_desarrollador, :desbloquear_usuario, 'global', params)
     end
 
     def bloqueados(msj)
-        obtener_bloqueados(msj, 'globales')
+        obtener_bloqueados(msj, 'global')
     end
 
     def local_blocked(msj)
@@ -144,7 +144,7 @@ class Dankie
         end
 
         # Si es un bloqueo local chequeo que no se bloquee a un admin
-        if (id_grupo != 'globales') && es_admin(id, id_chat, msj.message_id)
+        if (id_grupo != 'global') && es_admin(id, id_chat, msj.message_id)
             @tg.send_message(chat_id: id_chat, reply_to_message_id: msj.message_id, text: 'No podés bloquear admines')
             return
         end
@@ -163,7 +163,7 @@ class Dankie
             @redis.bgsave
 
             if msj.reply_to_message.nil?
-                if id_grupo == 'globales'
+                if id_grupo == 'global'
                     @tg.send_message(chat_id: id_chat, text: 'ya no te doy bola ' + id + ' ¬_¬')
                 else
                     @tg.send_message(chat_id: id_chat, text: 'ya no te doy bola ' + obtener_enlace_usuario(id_chat, id) + ' ¬_¬',
@@ -207,7 +207,7 @@ class Dankie
 
             if msj.reply_to_message.nil?
 
-                if id_grupo == 'globales'
+                if id_grupo == 'global'
                     @tg.send_message(chat_id: id_chat, text: 'ola de nuevo ' + id.to_s + ' nwn')
                 else
                     @tg.send_message(chat_id: id_chat, text: 'ola de nuevo ' + obtener_enlace_usuario(id_chat, id) + ' nwn',
@@ -262,7 +262,7 @@ class Dankie
         id_chat = msj.chat.id
         id_mensaje = msj.message_id
 
-        es_global = id_grupo == 'globales'
+        es_global = id_grupo == 'global'
         error_admin = 'Solo los admins pueden usar esto'
         miembros = @redis.smembers("lista_negra:#{id_grupo}")
 

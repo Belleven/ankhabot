@@ -52,12 +52,16 @@ class Dankie
     end
 
     def run
+        # Ciclo principal
         @tg.client.listen do |msj|
+            # Chequeo que msj sea un mensaje válido, y que quien lo manda no
+            # esté bloqueado por el bot, o restringido del bot en el chat
             next unless msj&.from&.id
-            next if @redis.sismember('blacklist:global', msj.from.id.to_s)
+            next if @redis.sismember('lista_negra:global', msj.from.id.to_s)
             next if msj.is_a?(Telegram::Bot::Types::Message) &&
-                    @redis.sismember("blacklist:#{msj.chat.id}", msj.from.id.to_s)
+                    @redis.sismember("lista_negra:#{msj.chat.id}", msj.from.id.to_s)
 
+            # Le paso el mensaje a los handlers correspondientes
             dispatch(msj)
 
         rescue Faraday::ConnectionFailed, Net::OpenTimeout => e
@@ -95,12 +99,11 @@ class Dankie
     end
 
     # El to_s es al pedo, si lo que le pasamos no es un string entonces
-    # tiene que saltar el error para que veamos bien que carajo le estamos pasando
-    # Dejo el diccionario como variable para no tener que crearlo cada vez que se hace
-    # un parseo. Hecho así solo recorre una vez el string en vez de 3.
-    $html_dicc = { '&' => '&amp;', '<' => '&lt;', '>' => '&gt;', '"' => '&quot;' }
+    # tiene que saltar el error para que veamos bien qué carajo le estamos pasando
+    # Hecho así solo recorre una vez el string en vez de 3.
     def html_parser(texto)
-        texto.gsub(/&|<|>|\"/, $html_dicc)
+        html_dicc = { '&' => '&amp;', '<' => '&lt;', '>' => '&gt;', '"' => '&quot;' }
+        texto.gsub(/&|<|>|\"/, html_dicc)
     end
 
     def excepcion_texto(excepcion)
@@ -128,7 +131,6 @@ class Dankie
         unless backtrace.nil?
 
             lineas = '<pre>' + ('-' * 30) + "</pre>\n"
-
             texto = html_parser(texto)
             texto << "\n" + lineas + lineas + "Rastreo de la excepción:\n" + lineas
             texto << "<pre>#{html_parser(backtrace)}</pre>"
@@ -161,8 +163,8 @@ class Dankie
             texto_excepcion = lineas + "\nMientras se manejaba una excepción surgió otra:\n"
 
             excepcion = e.to_s
-            texto_excepcion << if !excepcion.nil? && !excepcion.empty?
-                                   html_parser(e.to_s)
+            texto_excepcion << if !(excepcion.nil? || excepcion.empty?)
+                                   excepcion
                                else
                                    'ERROR SIN NOMBRE'
                             end

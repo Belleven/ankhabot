@@ -9,9 +9,13 @@ class TelegramAPI
     end
 
     def send_message(args)
-        texto = args[:text]
+        # Me fijo que haya un texto para mandar
+        return unless args[:chat_id] && args[:text] && !args[:text].empty?
 
-        return unless args[:chat_id] && args[:text] && !texto.empty?
+        resultado = nil
+        # Copio el texto pues args[:text] va a ser lo
+        # que mande en cada bloque
+        texto = args[:text]
 
         # Itero de a bloques de 4096
         inicio = 0
@@ -20,15 +24,92 @@ class TelegramAPI
         while inicio != fin
 
             # Mando el blocazo
-            args[:text] = texto[inicio..fin - 1]
-            resultado = delay_y_envio(args)
+            args[:text] = texto[inicio..fin - 1].strip
 
+            unless args[:text].nil? || args[:text].empty?
+                resultado = enviar(:send_message, args, 'typing')
+            end
+
+            # Actualizo índices
             inicio = fin
             fin = [texto.length, fin + 4096].min
+        end
+        resultado
+    end
 
+    def edit_message_text(args)
+        # Chequeo que no se pase el tamaño
+        if args[:text].length > 4096
+            # Ver que onda con el tema de entidades html
+            args[:text] = args[:text][0..4095]
+        end
+        args[:text].strip
+
+        enviar(:edit_message_text, args) unless args[:text].empty?
+    end
+
+    def forward_message(args)
+        enviar(:forward_message, args)
+    end
+
+    def send_photo(args)
+        enviar(:send_photo, args, 'upload_photo')
+    end
+
+    def send_audio(args)
+        enviar(:send_audio, args, 'upload_audio')
+    end
+
+    def send_document(args)
+        enviar(:send_document, args, 'upload_document')
+    end
+
+    def send_video(args)
+        enviar(:send_video, args, 'upload_video')
+    end
+
+    def send_animation(args)
+        enviar(:send_animation, args, 'upload_video')
+    end
+
+    def send_video_note(args)
+        enviar(:send_video_note, args, 'upload_video_note')
+    end
+
+    def send_voice(args)
+        enviar(:send_voice, args, 'upload_audio')
+    end
+
+    def send_location(args)
+        enviar(:send_location, args, 'find_location')
+    end
+
+    def send_sticker(args)
+        enviar(:send_sticker, args)
+    end
+
+    private
+
+    def enviar(función_envío, args, acción = nil)
+        # Si hay una acción que mandar, la mando
+        if acción
+            @client.api.send_chat_action(chat_id: args[:chat_id],
+                                         action: acción)
         end
 
-        resultado
+        # TODO: meter delay para no sobrepasar los
+        # límites de flood de telegram
+
+        # Realizo el envío
+        @client.api.send(función_envío, args)
+
+    # Si hay error de conexión, lo reintento
+    rescue Faraday::ConnectionFailed, Net::OpenTimeout
+        retry
+    # Si hay un error de telegram, loggeo si es conocido,
+    # si no lo vuelvo a lanzar
+    # TODO: cuando estén los triggers, rellenar con los errores que falten
+    # Ej: restricciones de audio, video, etc
     rescue Telegram::Bot::Exceptions::ResponseError => e
         case e.to_s
         when /have no rights to send a message/
@@ -41,143 +122,15 @@ class TelegramAPI
             @client.logger.log(Logger::ERROR, 'Me echaron de este '\
             								  'grupete: ' + args[:chat_id].to_s + ', y '\
             								  'no puedo mandar mensajes')
-        else
-            raise
-        end
-    end
-
-    def forward_message(args)
-        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'typing')
-        # Meter delay
-        @client.api.forward_message(args)
-    rescue Faraday::ConnectionFailed, Net::OpenTimeout
-        retry
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        if e.to_s.include? 'have no rights to send a message'
-            @client.logger.log(Logger::ERROR, 'Me restringieron los mensajes en ' + args[:chat_id].to_s)
-        else
-            raise
-        end
-    end
-
-    def edit_message_text(args)
-        # Meter delay
-        unless args[:text].empty?
-            if args[:text].length > 4096
-                args[:text] = args[:text][0..4095].strip
-                @client.api.edit_message_text(args)
-            else
-                @client.api.edit_message_text(args)
-            end
-        end
-    rescue Faraday::ConnectionFailed, Net::OpenTimeout
-        retry
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        if e.to_s.include? 'have no rights to send a message'
-            @client.logger.log(Logger::ERROR, 'Me restringieron los mensajes en ' + args[:chat_id].to_s)
-        else
-            raise
-        end
-    end
-
-    def send_photo(args)
-        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_photo')
-        # Meter delay
-        @client.api.send_photo(args)
-    rescue Faraday::ConnectionFailed, Net::OpenTimeout
-        retry
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        case e.to_s
         when /not enough rights to send photos to the chat/
             @client.logger.log(Logger::ERROR, 'Me restringieron '\
                                'las imágenes en ' + args[:chat_id].to_s)
-        else
-            raise
-        end
-    end
-
-    def send_audio(args)
-        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_audio')
-        # Meter delay
-        @client.api.send_audio(args)
-    rescue Faraday::ConnectionFailed, Net::OpenTimeout
-        retry
-    end
-
-    def send_document(args)
-        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_document')
-        # Meter delay
-        @client.api.send_document(args)
-    rescue Faraday::ConnectionFailed, Net::OpenTimeout
-        retry
-    end
-
-    def send_video(args)
-        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_video')
-        # Meter delay
-        @client.api.send_video(args)
-    rescue Faraday::ConnectionFailed, Net::OpenTimeout
-        retry
-    end
-
-    def send_animation(args)
-        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_video')
-        # Meter delay
-        @client.api.send_animation(args)
-    rescue Faraday::ConnectionFailed, Net::OpenTimeout
-        retry
-    end
-
-    def send_video_note(args)
-        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_video_note')
-        # Meter delay
-        @client.api.send_video_note(args)
-    rescue Faraday::ConnectionFailed, Net::OpenTimeout
-        retry
-    end
-
-    def send_voice(args)
-        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'upload_audio')
-        # Meter delay
-        @client.api.send_voice(args)
-    rescue Faraday::ConnectionFailed, Net::OpenTimeout
-        retry
-    end
-
-    def send_location(args)
-        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'find_location')
-        # Meter delay
-        @client.api.send_location(args)
-    rescue Faraday::ConnectionFailed, Net::OpenTimeout
-        retry
-    end
-
-    def send_sticker(args)
-        # Meter delay
-        @client.api.send_sticker(args)
-    rescue Faraday::ConnectionFailed, Net::OpenTimeout
-        retry
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        case e.to_s
         when /not enough rights to send stickers to the chat/
             @client.logger.log(Logger::ERROR, 'Me restringieron '\
                                'los stickers en ' + args[:chat_id].to_s)
         else
             raise
         end
-    end
-
-    private
-
-    def delay_y_envio(args)
-        args[:text] = args[:text].strip
-        return if args[:text].nil? || args[:text].empty?
-
-        @client.api.send_chat_action(chat_id: args[:chat_id], action: 'typing')
-        # Acá meter el delay
-        @client.api.send_message(args)
-    rescue Faraday::ConnectionFailed, Net::OpenTimeout
-        retry
     end
 
     # Tengo acceso a toda la api de telegram (bot.api) desde la clase Dankie
