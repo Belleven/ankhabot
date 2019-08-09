@@ -17,7 +17,7 @@ class Dankie
                                                   'más de 1 canción (máx 15).')
 
     def guardar_lastfm(msj, usuario)
-        return unless hay_usuario(usuario)
+        return if no_hay_usuario(msj, usuario)
 
         @redis.set("lastfm:#{msj.from.id}", usuario)
         @tg.send_message(chat_id: msj.chat.id,
@@ -51,7 +51,7 @@ class Dankie
         end
 
         usuario = @redis.get("lastfm:#{msj.from.id}")
-        return unless hay_usuario(usuario)
+        return if no_hay_usuario(msj, usuario)
 
         ahora_escuchando = @lastFM.now_playing usuario, cantidad
         return unless validar_pistas(msj, ahora_escuchando)
@@ -70,7 +70,7 @@ class Dankie
 
     def escuchando(msj)
         usuario = @redis.get("lastfm:#{msj.from.id}")
-        return unless hay_usuario(usuario)
+        return if no_hay_usuario(msj, usuario)
 
         temazo = @lastFM.now_playing usuario, 1
         return unless validar_pistas(msj, temazo)
@@ -88,12 +88,12 @@ class Dankie
 
     private
 
-    def hay_usuario(usuario)
+    def no_hay_usuario(msj, usuario)
         if (hay = usuario.nil? || usuario.empty?)
-            err_txt = "Si no me pasás un usuario, está jodida la cosa #{TROESMAS.sample}."
             @tg.send_message(chat_id: msj.chat.id,
-                             text: err_txt,
-                             reply_to_message_id: msj.message_id)
+                             reply_to_message_id: msj.message_id,
+                             text: 'Si no me pasás un usuario, '\
+                             	   "está jodida la cosa #{TROESMAS.sample}.")
         end
         hay
     end
