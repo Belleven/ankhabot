@@ -13,7 +13,7 @@ class Dankie
             extra = [', pasá y sentate al fondo.', ', ponete cómodo.', ', querés bizcochitos?', ', qué te trae por acá?'].sample
             @tg.send_message(chat_id: msj.chat.id, text: saludo + nombre + extra)
 
-        else
+        elsif msj.new_chat_members.size >= 2
             texto = ['Bienvenidos ', 'Hola ', 'Buenas ', 'Que onda '].sample
 
             índice = 0

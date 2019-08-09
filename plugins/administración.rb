@@ -214,7 +214,7 @@ class Dankie
     end
 
     def log_y_aviso(msj, error)
-        @logger.log(Logger::ERROR, error + ' en ' + grupo_del_msj(msj))
+        @logger.log(Logger::ERROR, error + ' en ' + grupo_del_msj(msj), al_canal: true)
         @tg.send_message(chat_id: msj.chat.id,
                          text: error,
                          reply_to_message_id: msj.message_id)

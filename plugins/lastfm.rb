@@ -72,7 +72,7 @@ class Dankie
             x += 1
             out += "<b>#{x}.</b> #{track['artist']['#text']} - <b>#{track['name']}</b> [#{track['album']['#text']}]\n"
         end
-        @tg.send_message(chat_id: msj.chat.id, parse_mode: 'html',
+        @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
                          reply_to_message_id: msj.message_id,
                          text: out)
     end
@@ -100,19 +100,19 @@ class Dankie
         out << "💿: #{np[0]['album']['#text']}"
         out << "<a href=\"#{np[0]['image'][2]['#text']}\">\u200d</a>"
 
-        @tg.send_message(chat_id: msj.chat.id, parse_mode: 'html',
+        @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
                          reply_to_message_id: msj.message_id,
                          text: out)
     end
 
     def valid_recent_tracks(msj, arr)
         if arr.empty?
-            @tg.send_message(chat_id: msj.chat.id, parse_mode: 'html',
+            @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
                              reply_to_message_id: msj.message_id,
                              text: "No encontré que hayas escuchado ninguna canción #{TROESMAS.sample}.")
             return false
         elsif arr[0] == 'error'
-            @tg.send_message(chat_id: msj.chat.id, parse_mode: 'html',
+            @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
                              reply_to_message_id: msj.message_id,
                              text: "Alto error #{TROESMAS.sample}. \n<b>#{arr[1]}</b>")
             return false

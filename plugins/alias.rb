@@ -31,6 +31,8 @@ class Dankie
             # Si cambió el alias entonces borro la entrada vieja en id
             if alias_antiguo && alias_actual != alias_antiguo
                 @redis.hdel('id', alias_antiguo)
+                @logger.log(Logger::INFO,
+                            "\"#{alias_antiguo}\" cambió su alias a: \"#{alias_actual}\"")
             end
 
             # Guardo el alias actual en "alias" (sobreescribiendo el anterior)

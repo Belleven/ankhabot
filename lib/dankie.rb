@@ -1,5 +1,6 @@
 require_relative 'version.rb'
 require_relative 'handlers.rb'
+require_relative 'dankie_logger.rb'
 require_relative 'telegram.rb'
 require_relative 'images.rb'
 require_relative 'last_fm_parser.rb'
@@ -41,8 +42,7 @@ class Dankie
 
     # Recibe un Hash con los datos de config.yml
     def initialize(args)
-        @logger = Logger.new $stderr
-        @canal_logging = args[:canal_logging]
+        @logger = DankieLogger.new args[:canal_logging], args[:tg_token]
         @tg = TelegramAPI.new args[:tg_token], @logger
         @redis = Redis.new port: args[:redis_port], host: args[:redis_host], password: args[:redis_pass]
         @img = ImageSearcher.new args[:google_image_key], args[:google_image_cx]
@@ -66,20 +66,20 @@ class Dankie
 
         rescue Faraday::ConnectionFailed, Net::OpenTimeout => e
             begin
-                texto, backtrace = excepcion_texto(e)
-                log Logger::ERROR, texto, al_canal: true, backtrace: backtrace
+                texto, backtrace = @logger.excepcion_texto(e)
+                @logger.log Logger::ERROR, texto, al_canal: true, backtrace: backtrace
             rescue StandardError => e
-                log Logger::FATAL, 'EXCEPCIÓN LEYENDO LA EXCEPCIÓN', al_canal: true
+                @logger.log Logger::FATAL, 'EXCEPCIÓN LEYENDO LA EXCEPCIÓN', al_canal: true
             end
             retry
 
         rescue StandardError => e
 
             begin
-                texto, backtrace = excepcion_texto(e)
-                log Logger::FATAL, texto, al_canal: true, backtrace: backtrace
+                texto, backtrace = @logger.excepcion_texto(e)
+                @logger.log Logger::FATAL, texto, al_canal: true, backtrace: backtrace
             rescue StandardError => e
-                log Logger::FATAL, 'EXCEPCIÓN LEYENDO LA EXCEPCIÓN', al_canal: true
+                @logger.log Logger::FATAL, 'EXCEPCIÓN LEYENDO LA EXCEPCIÓN', al_canal: true
             end
 
             # Sacar este raise cuando el bot deje de ser testeadísimo
@@ -104,76 +104,6 @@ class Dankie
     def html_parser(texto)
         html_dicc = { '&' => '&amp;', '<' => '&lt;', '>' => '&gt;', '"' => '&quot;' }
         texto.gsub(/&|<|>|\"/, html_dicc)
-    end
-
-    def excepcion_texto(excepcion)
-        texto_excepcion = excepcion.to_s
-        texto = !(texto_excepcion.nil? || texto_excepcion.empty?) ? '(' + excepcion.class.to_s + ') ' + texto_excepcion : 'EXCEPCIÓN SIN NOMBRE'
-
-        if excepcion.backtrace.nil?
-            return texto, nil
-        else
-            # La regex turbina esa es para no doxxearnos a los que usamos linux
-            # / es para "/" => /home/ es para "/home/"
-            # [^/]+ es para que detecte todos los caracteres que no sean "/" => /home/user/dankie/... queda
-            # como /dankie/...
-            return texto, excepcion.backtrace.join("\n").gsub(%r{/home/[^/]+}, '~')
-        end
-    end
-
-    def log(nivel, texto, al_canal: false, backtrace: nil)
-        texto = 'LOG SIN NOMBRE' if texto.nil? || texto.empty?
-
-        backtrace.nil? ? @logger.log(nivel, texto) : @logger.log(nivel, texto + "\n" + backtrace)
-
-        return unless al_canal
-
-        unless backtrace.nil?
-
-            lineas = '<pre>' + ('-' * 30) + "</pre>\n"
-            texto = html_parser(texto)
-            texto << "\n" + lineas + lineas + "Rastreo de la excepción:\n" + lineas
-            texto << "<pre>#{html_parser(backtrace)}</pre>"
-        end
-
-        nivel = case nivel
-                when Logger::DEBUG
-                    'DEBUG'
-                when Logger::INFO
-                    'INFO'
-                when Logger::WARN
-                    'WARN'
-                when Logger::ERROR
-                    'ERROR'
-                when Logger::FATAL
-                    'FATAL'
-                when Logger::UNKNOWN
-                    'UNKNOWN'
-                end
-
-        horario = Time.now.strftime('%FT%T.%6N')
-        lineas = '<pre>' + '-' * (8 + horario.length + nivel.length) + "</pre>\n"
-
-        enviar = "<pre>[#{horario}] -- #{nivel} :</pre>\n" + lineas + texto
-        @tg.send_message(chat_id: @canal_logging, text: enviar,
-                         parse_mode: :html, disable_web_page_preview: true)
-    rescue StandardError => e
-        begin
-            lineas = ('-' * 30) + "\n"
-            texto_excepcion = lineas + "\nMientras se manejaba una excepción surgió otra:\n"
-
-            excepcion = e.to_s
-            texto_excepcion << if !(excepcion.nil? || excepcion.empty?)
-                                   excepcion
-                               else
-                                   'ERROR SIN NOMBRE'
-                            end
-
-            texto_excepcion << "\n" + lineas + lineas + e.backtrace.join("\n") + "\n" + lineas + lineas + "\n"
-            @logger.log(Logger::FATAL, texto_excepcion)
-        rescue StandardError => e
-            puts "\nFATAL, multiples excepciones.\n"
-        end
     end
 
     def get_command(msj)
@@ -203,12 +133,13 @@ class Dankie
             command.downcase!
             command.gsub!(%r{^/([a-z]+)(@#{@user.username.downcase})?}, '\\1')
 
-        elsif ['!', '>'].include? text[0] # "!cmd params" o ">cmd params"
+        elsif ['!', '>', '$'].include? text[0] # "!cmd params" o ">cmd params"
             command, params = text[1..-1].split ' ', 2
             command.downcase!
         else
             arr = text.split(' ', 3) # ["user", "comando", "params"]
-            if arr.first.casecmp(@user.username).zero?
+            arr.first.downcase!
+            if arr.first.casecmp(@user.username.sub(/...$/, '').downcase).zero?
                 command = arr[1]&.downcase.to_sym
                 params = arr[2]
 

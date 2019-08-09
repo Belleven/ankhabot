@@ -160,7 +160,6 @@ class Dankie
                                    'lista negra')
         else
             @redis.sadd("lista_negra:#{id_grupo}", id)
-            @redis.bgsave
 
             if msj.reply_to_message.nil?
                 if id_grupo == 'global'
@@ -235,7 +234,7 @@ class Dankie
                 miembro = @tg.get_chat_member(chat_id: id_chat, user_id: id)
                 miembro = Telegram::Bot::Types::ChatMember.new(miembro['result'])
             rescue Telegram::Bot::Exceptions::ResponseError => e
-                log(Logger::ERROR, e, al_canal: true)
+                @logger.log(Logger::ERROR, e, al_canal: true)
                 @tg.send_message(chat_id: id_chat,
                                  reply_to_message_id: id_mensaje,
                                  text: 'No puedo bloquear esa id, pasame una que sea válida de alguien que esté o haya estado alguna vez en el grupete.')
@@ -254,7 +253,8 @@ class Dankie
     end
 
     def chequeo_local(id_usuario, id_chat, id_mensaje, text, id)
-        es_admin(id_usuario, id_chat, id_mensaje, text) && id_en_grupo(id_mensaje, id_chat, id)
+        es_admin(id_usuario, id_chat, id_mensaje, text) &&
+            id_en_grupo(id_mensaje, id_chat, id)
     end
 
     def obtener_bloqueados(msj, id_grupo)

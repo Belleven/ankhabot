@@ -58,13 +58,16 @@ class Dankie
         # y el valor de cada atributo es el apodo correspondiente
         @redis.hset("info_usuario:apodo:#{chat_id}", id_usuario.to_s, nuevo_apodo)
 
+        nombre = dame_nombre_completo(nombre, apellido, 'Cuenta eliminada')
         texto = "De hoy en adelante, el #{TROESMAS.sample} "\
-        		"'#{dame_nombre_completo(nombre, apellido, 'Cuenta eliminada')}' "\
-        		"será conocido como '#{html_parser(nuevo_apodo)}'."
+        		"'#{nombre}' será conocido como '#{html_parser(nuevo_apodo)}'."
+
         @tg.send_message(chat_id: msj.chat.id,
                          reply_to_message_id: responde_a,
                          text: texto,
                          parse_mode: :html)
+        @logger.log(Logger::INFO, "Se cambió el apodo de #{nombre} (#{id_usuario}) a "\
+                                  "#{nuevo_apodo} en #{grupo_del_msj(msj)} (#{chat_id})")
     end
 
     def borrar_apodo(msj)
@@ -94,6 +97,9 @@ class Dankie
             @tg.send_message(chat_id: chat_id,
                              reply_to_message_id: msj.message_id,
                              text: 'Apodo recontra borradísimo')
+            nombre = dame_nombre_completo(nombre, apellido, 'Cuenta eliminada')
+            @logger.log(Logger::INFO, "Se borró el apodo de #{nombre} (#{id_usuario}) "\
+                                  "en #{grupo_del_msj(msj)} (#{chat_id})")
         end
     end
 

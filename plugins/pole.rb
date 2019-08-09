@@ -29,7 +29,7 @@ class Dankie
         $semáforo.bloqueo_uno
 
         @redis.zincrby("pole:#{mensaje.chat.id}", 1, id)
-        log(Logger::INFO, "#{nombre} hizo la nisman en #{mensaje.chat.id}", al_canal: false)
+        @logger.log(Logger::INFO, "#{nombre} hizo la nisman en #{mensaje.chat.id}", al_canal: false)
         @tg.send_message(chat_id: mensaje.chat.id,
                          parse_mode: :html,
                          reply_to_message_id: mensaje.message_id,
@@ -61,7 +61,7 @@ class Dankie
 
         nombre = msj.from.first_name.empty? ? "ay no c (#{msj.from.id})" : html_parser(msj.from.first_name)
 
-        log(Logger::INFO, "#{nombre} hizo la nisman en #{msj.chat.id}", al_canal: false)
+        @logger.log(Logger::INFO, "#{nombre} hizo la nisman en #{msj.chat.id}", al_canal: false)
         @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
                          reply_to_message_id: msj.message_id,
                          text: "<b>#{nombre}</b> hizo la Nisman")
@@ -82,7 +82,7 @@ class Dankie
             # - Hay un cambio de contexto
             # - Uno o más hilos terminan y decrementan el valor de "nisman_activas" que ahora es 3 o menos
             # Debería poder crearse un nuevo hilo entonces
-            # - PERO el durante el if se trajo un 4 de memoria, con lo cual va a devolver true la comparación 4 >= 4
+            # - PERO durante el if se trajo un 4 de memoria, con lo cual va a devolver true la comparación 4 >= 4
             # - NO se va a crear un nuevo hilo cuando debería
             @tg.send_message(chat_id: id_chat,
                              reply_to_message_id: msj.message_id,
@@ -106,10 +106,11 @@ class Dankie
             # es mucho más fácil sincronizar 2 hilos en vez de hasta 5
 
             Thread.new do
-                # Sincronizo para que se frene la captura de la pole hasta que se terminen de mandar los rankings que fueron llamados
+                # Sincronizo para que se frene la captura de la pole hasta
+                # que se terminen de mandar los rankings que fueron llamados
                 $semáforo.bloqueo_muchos
 
-                log(Logger::INFO, "#{msj.from.id} pidió el ranking de nisman en el chat #{msj.chat.id}", al_canal: false)
+                @logger.log(Logger::INFO, "#{msj.from.id} pidió el ranking de nisman en el chat #{msj.chat.id}", al_canal: false)
 
                 editar_ranking_pole(enviado, texto)
 

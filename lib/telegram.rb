@@ -100,7 +100,7 @@ class TelegramAPI
         # TODO: meter delay para no sobrepasar los
         # límites de flood de telegram
 
-        # Realizo el envío
+        # Mando el mensaje (de texto, sticker, lo que sea)
         @client.api.send(función_envío, args)
 
     # Si hay error de conexión, lo reintento
@@ -112,22 +112,67 @@ class TelegramAPI
     # Ej: restricciones de audio, video, etc
     rescue Telegram::Bot::Exceptions::ResponseError => e
         case e.to_s
+
         when /have no rights to send a message/
-            @client.logger.log(Logger::ERROR, 'Me restringieron '\
-                               'los mensajes en ' + args[:chat_id].to_s)
+            @client.logger.log(Logger::ERROR,
+                               "Me restringieron los mensajes en #{args[:chat_id]}")
+
         when /reply message not found/
-            @client.logger.log(Logger::ERROR, 'No puedo responder a un '\
-                               'mensaje borrado en' + args[:chat_id].to_s)
+            @client.logger.log(Logger::ERROR,
+                               'No puedo responder a un mensaje '\
+                               "borrado (ID: #{args[:reply_to_message_id]}) "\
+                               "en #{args[:chat_id]}",
+                               al_canal: true)
+
         when /bot was kicked from the supergroup chat/
-            @client.logger.log(Logger::ERROR, 'Me echaron de este '\
-            								  'grupete: ' + args[:chat_id].to_s + ', y '\
-            								  'no puedo mandar mensajes')
+            @client.logger.log(Logger::FATAL,
+                               "Me echaron de este grupete: #{args[:chat_id]}, "\
+                               'y no puedo mandar mensajes')
+
+        when /USER_IS_BOT/
+            texto, backtrace = @client.logger.excepcion_texto(e)
+            texto << "\nLe quise mandar un mensaje privado a "\
+                     "este bot: #{args[:chat_id]}"
+            @client.logger.log(Logger::FATAL, texto,
+                               al_canal: true, backtrace: backtrace)
+
+        when /chat not found/
+            @client.logger.log(Logger::FATAL,
+                               "Chat inválido: #{args[:chat_id]}",
+                               al_canal: true)
+            # Relanzo excepción
+            raise
+
+        when /message text is empty/
+            @client.logger.log(Logger::FATAL,
+                               'Quise mandar un mensaje '\
+                               "vacío en el chat: #{args[:chat_id]}",
+                               al_canal: true)
+
+        when /message is too long/
+            @client.logger.log(Logger::FATAL,
+                               'Quise mandar un mensaje '\
+                               "muy largo en el chat: #{args[:chat_id]}",
+                               al_canal: true)
+            args[:text] = args[:text][0..4095]
+            @client.api.send_message(args)
+
+        when /PEER_ID_INVALID/
+            @client.logger.log(Logger::ERROR,
+                               'Le quise mandar un mensaje privado a '\
+                               'alguien que no me habló primero o me '\
+                               "bloqueó (ID: #{args[:chat_id]}")
+            # Vuelvo a relanzar la excepción (esto fue solo para registral la id)
+            raise
+
         when /not enough rights to send photos to the chat/
-            @client.logger.log(Logger::ERROR, 'Me restringieron '\
-                               'las imágenes en ' + args[:chat_id].to_s)
+            @client.logger.log(Logger::ERROR,
+                               "Me restringieron las imágenes en #{args[:chat_id]}")
+
         when /not enough rights to send stickers to the chat/
-            @client.logger.log(Logger::ERROR, 'Me restringieron '\
-                               'los stickers en ' + args[:chat_id].to_s)
+            @client.logger.log(Logger::ERROR,
+                               "Me restringieron los stickers en #{args[:chat_id]}")
+
         else
             raise
         end

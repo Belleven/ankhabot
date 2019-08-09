@@ -5,34 +5,34 @@ class Dankie
                                      descripción: 'Te grito lo que me digas')
 
     def di(msj)
-        text = get_command_params(msj) || msj.reply_to_message&.text || msj.reply_to_message&.caption
+        texto = get_command_params(msj) || msj.reply_to_message&.text || msj.reply_to_message&.caption
 
-        if text.nil? || text == ''
-            text = "Dale #{TROESMAS.sample}, ¿Qué digo?"
-            @tg.send_message(chat_id: msj.chat.id, text: text,
+        if texto.nil? || texto == ''
+            texto = "Dale #{TROESMAS.sample}, ¿Qué digo?"
+            @tg.send_message(chat_id: msj.chat.id, text: texto,
                              reply_to_message_id: msj.message_id)
 
             return
         end
-        @tg.send_message(chat_id: msj.chat.id, text: text)
+        @tg.send_message(chat_id: msj.chat.id, text: texto)
     end
 
     def grita(msj)
         args = get_command_params(msj) || msj.reply_to_message&.text || msj.reply_to_message&.caption
         if args.nil?
-            text = "Dale #{TROESMAS.sample}, ¿Qué grito?"
-            @tg.send_message(chat_id: msj.chat.id, text: text,
+            texto = "Dale #{TROESMAS.sample}, ¿Qué grito?"
+            @tg.send_message(chat_id: msj.chat.id, text: texto,
                              reply_to_message_id: msj.message_id)
             return
         end
 
-        large_text = nil
+        texto_largo = nil
         if args.split.first == '-perocontodo'
             args.gsub!(/^-perocontodo /, '')
-            large_text = []
-            args.upcase.split.each do |word|
-                large_text << word.chars.zip(Array.new(word.size - 1, '-'))
-                                  .flatten.compact.join("\n")
+            texto_largo = []
+            args.upcase.split.each do |palabra|
+                texto_largo << palabra.chars.zip(Array.new(palabra.size - 1, '-'))
+                                      .flatten.compact.join("\n")
             end
         end
 
@@ -42,17 +42,17 @@ class Dankie
         @tg.send_message(chat_id: msj.chat.id,
                          text: args.upcase.tr(' ', '-').chars * ' ')
 
-        text = ''
-        args.upcase.split do |word|
-            text << '[ '
-            text << word.chars.zip(Array.new(word.size - 1, '-')).flatten
-                    .compact.join(' ')
-            text << ' ] '
+        texto = ''
+        args.upcase.split do |palabra|
+            texto << '[ '
+            texto << palabra.chars.zip(Array.new(palabra.size - 1, '-')).flatten
+                     .compact.join(' ')
+            texto << ' ] '
         end
 
-        @tg.send_message(chat_id: msj.chat.id, text: text)
+        @tg.send_message(chat_id: msj.chat.id, text: texto)
 
-        large_text&.each do |t|
+        texto_largo&.each do |t|
             @tg.send_message(chat_id: msj.chat.id, text: t)
         end
     end
