@@ -1,120 +1,116 @@
 class Dankie
-    add_handler Handler::Comando.new(:guardarlastfm, :setlastfm,
-                                     descripción: 'Guarda tu usuario de Last.Fm '\
+    add_handler Handler::Comando.new(:guardarlastfm, :guardar_lastfm, permitir_params: true,
+                                                                      descripción: 'Guarda tu usuario de Last.Fm '\
                                                   '(Solo necesita tu usuario)')
-    add_handler Handler::Comando.new(:verlastfm, :getlastfm,
+    add_handler Handler::Comando.new(:verlastfm, :ver_lastfm,
                                      descripción: 'Devuelve la información '\
                                                   'registrada de Last.Fm del '\
                                                   'usuario')
-    add_handler Handler::Comando.new(:escuchando, :nowplaying,
+    add_handler Handler::Comando.new(:escuchando, :escuchando,
                                      descripción: 'Devuelve la canción más '\
                                                   'reciente que escucha el '\
                                                   'usuario que te pusiste')
-    add_handler Handler::Comando.new(:fmrecientes, :recentplayed,
-                                     descripción: 'Devuelve las últimas '\
+    add_handler Handler::Comando.new(:fmrecientes, :fm_recientes, permitir_params: true,
+                                                                  descripción: 'Devuelve las últimas '\
                                                   'canciones que escuchaste. '\
                                                   'Pasame un número así te paso '\
                                                   'más de 1 canción (máx 15).')
 
-    def setlastfm(msj)
-        user = get_command_params(msj)
+    def guardar_lastfm(msj, usuario)
+        return unless hay_usuario(usuario)
 
-        if user.nil? || (user == '')
+        @redis.set("lastfm:#{msj.from.id}", usuario)
+        @tg.send_message(chat_id: msj.chat.id,
+                         reply_to_message_id: msj.message_id,
+                         text: "Listo #{TROESMAS.sample}. "\
+                               'Tu usuario de Last.fm ahora '\
+                               "es '#{usuario}'.")
+    end
+
+    def ver_lastfm(msj)
+        if (usuario = @redis.get("lastfm:#{msj.from.id}"))
+            @tg.send_message(chat_id: msj.chat.id,
+                             reply_to_message_id: msj.message_id,
+                             text: 'Por el momento, tu usuario de '\
+                                   "Last.fm es '#{usuario}'.")
+        else
+            @tg.send_message(chat_id: msj.chat.id,
+                             reply_to_message_id: msj.message_id,
+                             text: 'No tengo ningún usuario tuyo '\
+                                   'de Last.fm')
+        end
+    end
+
+    def fm_recientes(msj, cantidad)
+        cantidad = natural(cantidad)
+
+        if !cantidad
+            cantidad = 0
+        elsif cantidad > 15
+            cantidad = 15
+        end
+
+        usuario = @redis.get("lastfm:#{msj.from.id}")
+        return unless hay_usuario(usuario)
+
+        ahora_escuchando = @lastFM.now_playing usuario, cantidad
+        return unless validar_pistas(msj, ahora_escuchando)
+
+        texto = "Canciones recientes del usuario: \n\n"
+        ahora_escuchando.each do |pista, índice|
+            texto << "<b>#{índice}.</b> #{html_parser(pista['artist']['#text'])} "\
+                     "- <b>#{html_parser(pista['name'])}</b> "\
+                     "[#{html_parser(pista['album']['#text'])}]\n"
+        end
+        @tg.send_message(chat_id: msj.chat.id,
+                         parse_mode: :html,
+                         reply_to_message_id: msj.message_id,
+                         text: texto)
+    end
+
+    def escuchando(msj)
+        usuario = @redis.get("lastfm:#{msj.from.id}")
+        return unless hay_usuario(usuario)
+
+        temazo = @lastFM.now_playing usuario, 1
+        return unless validar_pistas(msj, temazo)
+
+        texto = "Mirate este temón: \n"\
+                "👤: #{html_parser(temazo.first['artist']['#text'])}\n"\
+                "🎵: #{html_parser(temazo.first['name'])}\n"\
+                "💿: #{html_parser(temazo.first['album']['#text'])}"\
+                "<a href=\"#{html_parser(temazo.first['image'][2]['#text'])}\">\u200d</a>"
+        @tg.send_message(chat_id: msj.chat.id,
+                         parse_mode: :html,
+                         reply_to_message_id: msj.message_id,
+                         text: texto)
+    end
+
+    private
+
+    def hay_usuario(usuario)
+        if (hay = usuario.nil? || usuario.empty?)
             err_txt = "Si no me pasás un usuario, está jodida la cosa #{TROESMAS.sample}."
             @tg.send_message(chat_id: msj.chat.id,
-                             reply_to_message_id: msj.message_id,
-                             text: err_txt)
-            return
+                             text: err_txt,
+                             reply_to_message_id: msj.message_id)
         end
-
-        user_id = msj.from.id
-        @redis.set("lastfm:#{user_id}", user)
-        txt_done = "Listo #{TROESMAS.sample}. Tu usuario de Last.fm ahora es '#{user}'."
-        @tg.send_message(chat_id: msj.chat.id,
-                         reply_to_message_id: msj.message_id,
-                         text: txt_done)
+        hay
     end
 
-    def getlastfm(msj)
-        user_id = msj.from.id
-        user = @redis.get("lastfm:#{user_id}")
-        txt_done = "Por el momento, tu usuario de Last.fm es '#{user}'."
-        @tg.send_message(chat_id: msj.chat.id,
-                         reply_to_message_id: msj.message_id,
-                         text: txt_done)
-    end
-
-    def recentplayed(msj)
-        amount = get_command_params(msj).to_i
-
-        amount = 1 if amount <= 0
-
-        amount = 15 if amount > 15
-        user_id = msj.from.id
-        user = @redis.get("lastfm:#{user_id}")
-
-        if user.nil? || (user == '')
-            err_txt = "Si no te seteás un usuario, está jodida la cosa #{TROESMAS.sample}."
-            @tg.send_message(chat_id: msj.chat.id,
-                             reply_to_message_id: msj.message_id,
-                             text: err_txt)
-            return
-        end
-
-        np = @lastFM.now_playing user, amount
-
-        valid = valid_recent_tracks(msj, np)
-        return unless valid
-
-        out = "Canciones recientes del usuario: \n\n"
-        x = 0
-        np.each do |track|
-            x += 1
-            out += "<b>#{x}.</b> #{track['artist']['#text']} - <b>#{track['name']}</b> [#{track['album']['#text']}]\n"
-        end
-        @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
-                         reply_to_message_id: msj.message_id,
-                         text: out)
-    end
-
-    def nowplaying(msj)
-        user_id = msj.from.id
-        user = @redis.get("lastfm:#{user_id}")
-
-        if user.nil? || (user == '')
-            err_txt = "Si no te seteás un usuario, está jodida la cosa #{TROESMAS.sample}."
-            @tg.send_message(chat_id: msj.chat.id,
-                             reply_to_message_id: msj.message_id,
-                             text: err_txt)
-            return
-        end
-
-        np = @lastFM.now_playing user, 1
-
-        valid = valid_recent_tracks(msj, np)
-        return unless valid
-
-        out = "Mirate este temón: \n"
-        out << "👤: #{np[0]['artist']['#text']}\n"
-        out << "🎵: #{np[0]['name']}\n"
-        out << "💿: #{np[0]['album']['#text']}"
-        out << "<a href=\"#{np[0]['image'][2]['#text']}\">\u200d</a>"
-
-        @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
-                         reply_to_message_id: msj.message_id,
-                         text: out)
-    end
-
-    def valid_recent_tracks(msj, arr)
+    def validar_pistas(msj, arr)
         if arr.empty?
-            @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
+            @tg.send_message(chat_id: msj.chat.id,
                              reply_to_message_id: msj.message_id,
-                             text: "No encontré que hayas escuchado ninguna canción #{TROESMAS.sample}.")
+                             text: 'No encontré ninguna canción '\
+                                   "que hayas escuchado #{TROESMAS.sample}.")
             return false
-        elsif arr[0] == 'error'
-            @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
+        elsif arr.first == 'error'
+            @tg.send_message(chat_id: msj.chat.id,
+                             parse_mode: :html,
                              reply_to_message_id: msj.message_id,
-                             text: "Alto error #{TROESMAS.sample}. \n<b>#{arr[1]}</b>")
+                             text: "Alto error #{TROESMAS.sample}. "\
+                                   "\n<b>#{arr[1]}</b>")
             return false
         end
         true
