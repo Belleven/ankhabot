@@ -15,8 +15,8 @@ class Dankie
         msj.text.split.each do |pal|
             next if pal.size > 30
 
-            @palabras_c[msj.chat.id] << pal if pal.downcase.start_with? 'c'
-            @palabras_p[msj.chat.id] << pal if pal.downcase.start_with? 'p'
+            @palabras_c[msj.chat.id] << pal if pal[0].downcase == 'c'
+            @palabras_p[msj.chat.id] << pal if pal[0].downcase == 'p'
         end
 
         [@palabras_c[msj.chat.id], @palabras_p[msj.chat.id]].each do |arr|
