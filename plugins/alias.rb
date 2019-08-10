@@ -37,8 +37,8 @@ class Dankie
 
             # Guardo el alias actual en "alias" (sobreescribiendo el anterior)
             # Guardo la id actual en "id"
-            @redis.hmset('alias', id_usuario, alias_actual)
-            @redis.hmset('id', alias_actual, id_usuario)
+            @redis.hset('alias', id_usuario, alias_actual)
+            @redis.hset('id', alias_actual, id_usuario)
         # Si no tiene alias ahora pero tenía antes, hay que borrar cosas
         elsif alias_antiguo
             @redis.hdel('id', alias_antiguo)
@@ -49,10 +49,10 @@ class Dankie
     private
 
     def obtener_id_de_alias(alias_usuario)
-        @redis.hmget('id', alias_usuario)[0]
+        @redis.hget('id', alias_usuario)
     end
 
     def obtener_alias_de_id(id_usuario)
-        @redis.hmget('alias', id_usuario)[0]
+        @redis.hget('alias', id_usuario)
     end
 end

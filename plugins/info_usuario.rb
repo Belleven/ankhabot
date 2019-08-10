@@ -118,7 +118,7 @@ class Dankie
             alias_usuario = msj.from.username
         end
 
-        lastfm = @redis.get("lastfm:#{id_usuario}")
+        lastfm = @redis.hget('cuentas_lastfm', msj.from.id.to_s)
         apodo = @redis.hget("info_usuario:apodo:#{chat_id}", id_usuario.to_s)
 
         respuesta = "Nombre de usuario: <b>#{dame_nombre_completo(nombre, apellido, 'ay no c')}</b>\n"
