@@ -1,4 +1,4 @@
-require_relative 'version.rb'
+require_relative 'versión.rb'
 require_relative 'handlers.rb'
 require_relative 'dankie_logger.rb'
 require_relative 'telegram.rb'
