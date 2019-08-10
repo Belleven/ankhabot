@@ -113,6 +113,11 @@ class TelegramAPI
     rescue Telegram::Bot::Exceptions::ResponseError => e
         case e.to_s
 
+        when /Too Many Requests: retry after/
+            @client.logger.log(Logger::ERROR,
+                               'Por un tiempo no puedo mandar mensajes '\
+                               "en #{args[:chat_id]}\n#{e}")
+
         when /have no rights to send a message/
             @client.logger.log(Logger::ERROR,
                                "Me restringieron los mensajes en #{args[:chat_id]}")
