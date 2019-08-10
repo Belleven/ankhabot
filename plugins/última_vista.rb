@@ -1,8 +1,8 @@
 class Dankie
-    add_handler Handler::Mensaje.new(:registrar_tiempo)
-    add_handler Handler::EventoDeChat.new(:registrar_tiempo)
     add_handler Handler::EventoDeChat.new(:última_vista_supergrupo,
                                           tipos: [:migrate_from_chat_id])
+    add_handler Handler::Mensaje.new(:registrar_tiempo)
+    add_handler Handler::EventoDeChat.new(:registrar_tiempo)
 
     def registrar_tiempo(msj)
         @redis.hmset("último_mensaje:#{msj.chat.id}",

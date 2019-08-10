@@ -1,10 +1,10 @@
 # Extension de dankie para manejar las poles
 class Dankie
+    add_handler Handler::EventoDeChat.new(:pole_supergrupo, tipos: [:migrate_from_chat_id])
     add_handler Handler::Mensaje.new(:pole, chats_permitidos: %i[group supergroup])
     add_handler Handler::EventoDeChat.new(:pole)
     add_handler Handler::Comando.new(:nisman, :enviar_ranking_pole,
                                      descripción: 'Muestra el ranking de Nisman')
-    add_handler Handler::EventoDeChat.new(:pole_supergrupo, tipos: [:migrate_from_chat_id])
 
     # TODO: Ponerle algún flag de solo test a este comando
     # add_handler CommandHandler.new(:dar_nisman, :_test_dar_pole)

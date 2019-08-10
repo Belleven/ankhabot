@@ -1,4 +1,5 @@
 class Dankie
+    add_handler Handler::EventoDeChat.new(:info_usuario_supergrupo, tipos: [:migrate_from_chat_id])
     add_handler Handler::Comando.new(:apodar, :dar_apodo,
                                      descripción: 'Te cambio el apodo al que me digas (si sos admin, podés cambiárselo a otros)')
     add_handler Handler::Comando.new(:borrarapodo, :borrar_apodo,
@@ -7,7 +8,6 @@ class Dankie
                                      descripción: 'Devuelve tu información (o la del usuario al que le respondas)')
     add_handler Handler::Comando.new(:apodos, :apodos,
                                      descripción: 'Te doy los apodos de un grupete')
-    add_handler Handler::EventoDeChat.new(:info_usuario_supergrupo, tipos: [:migrate_from_chat_id])
 
     def dar_apodo(msj)
         chat_id = msj.chat.id

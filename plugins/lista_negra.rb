@@ -1,4 +1,6 @@
 class Dankie
+    add_handler Handler::EventoDeChat.new(:lista_negra_supergrupo, tipos: [:migrate_from_chat_id])
+
     add_handler Handler::Comando.new(:restringir, :restringir,
                                      descripción: 'Restringe a alguien en el chat '\
                                                   'para que no interactúe con el bot '\
@@ -18,8 +20,6 @@ class Dankie
     add_handler Handler::Comando.new(:restringidos, :local_blocked,
                                      descripción: 'Lista de miembros del chat '\
                                                   'bloqueados por el bot')
-
-    add_handler Handler::EventoDeChat.new(:lista_negra_supergrupo, tipos: [:migrate_from_chat_id])
 
     def restringir(msj, params)
         comando_lista_negra(msj, :chequeo_local, :bloquear_usuario, msj.chat.id.to_s,
