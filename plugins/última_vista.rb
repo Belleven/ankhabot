@@ -5,9 +5,15 @@ class Dankie
     add_handler Handler::EventoDeChat.new(:registrar_tiempo)
 
     def registrar_tiempo(msj)
-        @redis.hmset("último_mensaje:#{msj.chat.id}",
-                     msj.from.id.to_s,
-                     msj.date.to_s)
+        # Eso de is_bot es porque los eventos de
+        # chat que son de bots SÍ los recibe
+        if (msj.chat.type == 'supergroup' || msj.chat.type == 'group') &&
+           !msj.from.is_bot
+
+            @redis.hmset("último_mensaje:#{msj.chat.id}",
+                         msj.from.id.to_s,
+                         msj.date.to_s)
+        end
     end
 
     # Cuando un grupo cambia a supergrupo

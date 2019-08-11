@@ -30,29 +30,29 @@ class Dankie
 
             # Si cambió el alias entonces borro la entrada vieja en id
             if alias_antiguo && alias_actual != alias_antiguo
-                @redis.hdel('id', alias_antiguo)
+                @redis.del("id:#{alias_antiguo}")
                 @logger.log(Logger::INFO,
                             "\"#{alias_antiguo}\" cambió su alias a: \"#{alias_actual}\"")
             end
 
             # Guardo el alias actual en "alias" (sobreescribiendo el anterior)
             # Guardo la id actual en "id"
-            @redis.hset('alias', id_usuario, alias_actual)
-            @redis.hset('id', alias_actual, id_usuario)
+            @redis.set("alias:#{id_usuario}", alias_actual)
+            @redis.set("id:#{alias_actual}", id_usuario)
         # Si no tiene alias ahora pero tenía antes, hay que borrar cosas
         elsif alias_antiguo
-            @redis.hdel('id', alias_antiguo)
-            @redis.hdel('alias', id_usuario)
+            @redis.del("id:#{alias_antiguo}")
+            @redis.del("alias:#{id_usuario}")
         end
     end
 
     private
 
     def obtener_id_de_alias(alias_usuario)
-        @redis.hget('id', alias_usuario)
+        @redis.get("id:#{alias_usuario}")
     end
 
     def obtener_alias_de_id(id_usuario)
-        @redis.hget('alias', id_usuario)
+        @redis.get("alias:#{id_usuario}")
     end
 end

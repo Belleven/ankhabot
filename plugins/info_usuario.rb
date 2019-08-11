@@ -56,7 +56,7 @@ class Dankie
 
         # La estructura es un hash de clave "info_usuario:apodo:chat_id",los atributos son las ids de los usuarios
         # y el valor de cada atributo es el apodo correspondiente
-        @redis.hset("info_usuario:apodo:#{chat_id}", id_usuario.to_s, nuevo_apodo)
+        @redis.hset("apodo:#{chat_id}", id_usuario.to_s, nuevo_apodo)
 
         nombre = dame_nombre_completo(nombre, apellido, 'Cuenta eliminada')
         texto = "De hoy en adelante, el #{TROESMAS.sample} "\
@@ -86,13 +86,13 @@ class Dankie
         end
 
         # Si no tenía ningún apodo, entonces aviso
-        if @redis.hget("info_usuario:apodo:#{chat_id}", id_usuario.to_s).nil?
+        if @redis.hget("apodo:#{chat_id}", id_usuario.to_s).nil?
             @tg.send_message(chat_id: chat_id,
                              reply_to_message_id: msj.message_id,
                              text: texto_error)
         else
             # Si sí tenía, entonces lo borro
-            @redis.hdel("info_usuario:apodo:#{chat_id}", id_usuario.to_s)
+            @redis.hdel("apodo:#{chat_id}", id_usuario.to_s)
             # Hacer algo con los bgsave en un futuro
             @tg.send_message(chat_id: chat_id,
                              reply_to_message_id: msj.message_id,
@@ -118,14 +118,14 @@ class Dankie
             alias_usuario = msj.from.username
         end
 
-        lastfm = @redis.hget('cuentas_lastfm', msj.from.id.to_s)
-        apodo = @redis.hget("info_usuario:apodo:#{chat_id}", id_usuario.to_s)
+        lastfm = @redis.get("lastfm:#{msj.from.id}")
+        apodo = @redis.hget("apodo:#{chat_id}", id_usuario.to_s)
 
         respuesta = "Nombre de usuario: <b>#{dame_nombre_completo(nombre, apellido, 'ay no c')}</b>\n"
         respuesta << (alias_usuario.nil? ? '' : "Alias: <b>#{alias_usuario}</b>\n")
         respuesta << "Id de usuario: <b>#{id_usuario}</b>\n"
         respuesta << (apodo.nil? ? '' : "Apodo en el grupete: <b>#{html_parser(apodo)}</b>\n")
-        respuesta << (lastfm.nil? ? '' : "Cuenta de LastFM: <b>#{html_parser(lastfm)}</b>")
+        respuesta << (lastfm.nil? ? '' : "Cuenta de LastFM: <b>#{lastfm}</b>")
 
         @tg.send_message(chat_id: msj.chat.id,
                          reply_to_message_id: msj.message_id,
@@ -139,7 +139,7 @@ class Dankie
         return unless validar_grupo(msj.chat.type, chat_id, msj.message_id)
 
         # Chequeo que haya apodos
-        apodos = @redis.hgetall("info_usuario:apodo:#{chat_id}")
+        apodos = @redis.hgetall("apodo:#{chat_id}")
 
         if apodos.nil? || apodos.empty?
             @tg.send_message(chat_id: chat_id,
@@ -150,7 +150,7 @@ class Dankie
         texto = "Apodos del grupete #{html_parser(msj.chat.title)}\n\n"
         apodos.each do |apodo|
             # Armo la línea
-            línea = "- <a href='tg://user?id=#{apodo[0]}'> #{html_parser(apodo[1])}</a>\n"
+            línea = "- <a href='tg://user?id=#{apodo.first}'> #{html_parser(apodo[1])}</a>\n"
             if texto.length + línea.length > 4096
                 @tg.send_message(chat_id: chat_id,
                                  parse_mode: :html,
@@ -175,7 +175,7 @@ class Dankie
         # Esta función está definida en dankie.rb
         cambiar_claves_supergrupo(msj.migrate_from_chat_id,
                                   msj.chat.id,
-                                  'info_usuario:apodo:')
+                                  'apodo:')
     end
 
     private

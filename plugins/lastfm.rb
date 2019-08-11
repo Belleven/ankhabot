@@ -21,7 +21,7 @@ class Dankie
     def guardar_lastfm(msj, usuario)
         return if no_hay_usuario(msj, usuario) || !usuario_válido(msj, usuario)
 
-        @redis.hset('cuentas_lastfm', msj.from.id.to_s, usuario)
+        @redis.set("lastfm:#{msj.from.id}", usuario)
         @tg.send_message(chat_id: msj.chat.id,
                          reply_to_message_id: msj.message_id,
                          text: "Listo #{TROESMAS.sample}. "\
@@ -30,7 +30,7 @@ class Dankie
     end
 
     def ver_lastfm(msj)
-        if (usuario = @redis.hget('cuentas_lastfm', msj.from.id.to_s))
+        if (usuario = @redis.get("lastfm:#{msj.from.id}"))
             @tg.send_message(chat_id: msj.chat.id,
                              reply_to_message_id: msj.message_id,
                              text: 'Por el momento, tu usuario de '\
@@ -44,7 +44,7 @@ class Dankie
     end
 
     def borrar_lastfm(msj)
-        if @redis.hdel('cuentas_lastfm', msj.from.id.to_s) >= 1
+        if @redis.del("lastfm:#{msj.from.id}") >= 1
             @tg.send_message(chat_id: msj.chat.id,
                              reply_to_message_id: msj.message_id,
                              text: "Ya borré tu cuenta #{TROESMAS.sample}")
@@ -65,7 +65,7 @@ class Dankie
             cantidad = 15
         end
 
-        usuario = @redis.hget('cuentas_lastfm', msj.from.id.to_s)
+        usuario = @redis.get("lastfm:#{msj.from.id}")
         return if no_hay_usuario(msj, usuario)
 
         @logger.log(Logger::INFO, "Pidiendo la\\s #{cantidad} última\\s "\
@@ -87,7 +87,7 @@ class Dankie
     end
 
     def escuchando(msj)
-        usuario = @redis.hget('cuentas_lastfm', msj.from.id.to_s)
+        usuario = @redis.get("lastfm:#{msj.from.id}")
         return if no_hay_usuario(msj, usuario)
 
         @logger.log(Logger::INFO, "Pidiendo la pista que está escuchando #{usuario}")

@@ -7,7 +7,7 @@ class Dankie
 
         unless args
             @tg.send_message(chat_id: msj.chat.id,
-                             text: "dale #{TROESMAS.sample}, "\
+                             text: "Dale #{TROESMAS.sample}, "\
                                   'decime qué busco >:c')
             return
         end
