@@ -45,3 +45,6 @@ __pycache__
 *.log
 *.synctex.gz
 *.toc
+
+# PDF
+*.pdf
