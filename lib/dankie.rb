@@ -356,7 +356,7 @@ class Dankie
             @logger.log(Logger::ERROR, 'Me dieron una id inválida en ' + grupo_del_msj(msj))
             @tg.send_message(chat_id: msj.chat.id,
                              text: "Disculpame pero no puedo reconocer esta id: #{id_usuario}. "\
-                                   'O es inválida, o es de alguien que nunca estuvo en el chat.',
+                                   'O es inválida, o es de alguien que nunca estuvo en este chat.',
                              reply_to_message_id: msj.message_id)
         else
             raise
