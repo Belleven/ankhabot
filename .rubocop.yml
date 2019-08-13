@@ -1,14 +1,20 @@
 Layout/IndentationWidth:
-        Width: 4
+    Width: 4
 
 Style/AsciiComments:
-        AllowedChars: [☑️ , á, é, í, ó, ú, Á, É, Í, Ó, Ú]
+    AllowedChars: [☑️ , á, é, í, ó, ú, Á, É, Í, Ó, Ú]
 
 AllCops:
-  TargetRubyVersion: 2.5
+    TargetRubyVersion: 2.5
 
 Style/FrozenStringLiteralComment:
         EnforcedStyle: never
 
 Naming/AsciiIdentifiers:
         Enabled: false
+
+Metrics/LineLength:
+    Max: 89
+
+Naming/VariableName: 
+    Enabled: false

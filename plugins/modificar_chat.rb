@@ -27,7 +27,7 @@ class Dankie
             end
         end
 
-        if cumple_requisitos_pin_unpin(msj)
+        if cumple_req_modificar_chat(msj)
             @tg.pin_chat_message(chat_id: msj.chat.id,
                                  message_id: msj.reply_to_message.message_id,
                                  disable_notification: notificar)
@@ -61,7 +61,7 @@ class Dankie
                              text: 'No hay ningún mensaje '\
                                    "anclado #{TROESMAS.sample}",
                              reply_to_message_id: msj.message_id)
-        elsif cumple_requisitos_pin_unpin(msj, necesita_responder: false)
+        elsif cumple_req_modificar_chat(msj, necesita_responder: false)
             @tg.unpin_chat_message(chat_id: msj.chat.id)
             @tg.send_message(chat_id: msj.chat.id,
                              text: "Desancladísimo #{TROESMAS.sample}",
@@ -86,7 +86,7 @@ class Dankie
 
     # Chequea que sea en un grupo, que responda a un mensaje (si corresponde)
     # y que tengan los permisos adecuados el bot y quien llama al comando.
-    def cumple_requisitos_pin_unpin(msj, necesita_responder: true)
+    def cumple_req_modificar_chat(msj, necesita_responder: true)
         validar_grupo(msj.chat.type, msj.chat.id, msj.message_id) &&
             # Esto es una implicación, recordar que p => q es equivalente a
             # ¬p V q, y yo lo que quiero es que esto de verdadero cuando no se
