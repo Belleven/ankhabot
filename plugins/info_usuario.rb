@@ -60,7 +60,7 @@ class Dankie
 
         nombre = dame_nombre_completo(nombre, apellido, 'Cuenta eliminada')
         texto = "De hoy en adelante, el #{TROESMAS.sample} "\
-        		"'#{nombre}' será conocido como '#{html_parser(nuevo_apodo)}'."
+                "'#{nombre}' será conocido como '#{html_parser(nuevo_apodo)}'."
 
         @tg.send_message(chat_id: msj.chat.id,
                          reply_to_message_id: responde_a,

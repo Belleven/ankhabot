@@ -112,7 +112,7 @@ class Dankie
             @tg.send_message(chat_id: msj.chat.id,
                              reply_to_message_id: msj.message_id,
                              text: 'Si no me pasás un usuario, '\
-                             	   "está jodida la cosa #{TROESMAS.sample}.")
+                                    "está jodida la cosa #{TROESMAS.sample}.")
         end
         hay
     end
@@ -131,7 +131,7 @@ class Dankie
                              text: "Alto error #{TROESMAS.sample}."\
                                    "\n<b>#{html_parser(arr[1])}</b>")
             @logger.log(Logger::ERROR, 'Error con las pistas de '\
-            						   "Last.fm : <b>#{arr[1]}</b>")
+                                       "Last.fm : <b>#{arr[1]}</b>")
             return false
         end
         true
@@ -173,7 +173,7 @@ class Dankie
 
         if partes_obtenidas == 0
             texto = 'No pude encontrar información de '\
-        			"lo que estás escuchando #{TROESMAS.sample} :("
+                    "lo que estás escuchando #{TROESMAS.sample} :("
         else
             texto << "\n"
         end

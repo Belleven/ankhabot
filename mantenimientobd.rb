@@ -14,7 +14,7 @@ def imprimir_todas_las_claves(patron = '')
             if $redis.type(clave) == 'string'
 
                 valor = $redis.get(clave)
-                puts 'CLAVE NORMAL: ' + clave + "\nVALOR: " + valor	+ "\n\n"
+                puts 'CLAVE NORMAL: ' + clave + "\nVALOR: " + valor + "\n\n"
 
             elsif $redis.type(clave) == 'list'
 

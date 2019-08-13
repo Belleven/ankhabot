@@ -83,7 +83,7 @@ class Dankie
             @tg.send_message(chat_id: msj.chat.id,
                              reply_to_message_id: msj.message_id,
                              text: "Dale #{TROESMAS.sample}, "\
-                             	  "¿Qué #{acción}?")
+                                   "¿Qué #{acción}?")
         end
         no_hay
     end
@@ -93,7 +93,7 @@ class Dankie
             @tg.send_message(chat_id: msj.chat.id,
                              reply_to_message_id: msj.message_id,
                              text: 'No puedo gritar tanto, me '\
-                             	   'duele la garganta')
+                                    'duele la garganta')
         end
         muy_largo
     end

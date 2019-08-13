@@ -8,6 +8,11 @@ class Dankie
     add_handler Handler::Comando.new(:unban, :desban)
     add_handler Handler::Comando.new(:desbanificar, :desban,
                                      descripción: 'Desbanea al usuario del grupo')
+    add_handler Handler::Comando.new(:pin, :anclar, permitir_params: true)
+    add_handler Handler::Comando.new(:anclar, :anclar, permitir_params: true,
+                                                       descripción: 'Ancla el mensaje al que respondas '\
+                                                   'en el grupete (agregar -sinnotif para '\
+                                                   'que no mande notificaciones al hacerlo)')
 
     # Comando /rajar /kick
     def rajar(msj)
@@ -28,7 +33,8 @@ class Dankie
 
         para_aplicar_restriccion = true
 
-        aplicar_moderación(msj, chequeo_afectado, func_moderadora, error_afectado, msj_final, para_aplicar_restriccion)
+        aplicar_moderación(msj, chequeo_afectado, func_moderadora,
+                           error_afectado, msj_final, para_aplicar_restriccion)
     end
 
     # Comando /ban /nisban
@@ -46,7 +52,8 @@ class Dankie
 
         para_aplicar_restriccion = true
 
-        aplicar_moderación(msj, chequeo_afectado, func_moderadora, error_afectado, msj_final, para_aplicar_restriccion)
+        aplicar_moderación(msj, chequeo_afectado, func_moderadora,
+                           error_afectado, msj_final, para_aplicar_restriccion)
     end
 
     def desban(msj)
@@ -62,13 +69,56 @@ class Dankie
         # Acá el afectado claramente no va a ser un admin
         para_aplicar_restriccion = false
 
-        aplicar_moderación(msj, chequeo_afectado, func_moderadora, error_afectado, msj_final, para_aplicar_restriccion)
+        aplicar_moderación(msj, chequeo_afectado, func_moderadora,
+                           error_afectado, msj_final, para_aplicar_restriccion)
+    end
+
+    def anclar(msj, params)
+        notificar = false
+
+        if params
+            if params.length == 9 && params.downcase == '-sinnotif'
+                notificar = true
+            else
+                @tg.send_message(chat_id: msj.chat.id,
+                                 text: 'Si querés que nadie sea notificado '\
+                                 "entonces acompañá el comando con ''-sinnotif'', "\
+                                 'si no, no acompañes el comando con nada',
+                                 reply_to_message_id: msj.message_id)
+                return
+            end
+        end
+
+        if cumple_requisitos_pin(msj)
+            @tg.pin_chat_message(chat_id: msj.chat.id,
+                                 message_id: msj.reply_to_message.message_id,
+                                 disable_notification: notificar)
+        end
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        case e.to_s
+        when /not enough rights to pinear mensajes jujuju/
+            error_permisos = 'Me restringieron los permisos o me sacaron el admin '\
+                          'mientras se ejecutaba el comando, y por '\
+                          'ahora no puedo anclar/desanclar mensajes'
+            log_y_aviso(msj, error_permisos)
+        when /CHAT_NOT_MODIFIED/
+            error_permisos = 'Estás tratando de hacer que ancle un mensaje que '\
+                             "ya está anclado #{TROESMAS.sample}"
+            log_y_aviso(msj, error_permisos, al_canal: false)
+        when /message to pin not found/
+            error_permisos = "No puedo anclar eso #{TROESMAS.sample}, "\
+                             'no encontré el mensaje'
+            log_y_aviso(msj, error_permisos, al_canal: false)
+        else
+            raise
+     end
     end
 
     private
 
     # Función que chequea los requisitos y ejecuta finalmente el comando moderador
-    def aplicar_moderación(msj, chequeo_afectado, func_moderadora, error_afectado, msj_final, para_aplicar_restriccion)
+    def aplicar_moderación(msj, chequeo_afectado, func_moderadora,
+                           error_afectado, msj_final, para_aplicar_restriccion)
         cumple, miembro, razón = cumple_requisitos(msj, para_aplicar_restriccion)
 
         if cumple
@@ -107,7 +157,8 @@ class Dankie
             elsif !id_afectada.nil? &&
                   # Chequeo que el bot sea admin en ese grupo y tenga los permisos correspondientes
                   # 'Necesito' y 'No tengo' son para los mensajes de error
-                  tiene_permisos(msj, @user.id, :can_restrict_members, 'Necesito', 'No tengo')
+                  tiene_permisos(msj, @user.id, :can_restrict_members, 'Necesito',
+                                 'No tengo permisos para restringir/suspender usuarios')
 
                 # Chequeo que el usuario que llamó al comando sea admin y que quién se vea afectado no
                 # Además devuelve el chat_member del usuario afectado.
@@ -134,7 +185,7 @@ class Dankie
             elsif !(miembro.send permiso)
                 tiene_autorización = false
                 @tg.send_message(chat_id: msj.chat.id,
-                                 text: error_no_permisos + ' permisos para restringir/suspender usuarios',
+                                 text: error_no_permisos,
                                  reply_to_message_id: msj.message_id)
             end
         end
@@ -185,7 +236,8 @@ class Dankie
         miembro = nil
 
         # Chequeo que quien llame al comando sea admin y tenga permisos para restringir usuarios
-        if tiene_permisos(msj, msj.from.id, :can_restrict_members, 'Tenés que', 'No tenés')
+        if tiene_permisos(msj, msj.from.id, :can_restrict_members, 'Tenés que',
+                          'No tenés permisos para restringir/suspender usuarios')
 
             miembro = obtener_miembro(msj, id_afectada)
 
@@ -199,7 +251,7 @@ class Dankie
                         miembro.user.username != alias_id)
                     @tg.send_message(chat_id: msj.chat.id,
                                      text: 'No reconozco ese alias, lo más probable es que '\
-                    		     	   	'haya sido cambiado recientemente',
+                                            'haya sido cambiado recientemente',
                                      reply_to_message_id: msj.message_id)
                 else
                     resultado = true
@@ -210,8 +262,8 @@ class Dankie
         [resultado, miembro]
     end
 
-    def moderar(msj, id_afectada, funcion)
-        funcion.call(msj.chat.id, id_afectada)['result']
+    def moderar(msj, id_afectada, función)
+        función.call(msj.chat.id, id_afectada)['result']
     rescue Telegram::Bot::Exceptions::ResponseError => e
         case e.to_s
         when %r{not enough rights to restrict/unrestrict chat member}
@@ -231,10 +283,44 @@ class Dankie
         false
     end
 
-    def log_y_aviso(msj, error)
-        @logger.log(Logger::ERROR, error + ' en ' + grupo_del_msj(msj), al_canal: true)
+    def log_y_aviso(msj, error, al_canal: true)
+        @logger.log(Logger::ERROR, error + ' en ' + grupo_del_msj(msj), al_canal: al_canal)
         @tg.send_message(chat_id: msj.chat.id,
                          text: error,
                          reply_to_message_id: msj.message_id)
+    end
+
+    def cumple_requisitos_pin(msj)
+        validar_grupo(msj.chat.type, msj.chat.id, msj.message_id) &&
+            resp_msj_válido(msj) &&
+            tiene_permisos(msj, @user.id, :can_pin_messages,
+                           'Necesito', 'No tengo permisos para pinear mensajes') &&
+            tiene_permisos(msj, msj.from.id,
+                           :can_pin_messages, 'Tenés que',
+                           'No tenés permisos para pinear mensajes')
+    end
+
+    def resp_msj_válido(msj)
+        unless msj.reply_to_message
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: 'Tenés que responderle al mensaje '\
+                                     'que querés que ancle (que no sea '\
+                                     'un evento de chat)',
+                             reply_to_message_id: msj.message_id)
+            return false
+        end
+
+        chat = @tg.get_chat(chat_id: msj.chat.id)
+        if chat.pinned_message &&
+           chat.pinned_message.message_id == msj.reply_to_message.message_id
+
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: 'Estás tratando de hacer que ancle un mensaje que '\
+                                     "ya está anclado #{TROESMAS.sample}",
+                             reply_to_message_id: msj.message_id)
+            return false
+        else
+            return true
+       end
     end
 end
