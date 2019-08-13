@@ -90,7 +90,7 @@ class DankieLogger
             texto_excepcion << "\n" + lineas + lineas + e.backtrace.join("\n") + "\n" + lineas + lineas + "\n"
             @logger.log(Logger::FATAL, texto_excepcion)
         rescue StandardError => e
-            puts "\nFATAL, multiples excepciones.\n"
+            puts "\nFATAL, múltiples excepciones.\n"
         end
     end
 

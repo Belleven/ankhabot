@@ -8,11 +8,6 @@ class Dankie
     add_handler Handler::Comando.new(:unban, :desban)
     add_handler Handler::Comando.new(:desbanificar, :desban,
                                      descripción: 'Desbanea al usuario del grupo')
-    add_handler Handler::Comando.new(:pin, :anclar, permitir_params: true)
-    add_handler Handler::Comando.new(:anclar, :anclar, permitir_params: true,
-                                                       descripción: 'Ancla el mensaje al que respondas '\
-                                                   'en el grupete (agregar ''tranca'' para '\
-                                                   'que no mande notificaciones al hacerlo)')
 
     # Comando /rajar /kick
     def rajar(msj)
@@ -56,6 +51,7 @@ class Dankie
                            error_afectado, msj_final, para_aplicar_restriccion)
     end
 
+    # Comando /unban /desbanificar
     def desban(msj)
         chequeo_afectado = proc do |miembro|
             miembro.status != 'kicked'
@@ -65,53 +61,12 @@ class Dankie
         end
 
         error_afectado = 'No puedo desbanear a alguien que no está baneado'
-        msj_final = 'Ya podés meterte de nuevo, pero no vuelvas a hacer cagadas'
+        msj_final = 'Ya podés meterte de nuevo, pero no vuelvas a mandarte cagadas'
         # Acá el afectado claramente no va a ser un admin
         para_aplicar_restriccion = false
 
         aplicar_moderación(msj, chequeo_afectado, func_moderadora,
                            error_afectado, msj_final, para_aplicar_restriccion)
-    end
-
-    def anclar(msj, params)
-        notificar = false
-
-        if params
-            if params.length == 6 && params.downcase == 'tranca'
-                notificar = true
-            else
-                @tg.send_message(chat_id: msj.chat.id,
-                                 text: 'Si querés que nadie sea notificado '\
-                                 "entonces acompañá el comando con ''tranca'', "\
-                                 'si no, no acompañes el comando con nada',
-                                 reply_to_message_id: msj.message_id)
-                return
-            end
-        end
-
-        if cumple_requisitos_pin(msj)
-            @tg.pin_chat_message(chat_id: msj.chat.id,
-                                 message_id: msj.reply_to_message.message_id,
-                                 disable_notification: notificar)
-        end
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        case e.to_s
-        when /not enough rights to pin a message/
-            error_permisos = 'Me restringieron los permisos o me sacaron el admin '\
-                          'mientras se ejecutaba el comando, y por '\
-                          'ahora no puedo anclar/desanclar mensajes'
-            log_y_aviso(msj, error_permisos)
-        when /CHAT_NOT_MODIFIED/
-            error_permisos = 'Estás tratando de hacer que ancle un mensaje que '\
-                             "ya está anclado #{TROESMAS.sample}"
-            log_y_aviso(msj, error_permisos, al_canal: false)
-        when /message to pin not found/
-            error_permisos = "No puedo anclar eso #{TROESMAS.sample}, "\
-                             'no encontré el mensaje'
-            log_y_aviso(msj, error_permisos, al_canal: false)
-        else
-            raise
-     end
     end
 
     private
@@ -166,30 +121,6 @@ class Dankie
             end
         end
         [cumple, miembro, razón]
-    end
-
-    # Chequea que el miembro sea admin y tenga los permisos adecuados
-    def tiene_permisos(msj, id_usuario, permiso, error_no_admin, error_no_permisos)
-        miembro = obtener_miembro(msj, id_usuario)
-        tiene_autorización = true
-
-        if !miembro
-            tiene_autorización = false
-        elsif miembro.status != 'creator'
-            if miembro.status != 'administrator'
-                tiene_autorización = false
-                @tg.send_message(chat_id: msj.chat.id,
-                                 text: error_no_admin + ' ser admin para hacer eso',
-                                 reply_to_message_id: msj.message_id)
-            # Chequeo si tiene el permiso
-            elsif !(miembro.send permiso)
-                tiene_autorización = false
-                @tg.send_message(chat_id: msj.chat.id,
-                                 text: error_no_permisos,
-                                 reply_to_message_id: msj.message_id)
-            end
-        end
-        tiene_autorización
     end
 
     # Chequea que se esté respondiendo un mensaje
@@ -281,46 +212,5 @@ class Dankie
         end
 
         false
-    end
-
-    def log_y_aviso(msj, error, al_canal: true)
-        @logger.log(Logger::ERROR, error + ' en ' + grupo_del_msj(msj), al_canal: al_canal)
-        @tg.send_message(chat_id: msj.chat.id,
-                         text: error,
-                         reply_to_message_id: msj.message_id)
-    end
-
-    def cumple_requisitos_pin(msj)
-        validar_grupo(msj.chat.type, msj.chat.id, msj.message_id) &&
-            resp_msj_válido(msj) &&
-            tiene_permisos(msj, @user.id, :can_pin_messages,
-                           'Necesito', 'No tengo permisos para pinear mensajes') &&
-            tiene_permisos(msj, msj.from.id,
-                           :can_pin_messages, 'Tenés que',
-                           'No tenés permisos para pinear mensajes')
-    end
-
-    def resp_msj_válido(msj)
-        if msj.reply_to_message.nil?
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: 'Tenés que responderle al mensaje '\
-                                     'que querés que ancle',
-                             reply_to_message_id: msj.message_id)
-            return false
-        end
-
-        chat = @tg.get_chat(chat_id: msj.chat.id)
-        chat = Telegram::Bot::Types::Chat.new(chat)
-        if chat.pinned_message &&
-           chat.pinned_message.message_id == msj.reply_to_message.message_id
-
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: 'Estás tratando de hacer que ancle un mensaje que '\
-                                     "ya está anclado #{TROESMAS.sample}",
-                             reply_to_message_id: msj.message_id)
-            return false
-        else
-            return true
-       end
     end
 end

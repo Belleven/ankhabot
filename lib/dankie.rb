@@ -364,4 +364,41 @@ class Dankie
 
         nil
     end
+
+    def obtener_chat(chat_id)
+        chat = @tg.get_chat(chat_id: chat_id)
+        Telegram::Bot::Types::Chat.new(chat['result'])
+    end
+
+    # Chequea que el miembro sea admin y tenga los permisos adecuados
+    def tiene_permisos(msj, id_usuario, permiso, error_no_admin, error_no_permisos)
+        miembro = obtener_miembro(msj, id_usuario)
+        tiene_autorización = true
+
+        if !miembro
+            tiene_autorización = false
+        elsif miembro.status != 'creator'
+            if miembro.status != 'administrator'
+                tiene_autorización = false
+                @tg.send_message(chat_id: msj.chat.id,
+                                 text: error_no_admin + ' ser admin para hacer eso',
+                                 reply_to_message_id: msj.message_id)
+            # Chequeo si tiene el permiso
+            elsif !(miembro.send permiso)
+                tiene_autorización = false
+                @tg.send_message(chat_id: msj.chat.id,
+                                 text: error_no_permisos,
+                                 reply_to_message_id: msj.message_id)
+            end
+        end
+        tiene_autorización
+    end
+
+    def log_y_aviso(msj, error, al_canal: true)
+        @logger.log(Logger::ERROR, error + ' en ' + grupo_del_msj(msj), al_canal: al_canal)
+        @tg.send_message(chat_id: msj.chat.id,
+                         text: error,
+                         reply_to_message_id: msj.message_id)
+    end
+
 end
