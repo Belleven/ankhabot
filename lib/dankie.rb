@@ -364,15 +364,4 @@ class Dankie
 
         nil
     end
-
-    def es_mensaje(msj)
-        msj.reply_to_message &&
-            (msj.reply_to_message.text || msj.reply_to_message.audio ||
-              msj.reply_to_message.document || msj.reply_to_message.animation ||
-               msj.reply_to_message.game || !msj.reply_to_message.photo.empty? ||
-                msj.reply_to_message.sticker || msj.reply_to_message.video ||
-                 msj.reply_to_message.voice || msj.reply_to_message.video_note ||
-                  msj.reply_to_message.contact || msj.reply_to_message.location ||
-                   msj.reply_to_message.venue || msj.reply_to_message.poll)
-    end
 end
