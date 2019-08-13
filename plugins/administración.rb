@@ -11,7 +11,7 @@ class Dankie
     add_handler Handler::Comando.new(:pin, :anclar, permitir_params: true)
     add_handler Handler::Comando.new(:anclar, :anclar, permitir_params: true,
                                                        descripción: 'Ancla el mensaje al que respondas '\
-                                                   'en el grupete (agregar -sinnotif para '\
+                                                   'en el grupete (agregar ''tranca'' para '\
                                                    'que no mande notificaciones al hacerlo)')
 
     # Comando /rajar /kick
@@ -77,12 +77,12 @@ class Dankie
         notificar = false
 
         if params
-            if params.length == 9 && params.downcase == '-sinnotif'
+            if params.length == 6 && params.downcase == 'tranca'
                 notificar = true
             else
                 @tg.send_message(chat_id: msj.chat.id,
                                  text: 'Si querés que nadie sea notificado '\
-                                 "entonces acompañá el comando con ''-sinnotif'', "\
+                                 "entonces acompañá el comando con ''tranca'', "\
                                  'si no, no acompañes el comando con nada',
                                  reply_to_message_id: msj.message_id)
                 return
@@ -96,7 +96,7 @@ class Dankie
         end
     rescue Telegram::Bot::Exceptions::ResponseError => e
         case e.to_s
-        when /not enough rights to pinear mensajes jujuju/
+        when /not enough rights to pin a message/
             error_permisos = 'Me restringieron los permisos o me sacaron el admin '\
                           'mientras se ejecutaba el comando, y por '\
                           'ahora no puedo anclar/desanclar mensajes'
@@ -301,16 +301,16 @@ class Dankie
     end
 
     def resp_msj_válido(msj)
-        unless msj.reply_to_message
+        if msj.reply_to_message.nil?
             @tg.send_message(chat_id: msj.chat.id,
                              text: 'Tenés que responderle al mensaje '\
-                                     'que querés que ancle (que no sea '\
-                                     'un evento de chat)',
+                                     'que querés que ancle',
                              reply_to_message_id: msj.message_id)
             return false
         end
 
         chat = @tg.get_chat(chat_id: msj.chat.id)
+        chat = Telegram::Bot::Types::Chat.new(chat)
         if chat.pinned_message &&
            chat.pinned_message.message_id == msj.reply_to_message.message_id
 
