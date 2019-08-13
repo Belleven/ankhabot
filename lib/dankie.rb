@@ -400,5 +400,4 @@ class Dankie
                          text: error,
                          reply_to_message_id: msj.message_id)
     end
-
 end

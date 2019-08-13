@@ -10,8 +10,7 @@ class Dankie
                                                   'en el grupete (agregar ''tranca'' para '\
                                                   'que no mande notificaciones al hacerlo)')
 
-
-	# Comando /pin /anclar
+    # Comando /pin /anclar
     def anclar(msj, params)
         notificar = false
 
@@ -56,10 +55,10 @@ class Dankie
     # Comando /unpin /desanclar
     def desanclar(msj)
         chat = obtener_chat(msj.chat.id)
-        
+
         if chat.pinned_message.nil?
             @tg.send_message(chat_id: msj.chat.id,
-                             text: "No hay ningún mensaje "\
+                             text: 'No hay ningún mensaje '\
                                    "anclado #{TROESMAS.sample}",
                              reply_to_message_id: msj.message_id)
         elsif cumple_requisitos_pin_unpin(msj, necesita_responder: false)
@@ -68,7 +67,6 @@ class Dankie
                              text: "Desancladísimo #{TROESMAS.sample}",
                              reply_to_message_id: msj.message_id)
         end
-
     rescue Telegram::Bot::Exceptions::ResponseError => e
         case e.to_s
         when /not enough rights to unpin a message/
@@ -92,9 +90,9 @@ class Dankie
         validar_grupo(msj.chat.type, msj.chat.id, msj.message_id) &&
             # Esto es una implicación, recordar que p => q es equivalente a
             # ¬p V q, y yo lo que quiero es que esto de verdadero cuando no se
-            # necesite responder (p = false) o cuando se necesite responder y 
+            # necesite responder (p = false) o cuando se necesite responder y
             # se responda a un mensaje válido (p = true && q = true). Lo que no puede
-            # valer es que necesite responder y el mensaje no sea válido (p = true 
+            # valer es que necesite responder y el mensaje no sea válido (p = true
             # && q = false). Está hecho así para que se use esta función desde /desanclar
             (!necesita_responder || resp_msj_válido(msj)) &&
             tiene_permisos(msj, @user.id, :can_pin_messages,
