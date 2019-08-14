@@ -8,6 +8,7 @@ require_relative 'semáforo.rb'
 require 'redis'
 require 'tzinfo'
 require 'set'
+require 'securerandom'
 
 class Dankie
     attr_reader :tg, :logger, :redis, :reddit, :user
@@ -399,5 +400,32 @@ class Dankie
         @tg.send_message(chat_id: msj.chat.id,
                          text: error,
                          reply_to_message_id: msj.message_id)
+    end
+
+    def descargar_archivo_tg(_id_archivo, nombre_guardado)
+        archivo = @tg.get_file(id_imagen)
+        archivo = Telegram::Bot::Types::File.new(archivo['result'])
+
+        return false if archivo.file_size && archivo.file_size > 20
+
+        # TODO: ver que esta virgueada ande y validar hasta el ojete,
+        # ni me quiero imaginar la cantidad de excepciones que hay que
+        # manejar acá
+        enlace_archivo = "https://api.telegram.org/file/bot<#{@tg.token}>"\
+                         "/#{archivo.file_path}"
+
+        descargar_archivo_internet(enlace_archivo, nombre_guardado)
+    end
+
+    def descargar_archivo_internet(enlace_internet, _nombre_guardado)
+        enlace_disco = "./tmp/dankie/#{SecureRandom.uuid}.#{extension}"
+        # TODO: ver que esta virgueada ande y validar hasta el ojete,
+        # ni me quiero imaginar la cantidad de excepciones que hay que
+        # manejar acá
+        open(enlace_internet) do |archivo_internet|
+            File.open(enlace_disco, 'wb') do |archivo_disco|
+                archivo_disco.write(archivo_internet.read)
+            end
+        end
     end
 end

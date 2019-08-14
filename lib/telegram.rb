@@ -1,11 +1,12 @@
 require 'telegram/bot'
 
 class TelegramAPI
-    attr_reader :client
+    attr_reader :client, :token
 
     # token es String, logger es Logger
     def initialize(token, logger)
         @client = Telegram::Bot::Client.new token, logger: logger
+        @token = token
     end
 
     def send_message(args)
