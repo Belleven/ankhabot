@@ -5,7 +5,9 @@ class Dankie
     add_handler Handler::EventoDeChat.new(:registrar_tiempo)
 
     add_handler Handler::Comando.new(:ultimavista, :última_vista, permitir_params: true,
-                                                                  descripción: 'Hace ping')
+                            descripción: 'Devuelve el momento en que participaron '\
+                                         'por última vez en el chat la '\
+                                         'cantidad de usuarios que me digas')
 
     def registrar_tiempo(msj)
         # Eso de is_bot es porque los eventos de
