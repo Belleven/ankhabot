@@ -161,7 +161,7 @@ class Dankie
         enlace_usuario = nil
         @logger.error(e)
     ensure
-        return enlace_usuario || 'ay no c (' + usuario_id.to_s + ')'
+        return enlace_usuario || 'ay no c (' + id_usuario.to_s + ')'
     end
 
     def crear_enlace(usuario)

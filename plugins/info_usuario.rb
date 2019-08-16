@@ -155,6 +155,7 @@ class Dankie
                 @tg.send_message(chat_id: chat_id,
                                  parse_mode: :html,
                                  text: texto,
+                                 disable_web_page_preview: true,
                                  disable_notification: true)
                 texto = línea
             else
@@ -167,6 +168,7 @@ class Dankie
             @tg.send_message(chat_id: chat_id,
                              parse_mode: :html,
                              text: texto,
+                             disable_web_page_preview: true,
                              disable_notification: true)
         end
     end

@@ -281,32 +281,31 @@ class Dankie
     end
 
     def mandar_lista_ids(id_chat, lista, es_global)
-        inicio = es_global ? "Lista de bloqueados globalmente:\n\n" : "Lista de bloqueados en el grupete:\n\n"
-        tamaño = inicio.length
-        lineas = [inicio]
+        texto = es_global ? "Lista de bloqueados globalmente:\n\n" : "Lista de bloqueados en el grupete:\n\n"
 
         lista.each do |miembro|
-            tamaño += 3 + miembro.length
+            línea = '- ' + (es_global ? miembro : obtener_enlace_usuario(id_chat, miembro)) + "\n"
 
             # Mando blocazos de 4096 caracteres
-            if tamaño < 4096
-                lineas << '- ' + (es_global ? miembro : obtener_enlace_usuario(id_chat, miembro)) + "\n"
-            else
+            if texto.length + línea.length > 4096
                 @tg.send_message(chat_id: id_chat,
-                                 text: lineas.join(''),
                                  parse_mode: :html,
+                                 text: texto,
                                  disable_web_page_preview: true,
                                  disable_notification: true)
-                lineas = ['- ' + miembro + "\n"]
-                tamaño = 3 + miembro.length
+                texto = línea
+            else
+                texto << línea
             end
         end
 
         # Mando el último cacho
-        @tg.send_message(chat_id: id_chat,
-                         text: lineas.join(''),
-                         parse_mode: :html,
-                         disable_web_page_preview: true,
-                         disable_notification: true)
+        unless texto.empty?
+            @tg.send_message(chat_id: id_chat,
+                             text: texto,
+                             parse_mode: :html,
+                             disable_web_page_preview: true,
+                             disable_notification: true)
+        end
     end
 end
