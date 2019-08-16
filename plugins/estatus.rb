@@ -194,8 +194,8 @@ class Dankie
         texto << if miembro.until_date.zero?
                      "\n- #{estatus} para siempre."
                  else
-                     # TODO: que no muestre un unix tiempo si no una fecha
-                     "\n- #{estatus} hasta #{miembro.until_date}."
+                     "\n- #{estatus} hasta "\
+                          "#{miembro.until_date.strftime('%d/%m/%Y %T')}."
                  end
     end
 
