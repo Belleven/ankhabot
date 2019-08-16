@@ -1,6 +1,6 @@
 class Dankie
     add_handler Handler::Comando.new(:img, :search_image,
-                                     descripción: 'Busca una imagen')
+                                     descripción: 'Busco una imagen')
 
     def search_image(msj)
         args = get_command_params(msj) || msj.reply_to_message&.text || msj.reply_to_message&.caption

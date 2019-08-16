@@ -1,8 +1,8 @@
 class Dankie
     add_handler Handler::Comando.new(:di, :di, permitir_params: true,
-                                               descripción: 'Repite lo que digas')
+                                               descripción: 'Repito lo que me digas')
     add_handler Handler::Comando.new(:grita, :grita, permitir_params: true,
-                                                     descripción: 'Grita lo que digas')
+                                                     descripción: 'Grito lo que me digas')
 
     def di(msj, parámetros)
         texto = parámetros || msj.reply_to_message&.text || msj.reply_to_message&.caption

@@ -1,6 +1,7 @@
 class Dankie
     add_handler Handler::Comando.new(:start, :inicio)
-    add_handler Handler::Comando.new(:inicio, :inicio, descripción: 'Mensaje de inicio')
+    add_handler Handler::Comando.new(:inicio, :inicio,
+                                     descripción: 'Mando el mensaje de inicio/flood')
 
     def inicio(msj)
         return if msj.chat.type == 'channel'

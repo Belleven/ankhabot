@@ -4,7 +4,7 @@ class Dankie
     add_handler Handler::Mensaje.new(:pole, chats_permitidos: %i[group supergroup])
     add_handler Handler::EventoDeChat.new(:pole)
     add_handler Handler::Comando.new(:nisman, :enviar_ranking_pole,
-                                     descripción: 'Muestra el ranking de Nisman')
+                                     descripción: 'Muestro el ranking de Nisman')
 
     # TODO: Ponerle algún flag de solo test a este comando
     # add_handler CommandHandler.new(:dar_nisman, :_test_dar_pole)

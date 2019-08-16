@@ -1,13 +1,13 @@
 class Dankie
     add_handler Handler::Comando.new(:kick, :rajar)
     add_handler Handler::Comando.new(:rajar, :rajar,
-                                     descripción: 'Echa al usuario del grupo')
+                                     descripción: 'Echo al usuario del grupo')
     add_handler Handler::Comando.new(:ban, :ban)
     add_handler Handler::Comando.new(:nisban, :ban,
-                                     descripción: 'Banea al usuario del grupo')
+                                     descripción: 'Baneo al usuario del grupo')
     add_handler Handler::Comando.new(:unban, :desban)
     add_handler Handler::Comando.new(:desbanificar, :desban,
-                                     descripción: 'Desbanea al usuario del grupo')
+                                     descripción: 'Desbaneo al usuario del grupo')
 
     # Comando /rajar /kick
     def rajar(msj)

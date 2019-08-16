@@ -1,19 +1,20 @@
 class Dankie
     add_handler Handler::EventoDeChat.new(:última_vez_supergrupo,
                                           tipos: [:migrate_from_chat_id])
-    add_handler Handler::Mensaje.new(:registrar_tiempo)
-    add_handler Handler::EventoDeChat.new(:registrar_tiempo)
+    add_handler Handler::Mensaje.new(:registrar_tiempo,
+                                     chats_permitidos: %i[group supergroup])
+    add_handler Handler::EventoDeChat.new(:registrar_tiempo,
+                                          chats_permitidos: %i[group supergroup])
 
     add_handler Handler::Comando.new(:ultimavista, :última_vista, permitir_params: true,
-                            descripción: 'Devuelve el momento en que participaron '\
+                                                                  descripción: 'Devuelvo el momento en que participaron '\
                                          'por última vez en el chat la '\
                                          'cantidad de usuarios que me digas')
 
     def registrar_tiempo(msj)
         # Eso de is_bot es porque los eventos de
         # chat que son de bots SÍ los recibe
-        if (msj.chat.type == 'supergroup' || msj.chat.type == 'group') &&
-           !msj.from.is_bot
+        unless msj.from.is_bot
 
             # Primero reviso si se está yendo alguien
             if msj.left_chat_member
@@ -50,6 +51,8 @@ class Dankie
     end
 
     def última_vista(msj, params)
+        return unless validar_grupo(msj.chat.type, msj.chat.id, msj.message_id)
+
         # Agarro el hash
         últimas_vistas = @redis.hgetall("último_mensaje:#{msj.chat.id}")
 

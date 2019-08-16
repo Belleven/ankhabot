@@ -1,16 +1,16 @@
 class Dankie
     add_handler Handler::Comando.new(:pin, :anclar, permitir_params: true)
     add_handler Handler::Comando.new(:anclar, :anclar, permitir_params: true,
-                                                       descripción: 'Ancla el mensaje al que respondas '\
-                                                   'en el grupete (agregar ''tranca'' para '\
-                                                   'que no mande notificaciones al hacerlo)')
+                                                       descripción: 'Anclo el mensaje al que respondas '\
+                                              'en el grupete (agregá ''tranca'' para '\
+                                              'que no mande notificaciones al hacerlo)')
     add_handler Handler::Comando.new(:unpin, :desanclar)
     add_handler Handler::Comando.new(:desanclar, :desanclar,
-                                     descripción: 'Ancla el mensaje al que respondas '\
-                                                  'en el grupete (agregar ''tranca'' para '\
+                                     descripción: 'Anclo el mensaje al que respondas '\
+                                                  'en el grupete (agregá ''tranca'' para '\
                                                   'que no mande notificaciones al hacerlo)')
     add_handler Handler::Comando.new(:ponerfoto, :poner_foto,
-                                     descripción: 'Cambia la foto del grupete')
+                                     descripción: 'Cambio la foto del grupete')
 
     # Comando /pin /anclar
     def anclar(msj, params)

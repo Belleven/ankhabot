@@ -2,7 +2,7 @@
 class Dankie
     add_handler Handler::Mensaje.new(:añadir_palabras_cp, tipos: [:text])
     add_handler Handler::Comando.new(:cp, :cp,
-                                     descripción: 'Genera una posible '\
+                                     descripción: 'Genero una posible '\
                                                   'definición de la sigla cp, '\
                                                   'usando texto del chat')
 

@@ -2,15 +2,15 @@ class Dankie
     add_handler Handler::EventoDeChat.new(:lista_negra_supergrupo, tipos: [:migrate_from_chat_id])
 
     add_handler Handler::Comando.new(:restringir, :restringir,
-                                     descripción: 'Restringe a alguien en el chat '\
-                                                  'para que no interactúe con el bot '\
+                                     descripción: 'Restrinjo a alguien en el chat '\
+                                                  'para que no interactúe conmigo '\
                                                   '(solo admins)',
                                      permitir_params: true)
 
     add_handler Handler::Comando.new(:habilitar, :habilitar,
-                                     descripción: 'Habilita a alguien en el '\
-                                                  'chat de para que pueda interactuar con el '\
-                                                  'bot (solo admins)',
+                                     descripción: 'Habilito a alguien en el '\
+                                                  'chat de para que pueda '\
+                                                  'interactuar conmigo (solo admins)',
                                      permitir_params: true)
 
     add_handler Handler::Comando.new(:bloquear, :bloquear, permitir_params: true)
@@ -22,12 +22,14 @@ class Dankie
                                                   'bloqueados por el bot')
 
     def restringir(msj, params)
-        comando_lista_negra(msj, :chequeo_local, :bloquear_usuario, msj.chat.id.to_s,
+        comando_lista_negra(msj, :chequeo_local,
+                            :bloquear_usuario, msj.chat.id.to_s,
                             params, 'Vos no podés usar esto pa')
     end
 
     def bloquear(msj, params)
-        comando_lista_negra(msj, :validar_desarrollador, :bloquear_usuario, 'global', params)
+        comando_lista_negra(msj, :validar_desarrollador,
+                            :bloquear_usuario, 'global', params)
     end
 
     def habilitar(msj, params)
@@ -36,7 +38,8 @@ class Dankie
     end
 
     def desbloquear(msj, params)
-        comando_lista_negra(msj, :validar_desarrollador, :desbloquear_usuario, 'global', params)
+        comando_lista_negra(msj, :validar_desarrollador,
+                            :desbloquear_usuario, 'global', params)
     end
 
     def bloqueados(msj)

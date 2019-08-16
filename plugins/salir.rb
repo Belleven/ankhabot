@@ -13,7 +13,8 @@ class Dankie
                                  text: texto_error)
             else
                 @tg.leave_chat(chat_id: msj.chat.id)
-                @logger.log(Logger::INFO, "Me fui de este grupete: #{grupo_del_msj(msj)} (#{chat_id})")
+                @logger.log(Logger::INFO, 'Me fui de este grupete: '\
+                                          "#{grupo_del_msj(msj)} (#{chat_id})")
             end
         end
     end

@@ -1,21 +1,20 @@
 class Dankie
-    add_handler Handler::Comando.new(:guardarlastfm, :guardar_lastfm, permitir_params: true,
-                                                                      descripción: 'Guarda tu usuario de Last.Fm '\
-                                                  '(Solo necesita tu usuario)')
+    add_handler Handler::Comando.new(:guardarlastfm, :guardar_lastfm,
+                                     permitir_params: true,
+                                     descripción: 'Guardo tu usuario de Last.Fm '\
+                                                  '(Solo necesito tu usuario)')
     add_handler Handler::Comando.new(:verlastfm, :ver_lastfm,
-                                     descripción: 'Devuelve la información '\
-                                                  'registrada de Last.Fm del '\
-                                                  'usuario')
+                                     descripción: 'Devuelvo el usuario de Last.fm '\
+                                                  'que haya a tu nombre')
     add_handler Handler::Comando.new(:borrarlastfm, :borrar_lastfm,
-                                     descripción: 'Borra la cuenta de Last.Fm del usuario')
+                                     descripción: 'Borra tu cuenta de Last.Fm')
     add_handler Handler::Comando.new(:escuchando, :escuchando,
-                                     descripción: 'Devuelve la canción más '\
-                                                  'reciente que escucha el '\
-                                                  'usuario que te pusiste')
+                                     descripción: 'Devuelvo la canción más '\
+                                                  'reciente que escuchaste')
     add_handler Handler::Comando.new(:recientes, :recientes, permitir_params: true,
-                                                             descripción: 'Devuelve las últimas '\
+                                                             descripción: 'Devuelvo las últimas '\
                                                   'canciones que escuchaste. '\
-                                                  'Pasame un número así te paso '\
+                                                  'Pasame un número así te muestro '\
                                                   'más de 1 canción (máx 15).')
 
     def guardar_lastfm(msj, usuario)

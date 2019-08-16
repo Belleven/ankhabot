@@ -10,7 +10,8 @@ class Dankie
         elsif msj.new_chat_members.size == 1
             saludo = ['Bienvenido ', 'Hola ', 'Buenas ', 'Que onda '].sample
             nombre = primer_nombre(msj.new_chat_members[0])
-            extra = [', pasá y sentate al fondo.', ', ponete cómodo.', ', querés bizcochitos?', ', qué te trae por acá?'].sample
+            extra = [', pasá y sentate al fondo.', ', ponete cómodo.',
+                     ', querés bizcochitos?', ', qué te trae por acá?'].sample
             @tg.send_message(chat_id: msj.chat.id, text: saludo + nombre + extra)
 
         elsif msj.new_chat_members.size >= 2
@@ -28,7 +29,8 @@ class Dankie
                 índice += 1
             end
 
-            extra = [', pasen y siéntense al fondo.', ', pónganse cómodos.', ', quieren bizcochitos?', ', qué los trae por acá?'].sample
+            extra = [', pasen y siéntense al fondo.', ', pónganse cómodos.',
+                     ', quieren bizcochitos?', ', qué los trae por acá?'].sample
             @tg.send_message(chat_id: msj.chat.id, text: texto + extra)
         end
     end

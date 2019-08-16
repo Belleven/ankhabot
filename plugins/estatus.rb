@@ -1,9 +1,9 @@
 class Dankie
     add_handler Handler::Comando.new(:estatus, :estatus,
-                                     descripción: 'Devuelve el estatus de un '\
+                                     descripción: 'Devuelvo el estatus de un '\
                                                    'miembro del grupo')
     add_handler Handler::Comando.new(:permisos, :permisos,
-                                     descripción: 'Devuelve los permisos de los '\
+                                     descripción: 'Devuelvo los permisos de los '\
                                                    'miembros comunes del grupete')
 
     def estatus(msj)
