@@ -2,7 +2,7 @@ class Dankie
     add_handler Handler::Comando.new(:guardarlastfm, :guardar_lastfm,
                                      permitir_params: true,
                                      descripción: 'Guardo tu usuario de Last.Fm '\
-                                                  '(Solo necesito tu usuario)')
+                                                  '(solo necesito tu usuario)')
     add_handler Handler::Comando.new(:verlastfm, :ver_lastfm,
                                      descripción: 'Devuelvo el usuario de Last.fm '\
                                                   'que haya a tu nombre')
