@@ -32,7 +32,8 @@ class Dankie
             if alias_antiguo && alias_actual != alias_antiguo
                 @redis.del("id:#{alias_antiguo}")
                 @logger.info(
-                            "\"#{alias_antiguo}\" cambió su alias a: \"#{alias_actual}\"")
+                    "\"#{alias_antiguo}\" cambió su alias a: \"#{alias_actual}\""
+                )
             end
 
             # Guardo el alias actual en "alias" (sobreescribiendo el anterior)
