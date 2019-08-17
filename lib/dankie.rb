@@ -1,6 +1,6 @@
 require_relative 'versión.rb'
 require_relative 'handlers.rb'
-require_relative 'dankie_logger.rb'
+require_relative 'logger.rb'
 require_relative 'telegram.rb'
 require_relative 'images.rb'
 require_relative 'last_fm_parser.rb'
@@ -43,8 +43,9 @@ class Dankie
 
     # Recibe un Hash con los datos de config.yml
     def initialize(args)
-        @logger = DankieLogger.new args[:canal_logging], args[:tg_token]
-        @tg = TelegramAPI.new args[:tg_token], @logger
+        logger = Logger.new $stderr
+        @tg = TelegramAPI.new args[:tg_token], logger
+        @logger = DankieLogger.new logger, args[:canal_logging], @tg.client
         @redis = Redis.new port: args[:redis_port], host: args[:redis_host], password: args[:redis_pass]
         @img = ImageSearcher.new args[:google_image_key], args[:google_image_cx]
         @user = Telegram::Bot::Types::User.new @tg.get_me['result']
@@ -68,9 +69,9 @@ class Dankie
         rescue Faraday::ConnectionFailed, Net::OpenTimeout => e
             begin
                 texto, backtrace = @logger.excepcion_texto(e)
-                @logger.log Logger::ERROR, texto, al_canal: true, backtrace: backtrace
+                @logger.error texto, al_canal: true, backtrace: backtrace
             rescue StandardError => e
-                @logger.log Logger::FATAL, 'EXCEPCIÓN LEYENDO LA EXCEPCIÓN', al_canal: true
+                @logger.fatal 'EXCEPCIÓN LEYENDO LA EXCEPCIÓN', al_canal: true
             end
             retry
 
@@ -78,9 +79,9 @@ class Dankie
 
             begin
                 texto, backtrace = @logger.excepcion_texto(e)
-                @logger.log Logger::FATAL, texto, al_canal: true, backtrace: backtrace
+                @logger.fatal texto, al_canal: true, backtrace: backtrace
             rescue StandardError => e
-                @logger.log Logger::FATAL, 'EXCEPCIÓN LEYENDO LA EXCEPCIÓN', al_canal: true
+                @logger.fatal 'EXCEPCIÓN LEYENDO LA EXCEPCIÓN', al_canal: true
             end
 
             # Sacar este raise cuando el bot deje de ser testeadísimo
@@ -354,7 +355,7 @@ class Dankie
     rescue Telegram::Bot::Exceptions::ResponseError => e
         case e.to_s
         when /USER_ID_INVALID/
-            @logger.log(Logger::ERROR, 'Me dieron una id inválida en ' + grupo_del_msj(msj))
+            @logger.error('Me dieron una id inválida en ' + grupo_del_msj(msj))
             @tg.send_message(chat_id: msj.chat.id,
                              text: "Disculpame pero no puedo reconocer esta id: #{id_usuario}. "\
                                    'O es inválida, o es de alguien que nunca estuvo en este chat.',
@@ -396,7 +397,7 @@ class Dankie
     end
 
     def log_y_aviso(msj, error, al_canal: true)
-        @logger.log(Logger::ERROR, error + ' en ' + grupo_del_msj(msj), al_canal: al_canal)
+        @logger.error(error + ' en ' + grupo_del_msj(msj), al_canal: al_canal)
         @tg.send_message(chat_id: msj.chat.id,
                          text: error,
                          reply_to_message_id: msj.message_id)

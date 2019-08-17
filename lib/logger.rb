@@ -4,35 +4,37 @@ class DankieLogger
     attr_reader :client
     attr_accessor :logger
 
-    def initialize(canal_logging, token)
-        @logger = Logger.new $stderr
+    def initialize(logger, canal_logging, cliente)
+        @logger = logger
         @canal_logging = canal_logging
-        @client = Telegram::Bot::Client.new token
+        @client = cliente
     end
 
-    def debug(texto)
-        @logger.debug(texto)
+    def debug(texto, al_canal: false, backtrace: nil)
+        log(Logger::DEBUG, texto, al_canal: al_canal, backtrace: backtrace)
     end
 
-    def warn(texto)
-        @logger.warn(texto)
+    def warn(texto, al_canal: false, backtrace: nil)
+        log(Logger::WARN, texto, al_canal: al_canal, backtrace: backtrace)
     end
 
-    def info(texto)
-        @logger.info(texto)
+    def info(texto, al_canal: false, backtrace: nil)
+        log(Logger::INFO, texto, al_canal: al_canal, backtrace: backtrace)
     end
 
-    def error(texto)
-        @logger.error(texto)
+    def error(texto, al_canal: false, backtrace: nil)
+        log(Logger::ERROR, texto, al_canal: al_canal, backtrace: backtrace)
     end
 
-    def fatal(texto)
-        @logger.fatal(texto)
+    def fatal(texto, al_canal: false, backtrace: nil)
+        log(Logger::FATAL, texto, al_canal: al_canal, backtrace: backtrace)
     end
 
-    def unknown(texto)
-        @logger.unknown(texto)
+    def unknown(texto, al_canal: false, backtrace: nil)
+        log(Logger::UNKNOWN, texto, al_canal: al_canal, backtrace: backtrace)
     end
+
+    private
 
     def log(nivel, texto, al_canal: false, backtrace: nil)
         texto = 'LOG SIN NOMBRE' if texto.nil? || texto.empty?
@@ -88,7 +90,7 @@ class DankieLogger
                             end
 
             texto_excepcion << "\n" + lineas + lineas + e.backtrace.join("\n") + "\n" + lineas + lineas + "\n"
-            @logger.log(Logger::FATAL, texto_excepcion)
+            @logger.fatal(texto_excepcion)
         rescue StandardError => e
             puts "\nFATAL, múltiples excepciones.\n"
         end
@@ -108,8 +110,6 @@ class DankieLogger
             return texto, excepcion.backtrace.join("\n").gsub(%r{/home/[^/]+}, '~')
         end
     end
-
-    private
 
     def html_parser(texto)
         html_dicc = { '&' => '&amp;', '<' => '&lt;', '>' => '&gt;', '"' => '&quot;' }

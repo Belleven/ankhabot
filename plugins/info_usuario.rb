@@ -66,7 +66,7 @@ class Dankie
                          reply_to_message_id: responde_a,
                          text: texto,
                          parse_mode: :html)
-        @logger.log(Logger::INFO, "Se cambió el apodo de #{nombre} (#{id_usuario}) a "\
+        @logger.info("Se cambió el apodo de #{nombre} (#{id_usuario}) a "\
                                   "#{nuevo_apodo} en #{grupo_del_msj(msj)} (#{chat_id})")
     end
 
@@ -98,7 +98,7 @@ class Dankie
                              reply_to_message_id: msj.message_id,
                              text: 'Apodo recontra borradísimo')
             nombre = dame_nombre_completo(nombre, apellido, 'Cuenta eliminada')
-            @logger.log(Logger::INFO, "Se borró el apodo de #{nombre} (#{id_usuario}) "\
+            @logger.info("Se borró el apodo de #{nombre} (#{id_usuario}) "\
                                   "en #{grupo_del_msj(msj)} (#{chat_id})")
         end
     end

@@ -29,7 +29,7 @@ class Dankie
         enlace = imágenes.sample
         enlace = imágenes.sample until enlace.type == :image
 
-        @logger.log(Logger::INFO,
+        @logger.info(
                     "Enviando imagen: <code>#{enlace.link}</code>",
                     al_canal: true)
         @tg.send_photo(chat_id: msj.chat.id, photo: enlace.link)
