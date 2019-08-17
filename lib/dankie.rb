@@ -429,4 +429,44 @@ class Dankie
             end
         end
     end
+
+    def enviar_lista(msj, conjunto_iterable, título_lista, crear_línea, error_vacío)
+        # Si el conjunto está vacío aviso
+        if conjunto_iterable.nil? || conjunto_iterable.empty?
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: error_vacío,
+                             reply_to_message_id: msj.message_id)
+            return
+        end
+
+        texto = título_lista
+        conjunto_iterable.each do |elemento|
+            # Armo la línea
+            línea = crear_línea.call(elemento)
+
+            # Mando blocazo de texto si corresponde
+            if texto.length + línea.length > 4096
+                @tg.send_message(chat_id: msj.chat.id,
+                                 parse_mode: :html,
+                                 text: texto,
+                                 disable_web_page_preview: true,
+                                 disable_notification: true)
+                # Nota: si la línea tiene más de 4096 caracteres, entonces en la próxima
+                # iteración se va a mandar partida en dos mensajes (por tg.send_message)
+                texto = línea
+            else
+                texto << línea
+            end
+        end
+
+        # Si no queda nada por mandar, me voy
+        return if texto.empty?
+
+        # Y si quedaba algo, lo mando
+        @tg.send_message(chat_id: msj.chat.id,
+                         parse_mode: :html,
+                         text: texto,
+                         disable_web_page_preview: true,
+                         disable_notification: true)
+    end
 end

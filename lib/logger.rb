@@ -34,6 +34,25 @@ class DankieLogger
         log(Logger::UNKNOWN, texto, al_canal: al_canal, backtrace: backtrace)
     end
 
+    def excepcion_texto(excepcion)
+        texto_excepcion = excepcion.to_s
+        texto = if !(texto_excepcion.nil? || texto_excepcion.empty?)
+                    '(' + excepcion.class.to_s + ') ' + texto_excepcion
+                else
+                    'EXCEPCIÓN SIN NOMBRE'
+                end
+
+        if excepcion.backtrace.nil?
+            return texto, nil
+        else
+            # La regex turbina esa es para no doxxearnos a los que usamos linux
+            # / es para "/" => /home/ es para "/home/"
+            # [^/]+ es para que detecte todos los caracteres que no sean "/" => /home/user/dankie/... queda
+            # como /dankie/...
+            return texto, excepcion.backtrace.join("\n").gsub(%r{/home/[^/]+}, '~')
+        end
+    end
+
     private
 
     def log(nivel, texto, al_canal: false, backtrace: nil)
@@ -93,21 +112,6 @@ class DankieLogger
             @logger.fatal(texto_excepcion)
         rescue StandardError => e
             puts "\nFATAL, múltiples excepciones.\n"
-        end
-    end
-
-    def excepcion_texto(excepcion)
-        texto_excepcion = excepcion.to_s
-        texto = !(texto_excepcion.nil? || texto_excepcion.empty?) ? '(' + excepcion.class.to_s + ') ' + texto_excepcion : 'EXCEPCIÓN SIN NOMBRE'
-
-        if excepcion.backtrace.nil?
-            return texto, nil
-        else
-            # La regex turbina esa es para no doxxearnos a los que usamos linux
-            # / es para "/" => /home/ es para "/home/"
-            # [^/]+ es para que detecte todos los caracteres que no sean "/" => /home/user/dankie/... queda
-            # como /dankie/...
-            return texto, excepcion.backtrace.join("\n").gsub(%r{/home/[^/]+}, '~')
         end
     end
 
