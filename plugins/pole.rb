@@ -29,7 +29,7 @@ class Dankie
         $semáforo.bloqueo_uno
 
         @redis.zincrby("pole:#{mensaje.chat.id}", 1, id)
-        @logger.log(Logger::INFO, "#{nombre} hizo la nisman en #{mensaje.chat.id}", al_canal: false)
+        @logger.info("#{nombre} hizo la nisman en #{mensaje.chat.id}", al_canal: false)
         @tg.send_message(chat_id: mensaje.chat.id,
                          parse_mode: :html,
                          reply_to_message_id: mensaje.message_id,
@@ -61,7 +61,7 @@ class Dankie
 
         nombre = msj.from.first_name.empty? ? "ay no c (#{msj.from.id})" : html_parser(msj.from.first_name)
 
-        @logger.log(Logger::INFO, "#{nombre} hizo la nisman en #{msj.chat.id}", al_canal: false)
+        @logger.info("#{nombre} hizo la nisman en #{msj.chat.id}", al_canal: false)
         @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
                          reply_to_message_id: msj.message_id,
                          text: "<b>#{nombre}</b> hizo la Nisman")
@@ -110,7 +110,7 @@ class Dankie
                 # que se terminen de mandar los rankings que fueron llamados
                 $semáforo.bloqueo_muchos
 
-                @logger.log(Logger::INFO, "#{msj.from.id} pidió el ranking de nisman en el chat #{msj.chat.id}", al_canal: false)
+                @logger.info("#{msj.from.id} pidió el ranking de nisman en el chat #{msj.chat.id}", al_canal: false)
 
                 editar_ranking_pole(enviado, texto)
 

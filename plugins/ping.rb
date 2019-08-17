@@ -18,6 +18,6 @@ class Dankie
                        time3.to_r - time2.to_r)
         @tg.edit_message_text(chat_id: enviado.chat.id, parse_mode: :html,
                               message_id: enviado.message_id, text: text)
-        @logger.log(Logger::INFO, text.tr("\n", "\t"), al_canal: true)
+        @logger.info(text.tr("\n", "\t"), al_canal: true)
     end
 end

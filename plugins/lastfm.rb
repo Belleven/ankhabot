@@ -67,7 +67,7 @@ class Dankie
         usuario = @redis.get("lastfm:#{msj.from.id}")
         return if no_hay_usuario(msj, usuario)
 
-        @logger.log(Logger::INFO, "Pidiendo la\\s #{cantidad} última\\s "\
+        @logger.info("Pidiendo la\\s #{cantidad} última\\s "\
                                   "pista\\s que escuchó #{usuario}")
         ahora_escuchando = @lastFM.now_playing usuario, cantidad
         return unless validar_pistas(msj, ahora_escuchando)
@@ -89,7 +89,7 @@ class Dankie
         usuario = @redis.get("lastfm:#{msj.from.id}")
         return if no_hay_usuario(msj, usuario)
 
-        @logger.log(Logger::INFO, "Pidiendo la pista que está escuchando #{usuario}")
+        @logger.info("Pidiendo la pista que está escuchando #{usuario}")
         temazo = @lastFM.now_playing usuario, 1
         return unless validar_pistas(msj, temazo)
 
@@ -129,7 +129,7 @@ class Dankie
                              reply_to_message_id: msj.message_id,
                              text: "Alto error #{TROESMAS.sample}."\
                                    "\n<b>#{html_parser(arr[1])}</b>")
-            @logger.log(Logger::ERROR, 'Error con las pistas de '\
+            @logger.error('Error con las pistas de '\
                                        "Last.fm : <b>#{arr[1]}</b>")
             return false
         end
