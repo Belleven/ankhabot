@@ -48,3 +48,6 @@ __pycache__
 
 # PDF
 *.pdf
+
+# swap de vim
+*.swp
