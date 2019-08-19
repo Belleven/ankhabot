@@ -127,6 +127,10 @@ class Dankie
             return { command: nil, params: nil }
         end
 
+        if text.size <= 1
+            return { command: nil, params: nil }
+        end
+
         command = nil
         params = nil
 
