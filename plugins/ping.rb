@@ -28,7 +28,7 @@ class Dankie
         # Loggeo
         texto_log = "tg: #{tiempo_tg} bbdd: #{tiempo_bbdd}"
 
-        if respuesta > 3
+        if respuesta > 10
             tiempo_resp = format('%.3f', respuesta)
             texto << "\nresp: <code>#{tiempo_resp}</code>"
             texto_log << " resp: #{tiempo_resp}"
