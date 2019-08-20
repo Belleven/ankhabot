@@ -62,6 +62,7 @@ class Dankie
             next if @redis.sismember('lista_negra:global', msj.from.id.to_s)
             next if msj.is_a?(Telegram::Bot::Types::Message) &&
                     @redis.sismember("lista_negra:#{msj.chat.id}", msj.from.id.to_s)
+
             # Le paso el mensaje a los handlers correspondientes
             dispatch(msj)
 
@@ -69,8 +70,8 @@ class Dankie
             begin
                 texto, backtrace = @logger.excepcion_texto(e)
                 @logger.error texto, al_canal: true, backtrace: backtrace
-            rescue StandardError => e2
-                @logger.fatal "EXCEPCIÓN LEYENDO LA EXCEPCIÓN\n#{e2}", al_canal: true
+            rescue StandardError => e
+                @logger.fatal "EXCEPCIÓN LEYENDO LA EXCEPCIÓN\n#{e}", al_canal: true
             end
             retry
 
@@ -79,8 +80,8 @@ class Dankie
             begin
                 texto, backtrace = @logger.excepcion_texto(e)
                 @logger.fatal texto, al_canal: true, backtrace: backtrace
-            rescue StandardError => e2
-                @logger.fatal "EXCEPCIÓN LEYENDO LA EXCEPCIÓN\n#{e2}", al_canal: true
+            rescue StandardError => e
+                @logger.fatal "EXCEPCIÓN LEYENDO LA EXCEPCIÓN\n#{e}", al_canal: true
             end
 
             # Sacar este raise cuando el bot deje de ser testeadísimo
