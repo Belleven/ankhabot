@@ -11,7 +11,7 @@ module Handler
             @tipos = args[:tipos] || MSJ_TYPES
         end
 
-        def check_message(bot, msj)
+        def verificar(_bot, msj)
             return unless msj.is_a? Telegram::Bot::Types::Message
             return if !@permitir_editados && msj.edit_date
 
@@ -25,6 +25,10 @@ module Handler
 
             return unless tipo_msj && (tipo_msj.is_a?(Array) ? !tipo_msj.empty? : true)
 
+            true
+        end
+
+        def ejecutar(bot, msj)
             bot.public_send(@callback, msj)
         end
     end
@@ -39,7 +43,7 @@ module Handler
             @permitir_editados = args[:permitir_editados] || false
         end
 
-        def check_message(bot, msj)
+        def ejecutar(bot, msj)
             return unless msj.is_a? Telegram::Bot::Types::Message
 
             return if !@permitir_editados && msj.edit_date
@@ -62,11 +66,15 @@ module Handler
             @patrón = patrón
         end
 
-        def check_message(bot, msj)
+        def verificar(_bot, msj)
             return unless msj.is_a? Telegram::Bot::Types::CallbackQuery
 
             return unless @patrón =~ msj.data
 
+            true
+        end
+
+        def ejecutar(bot, msj)
             bot.logger.info "CallbackQueryHandler: patrón #{@patrón} en #{msj.chat.id}"
             bot.public_send(@callback, msj)
         end
@@ -100,7 +108,7 @@ module Handler
             @callback = callback
         end
 
-        def check_message(bot, msj)
+        def verificar(_bot, msj)
             return unless msj.is_a? Telegram::Bot::Types::Message
 
             atributo = nil
@@ -111,6 +119,10 @@ module Handler
 
             return unless atributo && (atributo.is_a?(Array) ? !atributo.empty? : true)
 
+            true
+        end
+
+        def ejecutar(bot, msj)
             bot.public_send(@callback, msj)
         end
     end

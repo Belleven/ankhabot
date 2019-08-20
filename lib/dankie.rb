@@ -26,19 +26,33 @@ class Dankie
     ]).freeze
 
     def self.add_handler(handler)
+        @comandos ||= {}
         @handlers ||= []
-        @handlers << handler
+
+        if handler.is_a? Handler::Comando
+            @comandos[handler.cmd] = handler
+        else
+            @handlers << handler
+        end
     end
 
     def self.handlers
         @handlers ||= []
     end
 
+    def self.comandos
+        @comandos ||= {}
+    end
+
     # Creo que esto es un dispatch si entendí bien
     def dispatch(msj)
+        # Handlers generales, no los de comando
         self.class.handlers.each do |handler|
-            handler.check_message(self, msj)
+            handler.ejecutar(self, msj) if handler.verificar(self, msj)
         end
+
+        # Handlers de comando
+        self.class.comandos[get_command(msj)]&.ejecutar(self, msj)
     end
 
     # Recibe un Hash con los datos de config.yml
@@ -93,10 +107,8 @@ class Dankie
 
     # Permite iterar sobre los comandos del bot, y sus descripciones
     def self.commands
-        @handlers.each do |handler|
-            next unless handler.is_a? Handler::Comando
-
-            yield handler.cmd, handler.descripción if handler.descripción
+        @comandos.each_value do |comando|
+            yield comando.cmd, comando.descripción if comando.descripción
         end
     end
 
@@ -127,9 +139,7 @@ class Dankie
             return { command: nil, params: nil }
         end
 
-        if text.size <= 1
-            return { command: nil, params: nil }
-        end
+        return { command: nil, params: nil } if text.size <= 1
 
         command = nil
         params = nil
@@ -145,7 +155,7 @@ class Dankie
         else
             arr = text.split(' ', 3) # ["user", "comando", "params"]
             arr.first.downcase!
-            if arr.first.casecmp(@user.username.sub(/...$/, '').downcase).zero?
+            if (arr.size > 1) && arr.first.casecmp(@user.username.sub(/...$/, '').downcase).zero?
                 command = arr[1]&.downcase.to_sym
                 params = arr[2]
 
