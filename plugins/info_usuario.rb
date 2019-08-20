@@ -134,43 +134,21 @@ class Dankie
     end
 
     def apodos(msj)
-        # Chequeo que sea en un grupo
-        chat_id = msj.chat.id
-        return unless validar_grupo(msj.chat.type, chat_id, msj.message_id)
+        return unless validar_grupo(msj.chat.type, msj.chat.id, msj.message_id)
 
-        # Chequeo que haya apodos
-        apodos = @redis.hgetall("apodo:#{chat_id}")
-
-        if apodos.nil? || apodos.empty?
-            @tg.send_message(chat_id: chat_id,
-                             text: 'No hay nadie apodado en el grupete')
-            return
+        # Tomo los apodos
+        conjunto_iterable = @redis.hgetall("apodo:#{msj.chat.id}")
+        # Título
+        título_lista = "Apodos del grupete #{html_parser(msj.chat.title)}\n"
+        # Código para crear línea
+        crear_línea = proc do |elemento|
+            "\n- <a href='tg://user?id=#{elemento.first}'> "\
+            "#{html_parser(elemento[1])}</a>"
         end
+        # Error a mandar en caso de que el conjunto sea vacío
+        error_vacío = 'No hay nadie apodado en el grupete'
 
-        texto = "Apodos del grupete #{html_parser(msj.chat.title)}\n\n"
-        apodos.each do |apodo|
-            # Armo la línea
-            línea = "- <a href='tg://user?id=#{apodo.first}'> #{html_parser(apodo[1])}</a>\n"
-            if texto.length + línea.length > 4096
-                @tg.send_message(chat_id: chat_id,
-                                 parse_mode: :html,
-                                 text: texto,
-                                 disable_web_page_preview: true,
-                                 disable_notification: true)
-                texto = línea
-            else
-                texto << línea
-            end
-        end
-
-        # Si me quedó algo por mandar lo hago
-        unless texto.empty?
-            @tg.send_message(chat_id: chat_id,
-                             parse_mode: :html,
-                             text: texto,
-                             disable_web_page_preview: true,
-                             disable_notification: true)
-        end
+        enviar_lista(msj, conjunto_iterable, título_lista, crear_línea, error_vacío)
     end
 
     def info_usuario_supergrupo(msj)

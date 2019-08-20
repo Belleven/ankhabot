@@ -55,16 +55,6 @@ class Dankie
 
         # Agarro el hash
         últimas_vistas = @redis.hgetall("último_mensaje:#{msj.chat.id}")
-
-        # Si está vacío aviso
-        if últimas_vistas.empty?
-            @tg.send_message(chat_id: msj.chat.id,
-                             parse_mode: :html,
-                             reply_to_message_id: msj.message_id,
-                             text: 'No tengo el último mensaje de nadie :c')
-            return
-        end
-
         # Ordeno el hash por valor devolviendo un arreglo <clave, valor>
         últimas_vistas = últimas_vistas.sort_by { |_clave, valor| valor }
 
@@ -76,36 +66,26 @@ class Dankie
                              10
                          end
 
-        # Veo si esa cantidad es mayor a la cantidad de usuarios
-        cant_a_mostrar = últimas_vistas.length if últimas_vistas.length < cant_a_mostrar
+        # Tomo los primeros cant_a_mostrar de últimas_vistas
+        últimas_vistas = últimas_vistas.first(cant_a_mostrar)
 
-        texto = "Estos no se pasan por acá hace rato:\n"
-        # Itero sobre la cantidad de usuarios que me dijeron
-        (0..(cant_a_mostrar - 1)).each do |índice|
-            id_usuario = últimas_vistas[índice].first.to_i
-            fecha = Time.at(últimas_vistas[índice][1].to_i, in: @tz.utc_offset)
+        # Título
+        título_lista = "Estos no se pasan por acá hace rato:\n"
+        # Código para crear línea
+        crear_línea = proc do |elemento|
+            # Tomo la id del usuario
+            id_usuario = elemento.first.to_i
+            # Tomo la fecha del último msj
+            fecha = Time.at(elemento[1].to_i, in: @tz.utc_offset)
             fecha = fecha.strftime('%d/%m/%Y %T')
-
-            línea = "\n- #{obtener_enlace_usuario(msj.chat.id, id_usuario)} (#{fecha})"
-
-            if texto.length + línea.length > 4096
-                @tg.send_message(chat_id: chat_id,
-                                 parse_mode: :html,
-                                 text: texto,
-                                 disable_web_page_preview: true,
-                                 disable_notification: true)
-                texto = línea
-            else
-                texto << línea
-            end
+            # Armo la línea
+            "\n- #{obtener_enlace_usuario(msj.chat.id, id_usuario)} (#{fecha})"
         end
 
-        unless texto.empty?
-            @tg.send_message(chat_id: msj.chat.id,
-                             parse_mode: :html,
-                             text: texto,
-                             disable_web_page_preview: true,
-                             disable_notification: true)
-        end
+        # Error a mandar en caso de que sea un conjunto vacío
+        error_vacío = 'No tengo el último mensaje de nadie :c'
+
+        # Llamo a la funcionaza
+        enviar_lista(msj, últimas_vistas, título_lista, crear_línea, error_vacío)
     end
 end
