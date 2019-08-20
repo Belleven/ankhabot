@@ -26,7 +26,7 @@ class Dankie
                 "bbdd: <code>#{tiempo_bbdd}</code>"
 
         # Loggeo
-        texto_log = "tg: #{tiempo_tg} bbdd: #{tiempo_bbdd}"
+        texto_log = "Ping: tg: #{tiempo_tg} bbdd: #{tiempo_bbdd}"
 
         if respuesta > 10
             tiempo_resp = format('%.3f', respuesta)
