@@ -3,11 +3,14 @@ TIPOS_MMEDIA = { text: :send_message,
                  sticker: :send_sticker,
                  audio: :send_audio,
                  voice: :send_voice,
+                 video: :send_video,
+                 video_note: :send_video_note,
                  document: :send_document }.freeze
 
 class Dankie
-    add_handler Handler::Mensaje.new(:checkear_triggers, permitir_editados: false,
-                                                         chats_permitidos: %i[group supergroup])
+    add_handler Handler::Mensaje.new(:chequear_triggers, permitir_editados: false,
+                                     ignorar_comandos: true,
+                                     chats_permitidos: %i[group supergroup])
     add_handler Handler::Comando.new(:settrigger, :validar_set_trigger,
                                      permitir_params: true,
                                      descripción: 'Agrega un trigger al bot')
@@ -17,11 +20,14 @@ class Dankie
     add_handler Handler::Comando.new(:triggers, :listar_triggers,
                                      permitir_params: true,
                                      descripción: 'Envía la lista de triggers')
+    add_handler Handler::Comando.new(:infotrigger, :enviar_info_trigger,
+                                     permitir_params: true,
+                                     descripción: 'Envía información del trigger')
     #    add_handler CommandHandler.new(:triggered, :triggered, 'Muestra que '\
     #                                   'triggers reaccionan al mensaje respsondido')
     #     add_handler CallbackQueryHandler.new()
 
-    def checkear_triggers(msj)
+    def chequear_triggers(msj)
         return unless (texto = msj.text || msj.caption)
 
         Trigger.redis ||= @redis
@@ -32,12 +38,13 @@ class Dankie
 
         Trigger.triggers(msj.chat.id) do |id_grupo, regexp|
             next unless regexp =~ texto
-            next unless checkear_flood(@trigger_flood[msj.chat.id])
+            next unless chequear_flood(@trigger_flood[msj.chat.id])
 
             incremetar_arr_flood(@trigger_flood[msj.chat.id], Time.now)
 
             trigger = Trigger.new(id_grupo, regexp)
             enviar_trigger(msj.chat.id, trigger)
+            break
         end
     end
 
@@ -45,7 +52,7 @@ class Dankie
 
     # Función que recibe un arreglo de Time o unix-time y verifica si se mandaron
     # muchos mensajes seguidos. Devuelve true o false
-    def checkear_flood(arr)
+    def chequear_flood(arr)
         return true if arr.size.between? 0, 1
 
         promedio = 0
@@ -97,65 +104,46 @@ class Dankie
             return
         end
 
-        begin
-            regexp = /#{params}/
-        rescue RegexpError
+        unless regexp = Trigger.validar_regexp(params)
             send_message(chat_id: msj.chat.id,
                          text: "No sirve tu trigger, #{TROESMAS.sample}.")
             return
         end
 
-        if Trigger.existe_trigger?(msj.chat.id, regexp)
-            text = "Ya hay un trigger, #{TROESMAS.sample}.\n"
-            text << '¿Lo querés sobreescribir?'
-            text << "\nDESPUES METER EL CÓDIGO QUE CHECKEE ESTO"
-            options = Telegram::Bot::Types::InlineKeyboardMarkup.new(
-                inline_keyboard: [[
-                    Telegram::Bot::Types::InlineKeyboardButton.new(
-                        text: 'Sí', callback_data: "set_trigger:si:#{msj.message_id}"
-                    ),
-                    Telegram::Bot::Types::InlineKeyboardButton.new(
-                        text: 'No', callback_data: "set_trigger:no:#{msj.message_id}"
-                    )
-                ]]
-            )
-            @tg.send_message(chat_id: msj.chat.id, text: text,
-                             reply_markup: options)
+        Trigger.redis ||= @redis
 
-            $set_trigger_callbacks[msj.chat.id] ||= {}
-            $set_trigger_callbacks[msj.chat.id][msj.message_id] = {
-                regexp: regexp,
-                msj: msj,
-                user_id: msj.from.id,
-                group_id: msj.chat.id
-            }
-        else
-            poner_trigger(regexp, msj.reply_to_message, msj.chat.id, msj.from.id)
+        if Trigger.existe_trigger?(msj.chat.id, regexp)
+            texto = "Ya hay un trigger, #{TROESMAS.sample}.\n"
+            texto << "Borralo con <pre>/deltrigger #{params}</pre>"
+            @tg.send_message chat_id: msj.chat.id, text: text
+            return
         end
+
+        poner_trigger(regexp, msj.reply_to_message, msj.chat.id, msj.from.id)
     end
 
     def validar_borrar_trigger(msj, params)
         unless params
-            text = '<b>Modo de uso:</b>'
-            text << "\nRespondé a un mensaje con /deltrigger trigger"
-            text << "\npodés tirar una expresión regular"
-            @tg.send_message(chat_id: msj.chat.id, parse_mode: 'html', text: text)
+            texto = '<b>Modo de uso:</b>'
+            texto << "\nRespondé a un mensaje con /deltrigger trigger"
+            texto << "\npodés tirar una expresión regular"
+            @tg.send_message(chat_id: msj.chat.id, parse_mode: 'html', text: texto)
             return
         end
 
-        begin
-            regexp_recibida = /#{params}/
-        rescue RegexpError
+        unless regexp_recibida = Trigger.validar_regexp(params)
             @tg.send_message(chat_id: msj.chat.id,
                              text: "No sirve tu trigger, #{TROESMAS.sample}.")
             return
         end
 
+        Trigger.redis ||= @redis
+
         Trigger.triggers(msj.chat.id) do |id_grupo, regexp|
-            next unless id_grupo == msj.chat.id
             next unless regexp_recibida == regexp
 
-            if id_grupo == 'global'
+            if id_grupo == :global
+                @tg.send_message(chat_id: msj.chat.id, text: 'Agregar el código para borrar triggers globales')
                 # pedir confirmación en canal público
             elsif id_grupo == msj.chat.id
                 borrar_trigger regexp, id_grupo, msj
@@ -166,6 +154,8 @@ class Dankie
     end
 
     def listar_triggers(msj, _params)
+        Trigger.redis ||= @redis
+
         triggers_globales = []
         triggers_locales = []
 
@@ -190,6 +180,54 @@ class Dankie
         @tg.send_message(chat_id: msj.chat.id, parse_mode: 'html', text: texto)
     end
 
+    def enviar_info_trigger(msj, params)
+        unless params
+            texto = '<b>Modo de uso:</b>'
+            texto << "\n<pre>/infotrigger trigger</pre>"
+            texto << "\n<pre>trigger</pre> tiene que ser exactamente"
+            texto << "la expresión regular que activa al trigger."
+            @tg.send_message(chat_id: msj.chat.id, parse_mode: 'html', text: texto)
+            return
+        end
+
+        unless regexp_recibida = Trigger.validar_regexp(params)
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: "No sirve tu trigger, #{TROESMAS.sample}.")
+            return
+        end
+
+        Trigger.redis ||= @redis
+
+        trigger = nil
+        id = nil
+        Trigger.triggers(msj.chat.id) do |id_grupo, regexp|
+            next unless regexp_recibida == regexp
+
+            trigger = Trigger.new(id_grupo, regexp)
+            id = id_grupo
+        end
+
+        unless trigger
+            @tg.send_message(chat_id: msj.chat.id, parse_mode: 'html',
+                             text: 'No pude encontrar el trigger úwù')
+            return
+        end
+        
+        texto = '<b>Info del trigger:</b>'
+        texto << "\nRegexp: <code>#{trigger.regexp.inspect}</code>"
+        texto << "\nTipo: #{id == :global ? 'global' : 'de grupo'}"
+        texto << "\nCreador: #{obtener_enlace_usuario(msj.chat.id, trigger.creador)}"
+        texto << "\nTotal de usos: #{trigger.contador}"
+        texto << "\nMedia: #{trigger.data.compact.keys.first.to_s}"
+        texto << "\nid/valor: <code>#{trigger.data.compact.values.first}</code>"
+        texto << "\nCaption: <code>#{trigger.caption}</code>"
+
+        @tg.send_message(chat_id: msj.chat.id, parse_mode: 'html',
+                         disable_web_page_preview: true, text: texto)
+
+
+    end
+
     private
 
     # Función que envía un trigger al grupo
@@ -202,6 +240,7 @@ class Dankie
             @tg.public_send(send_media, chat_id: id_grupo,
                                         caption: trigger.caption,
                                         media => trigger.data[media])
+            trigger.aumentar_contador
             @logger.info("Trigger enviado en #{id_grupo}", al_canal: false)
         end
     end
@@ -253,16 +292,26 @@ class Dankie
 end
 
 class Trigger
-    attr_reader :regex, :caption, :data
+    attr_reader :regexp, :caption, :data, :contador, :creador
 
-    def initialize(group_id, regex)
-        trigger = self.class.redis.hgetall("trigger:#{group_id}:#{regex.inspect}")
+    # id_grupo debe ser un Integer o el Symbol :global
+    # regexp debe ser una Regexp
+    def initialize(id_grupo, regexp)
+        @clave = "trigger:#{id_grupo}:#{regexp.inspect}"
+
+        trigger = self.class.redis.hgetall @clave
 
         @data = {}
-        TIPOS_MMEDIA.each { |k, _v| @data[k] = trigger[k.to_s] }
+        TIPOS_MMEDIA.each_key { |k| @data[k] = trigger[k.to_s] }
 
         @caption = trigger['caption']
-        @regex = regex # creo que ni se usa esto, pero bueno por las dudas está
+        @regexp = regexp
+        @contador = self.class.redis.hget @clave + ':metadata', 'contador'
+        @creador = self.class.redis.hget @clave + ':metadata', 'creador'
+    end
+
+    def aumentar_contador
+        self.class.redis.hincrby @clave + ':metadata', 'contador', 1
     end
 
     # Con esto meto redis en la clase Trigger para no pasarlo a cada rato
@@ -275,32 +324,32 @@ class Trigger
     # Por ejemplo, un trigger se podría llamar trigger:-1000000000000:/hola/
     # Ademas, en el hash se guarda el nombre del método que va a usar para mandar el mensaje.
     def self.poner_trigger(id_grupo, id_usuario, regexp, data)
-        @redis.lpush("triggers:#{id_grupo}", regexp.inspect)
+        @redis.sadd "triggers:#{id_grupo}", regexp.inspect
         @redis.hmset("trigger:#{id_grupo}:#{regexp.inspect}", *data)
         @redis.mapped_hmset("trigger:#{id_grupo}:#{regexp.inspect}:metadata",
                             creador: id_usuario, contador: 0)
     end
 
-    # Método que borra un trigger, sus metadatos y su clave en la lista de triggers.
+    # Método que borra un trigger, sus metadatos y su clave en el conjunto de triggers.
     # id_grupo puede ser 'global'
     def self.borrar_trigger(id_grupo, regexp)
-        @redis.lrem "triggers:#{id_grupo}", 0, regexp.inspect
+        @redis.srem "triggers:#{id_grupo}", 0, regexp.inspect
         @redis.del "trigger:#{id_grupo}:#{regexp.inspect}"
         @redis.del "trigger:#{id_grupo}:#{regexp.inspect}:metadata"
     end
 
-    # Itera sobre las listas de triggers tanto globales como de grupo.
-    # Las listas se llaman triggers:global y triggers:id_grupo
-    # Cada lista guarda el trigger en la forma /regexp/, por lo que hay
+    # Itera sobre el conjunto de triggers tanto globales como de grupo.
+    # Los conjuntos se llaman triggers:global y triggers:id_grupo
+    # Cada conjunto guarda el trigger en la forma /regexp/, por lo que hay
     # que sacarle las barritas antes de yieldearlo.
     def self.triggers(id_grupo)
-        @redis.lrange('triggers:global', 0, -1).each do |exp|
+        @redis.smembers("triggers:#{id_grupo}").each do |exp|
+            yield id_grupo, /#{exp.gsub(%r{/(.*)/}, "\\1")}/
+        end
+        @redis.smembers('triggers:global').each do |exp|
             yield :global, /#{exp.gsub(%r{/(.*)/}, "\\1")}/
         end
 
-        @redis.lrange("triggers:#{id_grupo}", 0, -1).each do |exp|
-            yield id_grupo, /#{exp.gsub(%r{/(.*)/}, "\\1")}/
-        end
     end
 
     def self.existe_trigger?(id_grupo, trigger)
@@ -309,4 +358,16 @@ class Trigger
         end
         false
     end
+
+    def self.validar_regexp(str)
+        regexp = /#{str}/
+    rescue RegexpError
+        regexp = nil
+    ensure
+        regexp
+    end
+
+
+
+
 end

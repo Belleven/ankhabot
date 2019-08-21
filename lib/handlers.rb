@@ -7,14 +7,15 @@ module Handler
         def initialize(callback, args = {})
             @callback = callback
             @permitir_editados = args[:permitir_editados] || false
+            @ignorar_comandos = args[:ignorar_comandos] || false
             @chats_permitidos = args[:chats_permitidos]&.map(&:to_s) || %w[private group supergroup] # 'channel' es otra opción
             @tipos = args[:tipos] || MSJ_TYPES
         end
 
-        def verificar(_bot, msj)
+        def verificar(bot, msj)
             return unless msj.is_a? Telegram::Bot::Types::Message
             return if !@permitir_editados && msj.edit_date
-
+            return if @ignorar_comandos && bot.class.comandos.include?(bot.get_command(msj))
             return unless @chats_permitidos.include?(msj.chat.type)
 
             tipo_msj = nil
