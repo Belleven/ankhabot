@@ -9,8 +9,10 @@ class Dankie
     add_handler Handler::Comando.new(:desanclar, :desanclar,
                                      descripción: 'Desanclo el mensaje anclado '\
                                                   'en el grupete')
-    add_handler Handler::Comando.new(:ponerfoto, :poner_foto,
-                                     descripción: 'Cambio la foto del grupete')
+    # add_handler Handler::Comando.new(:ponerfoto, :poner_foto,
+    #                                 descripción: 'Cambio la foto del grupete')
+    add_handler Handler::Comando.new(:sacarfoto, :sacar_foto,
+                                     descripción: 'Quito la foto del grupete')
 
     # Comando /pin /anclar
     def anclar(msj, params)
@@ -79,7 +81,8 @@ class Dankie
                           'ahora no puedo desanclar mensajes'
             log_y_aviso(msj, error_permisos, al_canal: false)
         when /CHAT_NOT_MODIFIED/
-            error_permisos = "No hay ningún mensaje anclado #{TROESMAS.sample}"
+            error_permisos = 'Desanclaron el mensaje mientras ejecutaba el comando, '\
+                             "#{TROESMAS.sample}"
             log_y_aviso(msj, error_permisos, al_canal: false)
         else
             raise
@@ -126,6 +129,37 @@ class Dankie
         # else
         #    raise
         # end
+    end
+
+    def sacar_foto(msj)
+        chat = obtener_chat(msj.chat.id)
+
+        if chat.photo.nil?
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: "No hay ninguna foto en el chat #{TROESMAS.sample}",
+                             reply_to_message_id: msj.message_id)
+        elsif cumple_req_modificar_chat(msj, false, :can_change_info,
+                                        'No tengo permisos para cambiar '\
+                                           'la foto del chat')
+            @tg.delete_chat_photo(chat_id: msj.chat.id)
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: "Foto eliminadísima #{TROESMAS.sample}",
+                             reply_to_message_id: msj.message_id)
+        end
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        case e.to_s
+        when /not enough rights to change chat photo/
+            error_permisos = 'Me restringieron los permisos o me sacaron el admin '\
+                          'mientras se ejecutaba el comando, y por '\
+                          'ahora no puedo borrar la foto'
+            log_y_aviso(msj, error_permisos, al_canal: false)
+        when /CHAT_NOT_MODIFIED/
+            error_permisos = 'Sacaron la foto del grupete mientras ejecutaba el '\
+                             "comando, #{TROESMAS.sample}"
+            log_y_aviso(msj, error_permisos, al_canal: false)
+        else
+            raise
+        end
     end
 
     private

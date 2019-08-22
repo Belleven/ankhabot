@@ -46,7 +46,7 @@ class Dankie
 
     # Creo que esto es un dispatch si entendí bien
     def dispatch(msj)
-        # Handlers generales, no los de comando
+        # Handlers generales, no los de comando si no los de mensajes/eventos de chat
         self.class.handlers.each do |handler|
             handler.ejecutar(self, msj) if handler.verificar(self, msj)
         end
