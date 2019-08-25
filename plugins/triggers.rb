@@ -245,7 +245,8 @@ class Dankie
 
             enviar << "\n<pre>#{html_parser(regexp.inspect)}</pre>\n"
             línea = html_parser(match.string)
-            línea.gsub!(match[0], "<b>#{html_parser match[0]}</b>")
+            texto_match = html_parser match[0]
+            línea.gsub!(texto_match, "<b>#{texto_match}</b>")
             enviar << línea << "\n"
             emparejó = true
         end
