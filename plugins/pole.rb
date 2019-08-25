@@ -7,8 +7,8 @@ class Dankie
                                      descripción: 'Muestro el ranking de Nisman')
 
     # TODO: Ponerle algún flag de solo test a este comando
-    # add_handler CommandHandler.new(:dar_nisman, :_test_dar_pole)
-    # add_handler CommandHandler.new(:reiniciar_nisman, :_test_reiniciar_pole)
+    # add_handler Handler::Comando.new(:dar_nisman, :_test_dar_pole)
+    # add_handler Handler::Comando.new(:reiniciar_nisman, :_test_reiniciar_pole)
 
     # Variables para sincronizar y controlar la cantidad de threads que hay activos
     $nisman_activas = Concurrent::AtomicFixnum.new(0)
