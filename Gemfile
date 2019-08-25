@@ -6,6 +6,7 @@ gem 'redis'
 gem 'ruby_reddit_api'
 gem 'telegram-bot-ruby'
 gem 'tzinfo'
+gem 'httpclient'
 
 group :test do
     gem 'rubocop'
