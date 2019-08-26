@@ -176,16 +176,16 @@ class Dankie
         unless triggers_globales.empty?
             hay_elementos = true
             texto << "\n<b>Globales:</b>"
-            triggers_globales.each do |trig|
-                texto << "\n<pre>#{html_parser trig}</pre>"
+            triggers_globales.sort!.each do |trig|
+                texto << "\n<pre> - #{html_parser trig}</pre>"
             end
         end
 
         unless triggers_locales.empty?
             hay_elementos = true
             texto << "\n<b>Locales:</b>"
-            triggers_locales.each do |trig|
-                texto << "\n<pre>#{html_parser trig}</pre>"
+            triggers_locales.sort!.each do |trig|
+                texto << "\n<pre> - #{html_parser trig}</pre>"
             end
         end
 
@@ -413,7 +413,7 @@ class Trigger
     end
 
     def self.regexp_a_str(regexp)
-        return regexp.inspect.gsub %r{/(.*)/i}, "\\1"
+        return regexp.inspect.gsub(/\/(.*)\/i/m, "\\1")
     end
 
 
