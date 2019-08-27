@@ -15,7 +15,15 @@ class Dankie
     def recarga(msj)
         @@juegos[msj.chat.id] ||= [0, []]
         cant_balas, balas_arr = @@juegos[msj.chat.id]
-        cant_balas += 1 if cant_balas < 6
+
+        if cant_balas < 6
+            cant_balas += 1
+        else
+            @tg.send_message(chat_id: msj.chat.id,
+                             reply_to_message_id: msj.message_id,
+                             text: "Ya está lleno el tambor #{TROESMAS.sample}")
+            return
+        end
 
         balas_arr = Array.new(cant_balas, true)
         (6 - cant_balas).times { balas_arr.push(false) }
@@ -23,11 +31,9 @@ class Dankie
         @@juegos[msj.chat.id] = [cant_balas, balas_arr]
 
         texto = "Recargado y girado. Hay #{cant_balas} balas "\
-                "de 6 cargadas en la bersa.\n"
+                'de 6 cargadas en la bersa.'
 
-        @tg.send_message(chat_id: msj.chat.id,
-                         reply_to_message_id: msj&.reply_to_message&.message_id,
-                         text: texto)
+        @tg.send_message(chat_id: msj.chat.id, text: texto)
     end
 
     def dispara(msj)

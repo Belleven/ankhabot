@@ -29,7 +29,7 @@ class TelegramAPI
         while inicio != fin
 
             # Mando el blocazo
-            args[:text] = texto[inicio..fin - 1].strip
+            args[:text] = texto[inicio..(fin - 1)].strip
 
             unless args[:text].nil? || args[:text].empty?
                 resultado = enviar(:send_message, args, 'typing')
