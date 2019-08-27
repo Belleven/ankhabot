@@ -28,6 +28,7 @@ class Dankie
         if @palabras_c[msj.chat.id].empty? || @palabras_p[msj.chat.id].empty?
             @tg.send_message(chat_id: msj.chat.id,
                              text: 'Hacen falta más mensajes')
+            return
         end
 
         cp = [@palabras_c[msj.chat.id].sample, @palabras_p[msj.chat.id].sample]
