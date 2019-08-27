@@ -1,11 +1,14 @@
 class Dankie
-    add_handler Handler::Comando.new(:di, :di, permitir_params: true,
-                                               descripción: 'Repito lo que me digas')
-    add_handler Handler::Comando.new(:grita, :grita, permitir_params: true,
-                                                     descripción: 'Grito lo que me digas')
+    add_handler Handler::Comando.new(:di, :di,
+                                     permitir_params: true,
+                                     descripción: 'Repito lo que me digas')
+    add_handler Handler::Comando.new(:grita, :grita,
+                                     permitir_params: true,
+                                     descripción: 'Grito lo que me digas')
 
     def di(msj, parámetros)
-        texto = parámetros || msj.reply_to_message&.text || msj.reply_to_message&.caption
+        texto = parámetros || msj.reply_to_message&.text ||
+                msj.reply_to_message&.caption
         return if no_hay_texto(msj, texto, 'digo')
 
         @tg.send_message(chat_id: msj.chat.id, text: texto)

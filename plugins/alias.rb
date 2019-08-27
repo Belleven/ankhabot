@@ -1,6 +1,8 @@
 class Dankie
-    add_handler Handler::Mensaje.new(:registrar_alias)
-    add_handler Handler::EventoDeChat.new(:registrar_alias)
+    add_handler Handler::Mensaje.new(:registrar_alias,
+                                     chats_permitidos: %i[group supergroup])
+    add_handler Handler::EventoDeChat.new(:registrar_alias,
+                                          chats_permitidos: %i[group supergroup])
 
     def registrar_alias(msj)
         registrar_alias_usuario(msj.from)

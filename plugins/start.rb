@@ -4,8 +4,6 @@ class Dankie
                                      descripción: 'Mando el mensaje de inicio/flood')
 
     def inicio(msj)
-        return if msj.chat.type == 'channel'
-
         texto = if msj.chat.type == 'supergroup' || msj.chat.type == 'group'
                     'Hola, vengo a floodear'
                 else

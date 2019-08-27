@@ -1,5 +1,7 @@
 class Dankie
-    add_handler Handler::EventoDeChat.new(:nuevos_miembros, tipos: [:new_chat_members])
+    add_handler Handler::EventoDeChat.new(:nuevos_miembros,
+                                          chats_permitidos: %i[group supergroup],
+                                          tipos: [:new_chat_members])
 
     def nuevos_miembros(msj)
         if msj.new_chat_members.any? { |miembro| miembro.id == @user.id }

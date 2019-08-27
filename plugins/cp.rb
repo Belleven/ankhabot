@@ -1,5 +1,8 @@
 # Extensión de Dankie para generar mensajes cp
 class Dankie
+    add_handler Handler::EventoDeChat.new(:cp_supergrupo,
+                                          tipos: [:migrate_from_chat_id],
+                                          chats_permitidos: %i[supergroup])
     add_handler Handler::Mensaje.new(:añadir_palabras_cp, tipos: [:text])
     add_handler Handler::Comando.new(:cp, :cp,
                                      descripción: 'Genero una posible '\
@@ -7,10 +10,7 @@ class Dankie
                                                   'usando texto del chat')
 
     def añadir_palabras_cp(msj)
-        @palabras_c ||= {}
-        @palabras_c[msj.chat.id] ||= []
-        @palabras_p ||= {}
-        @palabras_p[msj.chat.id] ||= []
+        crear_variables(msj)
 
         msj.text.split.each do |pal|
             next if pal.size > 30
@@ -27,12 +27,31 @@ class Dankie
     def cp(msj)
         if @palabras_c[msj.chat.id].empty? || @palabras_p[msj.chat.id].empty?
             @tg.send_message(chat_id: msj.chat.id,
-                             text: 'Manden más mensajes papus')
+                             text: 'Hacen falta más mensajes')
         end
 
         cp = [@palabras_c[msj.chat.id].sample, @palabras_p[msj.chat.id].sample]
         texto = cp.join ' '
 
         @tg.send_message(chat_id: msj.chat.id, text: texto)
+    end
+
+    def cp_supergrupo(msj)
+        crear_variables(msj)
+
+        @palabras_c[msj.chat.id] = @palabras_c[msj.migrate_from_chat_id]
+        @palabras_c.delete(msj.migrate_from_chat_id)
+
+        @palabras_p[msj.chat.id] = @palabras_p[msj.migrate_from_chat_id]
+        @palabras_p.delete(msj.migrate_from_chat_id)
+    end
+
+    private
+
+    def crear_variables(msj)
+        @palabras_c ||= {}
+        @palabras_c[msj.chat.id] ||= []
+        @palabras_p ||= {}
+        @palabras_p[msj.chat.id] ||= []
     end
 end

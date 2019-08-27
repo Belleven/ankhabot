@@ -1,9 +1,13 @@
 # Extension de dankie para manejar las poles
 class Dankie
-    add_handler Handler::EventoDeChat.new(:pole_supergrupo, tipos: [:migrate_from_chat_id])
+    add_handler Handler::EventoDeChat.new(:pole_supergrupo,
+                                          tipos: [:migrate_from_chat_id],
+                                          chats_permitidos: %i[supergroup])
+
     add_handler Handler::Mensaje.new(:pole, chats_permitidos: %i[group supergroup])
-    add_handler Handler::EventoDeChat.new(:pole)
+    add_handler Handler::EventoDeChat.new(:pole, chats_permitidos: %i[group supergroup])
     add_handler Handler::Comando.new(:nisman, :enviar_ranking_pole,
+                                     chats_permitidos: %i[group supergroup],
                                      descripción: 'Muestro el ranking de Nisman')
 
     # TODO: Ponerle algún flag de solo test a este comando
@@ -23,9 +27,14 @@ class Dankie
         id = msj.reply_to_message ? msj.reply_to_message.from.id : msj.from.id
         mensaje = msj.reply_to_message || msj
 
-        nombre = mensaje.from.first_name.empty? ? mensaje.from.id.to_s : html_parser(mensaje.from.first_name)
+        nombre = if mensaje.from.first_name.empty?
+                     mensaje.from.id.to_s
+                 else
+                     html_parser(mensaje.from.first_name)
+                 end
 
-        # Sincronizo para que se frene el comando /nisman hasta que se terminen de registrar la pole
+        # Sincronizo para que se frene el comando /nisman hasta que
+        # se terminen de registrar la pole
         $semáforo.bloqueo_uno
 
         @redis.zincrby("pole:#{mensaje.chat.id}", 1, id)
@@ -53,13 +62,18 @@ class Dankie
         próx_pole = Time.new(mañana.year, mañana.month, mañana.day,
                              0, 0, 0, @tz.utc_offset)
 
-        # Sincronizo para que se frene el comando /nisman hasta que se terminen de registrar la pole
+        # Sincronizo para que se frene el comando /nisman hasta que se
+        # terminen de registrar la pole
         $semáforo.bloqueo_uno
 
         @redis.set "pole:#{msj.chat.id}:próxima", próx_pole.to_i
         @redis.zincrby("pole:#{msj.chat.id}", 1, msj.from.id)
 
-        nombre = msj.from.first_name.empty? ? "ay no c (#{msj.from.id})" : html_parser(msj.from.first_name)
+        nombre = if msj.from.first_name.empty?
+                     "ay no c (#{msj.from.id})"
+                 else
+                     html_parser(msj.from.first_name)
+                 end
 
         @logger.info("#{nombre} hizo la nisman en #{msj.chat.id}", al_canal: false)
         @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
@@ -72,23 +86,25 @@ class Dankie
 
     def enviar_ranking_pole(msj)
         id_chat = msj.chat.id
-        return unless validar_grupo(msj.chat.type, id_chat, msj.message_id)
 
         # Si hay 4 hilos activos entonces no atiendo el comando y aviso de esto
         if $nisman_activas.value >= 4
-            # Problema improbable que NO puede notar el usuario y por eso no es importante arreglar:
+            # Problema improbable que NO puede notar el usuario y por eso no
+            # es importante arreglar:
             # Puede pasar durante el chequeo de este if, si pasa lo siguiente:
             # - El hilo principal toma el valor de "nisman_activas" de memoria que es 4
             # - Hay un cambio de contexto
-            # - Uno o más hilos terminan y decrementan el valor de "nisman_activas" que ahora es 3 o menos
+            # - Uno o más hilos terminan y decrementan el valor de "nisman_activas"
+            #   que ahora es 3 o menos
             # Debería poder crearse un nuevo hilo entonces
-            # - PERO durante el if se trajo un 4 de memoria, con lo cual va a devolver true la comparación 4 >= 4
+            # - PERO durante el if se trajo un 4 de memoria, con lo cual va a devolver
+            #   true la comparación 4 >= 4
             # - NO se va a crear un nuevo hilo cuando debería
             @tg.send_message(chat_id: id_chat,
                              reply_to_message_id: msj.message_id,
                              text: 'Disculpame pero hay demasiados comandos nisman '\
-                                   'activos en este momento, acá y/o en otros grupetes. '\
-                                   'Vas a tener que esperar.')
+                                   'activos en este momento, acá y/o en otros '\
+                                   'grupetes. Vas a tener que esperar.')
 
         else
 
@@ -101,16 +117,17 @@ class Dankie
             # Aumento en 1 la cantidad de hilos activos
             $nisman_activas.increment
 
-            # En vez de esto debería tener otra lista de plugins pesados que trabajen en un hilo aparte
-            # --comentario de galera: mmmmm vs dcis? por ahora no hay otros comandos pesados, igual
-            # es mucho más fácil sincronizar 2 hilos en vez de hasta 5
+            # En vez de esto debería tener otra lista de plugins pesados que trabajen
+            # en un hilo aparte
 
             Thread.new do
                 # Sincronizo para que se frene la captura de la pole hasta
                 # que se terminen de mandar los rankings que fueron llamados
                 $semáforo.bloqueo_muchos
 
-                @logger.info("#{msj.from.id} pidió el ranking de nisman en el chat #{msj.chat.id}", al_canal: false)
+                @logger.info("#{msj.from.id} pidió el ranking de nisman "\
+                             "en el chat #{msj.chat.id}",
+                             al_canal: false)
 
                 editar_ranking_pole(enviado, texto)
 
@@ -119,9 +136,11 @@ class Dankie
                 # Además de habilitar un nuevo hilo
                 $nisman_activas.decrement
 
-                # Posible problema: después de esta instrucción podría haber un cambio de contexto antes de que muera el hilo??
-                # Espero que no, porque si fuese así entonces podría haber más de 4 hilos del comando "/nisman" activos a la vez
-                # Aunque eso no se va a notar en las variables, ni lo va a notar el usuario, pero en un caso super borde podría causar
+                # Posible problema: después de esta instrucción podría haber un cambio
+                # de contexto antes de que muera el hilo?? Espero que no, porque si
+                # fuese así entonces podría haber más de 4 hilos del comando "/nisman"
+                # activos a la vez. Aunque eso no se va a notar en las variables, ni lo
+                # va a notar el usuario, pero en un caso super borde podría causar
                 # problemas de eficiencia.
             end
 

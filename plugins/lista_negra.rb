@@ -1,24 +1,32 @@
 class Dankie
     add_handler Handler::EventoDeChat.new(:lista_negra_supergrupo,
-                                          tipos: [:migrate_from_chat_id])
+                                          tipos: [:migrate_from_chat_id],
+                                          chats_permitidos: %i[supergroup])
 
     add_handler Handler::Comando.new(:restringir, :restringir,
+                                     chats_permitidos: %i[group supergroup],
                                      descripción: 'Restrinjo a alguien en el chat '\
                                                   'para que no interactúe conmigo '\
                                                   '(solo admins)',
                                      permitir_params: true)
 
     add_handler Handler::Comando.new(:habilitar, :habilitar,
+                                     chats_permitidos: %i[group supergroup],
                                      descripción: 'Habilito a alguien en el '\
                                                   'chat de para que pueda '\
                                                   'interactuar conmigo (solo admins)',
                                      permitir_params: true)
 
-    add_handler Handler::Comando.new(:bloquear, :bloquear, permitir_params: true)
-    add_handler Handler::Comando.new(:desbloquear, :desbloquear, permitir_params: true)
+    add_handler Handler::Comando.new(:bloquear, :bloquear,
+                                     chats_permitidos: %i[group supergroup],
+                                     permitir_params: true)
+    add_handler Handler::Comando.new(:desbloquear, :desbloquear,
+                                     chats_permitidos: %i[group supergroup],
+                                     permitir_params: true)
 
     add_handler Handler::Comando.new(:bloqueados, :bloqueados)
-    add_handler Handler::Comando.new(:restringidos, :local_blocked,
+    add_handler Handler::Comando.new(:restringidos, :restringidos,
+                                     chats_permitidos: %i[group supergroup],
                                      descripción: 'Lista de miembros del chat '\
                                                   'bloqueados por el bot')
 
@@ -47,9 +55,7 @@ class Dankie
         obtener_bloqueados(msj, 'global')
     end
 
-    def local_blocked(msj)
-        return unless validar_grupo(msj.chat.type, msj.chat.id, msj.message_id)
-
+    def restringidos(msj)
         obtener_bloqueados(msj, msj.chat.id)
     end
 
@@ -72,23 +78,16 @@ class Dankie
 
         if params.nil?
             id = nil
-        else
-            id = natural(params)
-            unless id
-                @tg.send_message(chat_id: id_chat,
-                                 reply_to_message_id: id_mensaje,
-                                 text: 'Pasame un parámetro válido CAPO')
-                return
-            end
+        elsif !(id = natural(params))
+            @tg.send_message(chat_id: id_chat,
+                             reply_to_message_id: id_mensaje,
+                             text: "Pasame un parámetro válido #{TROESMAS.sample}")
+            return
         end
 
-        # Chequeo que sea llamado por quién corresponde y dónde corresponde
-        if !validar_grupo(tipo, id_chat, id_mensaje) ||
-           !send(funcion_validadora, id_usuario, id_chat, id_mensaje, text, id)
-            return
-        else
+        # Chequeo que sea llamado por quién corresponde
+        if send(funcion_validadora, id_usuario, id_chat, id_mensaje, text, id)
             send(execute_function, msj, block_site, id)
-            return
         end
     end
 
@@ -281,8 +280,8 @@ class Dankie
                   !validar_desarrollador(msj.from.id, msj.chat.id, msj.message_id)
 
         error_admin = 'Solo los admins pueden usar esto'
-        return if !es_global &&
-                  es_admin(msj.from.id, msj.chat.id, msj.message_id, error_admin)
+        return unless es_global ||
+                      es_admin(msj.from.id, msj.chat.id, msj.message_id, error_admin)
 
         # Tomo los miembros
         conjunto_iterable = @redis.smembers("lista_negra:#{id_grupo}")

@@ -1,8 +1,10 @@
 class Dankie
     add_handler Handler::Comando.new(:estatus, :estatus,
+                                     chats_permitidos: %i[group supergroup],
                                      descripción: 'Devuelvo el estatus de un '\
                                                    'miembro del grupo')
     add_handler Handler::Comando.new(:permisos, :permisos,
+                                     chats_permitidos: %i[group supergroup],
                                      descripción: 'Devuelvo los permisos de los '\
                                                    'miembros comunes del grupete')
 
@@ -15,7 +17,8 @@ class Dankie
                            'administrator' => 'ADMINISTRADOR',
                            'restricted' => 'USUARIO RESTRINGIDO' }
 
-            estado = miembro.user.first_name.empty? ? 'DESAPARECIDO' : traducción[miembro.status]
+            estado = miembro.user.first_name.empty? ?
+                        'DESAPARECIDO' : traducción[miembro.status]
 
             texto = "Estatus de #{crear_enlace(miembro.user)}: #{estado}"
             agregar_cualidades(miembro, texto) unless miembro.user.first_name.empty?
@@ -33,14 +36,12 @@ class Dankie
     end
 
     def permisos(msj)
-        if validar_grupo(msj.chat.type, msj.chat.id, msj.message_id)
-            texto = 'Permisos de los miembros comunes del grupete '\
-                    "#{grupo_del_msj(msj)}:\n"
+        texto = 'Permisos de los miembros comunes del grupete '\
+                "#{grupo_del_msj(msj)}:\n"
 
-            agregar_permisos_chat(msj, texto)
+        agregar_permisos_chat(msj, texto)
 
-            @tg.send_message(chat_id: msj.chat.id, text: texto)
-        end
+        @tg.send_message(chat_id: msj.chat.id, text: texto)
     end
 
     private
@@ -48,30 +49,27 @@ class Dankie
     def miembro_válido(msj)
         miembro = nil
 
-        if validar_grupo(msj.chat.type, msj.chat.id, msj.message_id)
+        id_usuario, alias_usuario, otro_texto = id_y_resto(msj)
 
-            id_usuario, alias_usuario, otro_texto = id_y_resto(msj)
+        if id_usuario.nil?
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: 'Tenés que responder un mensaje o pasarme '\
+                                    'un usuario para que pueda revisar '\
+                                    "su estatus, #{TROESMAS.sample}",
+                             reply_to_message_id: msj.message_id)
+            return nil
+        end
 
-            if id_usuario.nil?
-                @tg.send_message(chat_id: msj.chat.id,
-                                 text: 'Tenés que responder un mensaje o pasarme '\
-                                        'un usuario para que pueda revisar '\
-                                        "su estatus, #{TROESMAS.sample}",
-                                 reply_to_message_id: msj.message_id)
-                return nil
-            end
+        miembro = obtener_miembro(msj, id_usuario)
 
-            miembro = obtener_miembro(msj, id_usuario)
+        if alias_usuario &&
+           (!miembro.user.username || miembro.user.username != alias_usuario)
 
-            if alias_usuario &&
-               (!miembro.user.username || miembro.user.username != alias_usuario)
-
-                @tg.send_message(chat_id: msj.chat.id,
-                                 text: 'No reconozco ese alias, lo más probable es que '\
-                                            'haya sido cambiado recientemente',
-                                 reply_to_message_id: msj.message_id)
-                return nil
-            end
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: 'No reconozco ese alias, lo más probable es que '\
+                                      'haya sido cambiado recientemente',
+                             reply_to_message_id: msj.message_id)
+            return nil
         end
         miembro
     end
@@ -80,10 +78,12 @@ class Dankie
         if miembro.status == 'administrator'
             texto << "\n\nCon las siguientes características:"
 
+            agr_cualidades_admin_restr(miembro, texto)
+
             texto << if miembro.can_be_edited
-                         "\n✅ Puedo editar sus privilegios de administrador."
+                         "\n✅ Puedo editarle sus privilegios de administrador."
                      else
-                         "\n❌ No puedo editar sus privilegios de administrador."
+                         "\n❌ No puedo editarle sus privilegios de administrador."
                         end
 
             texto << if miembro.can_delete_messages
@@ -114,7 +114,6 @@ class Dankie
                      else
                          "\n❌ No es miembro actual del grupete."
                         end
-
             agr_cualidades_generales(miembro, texto)
 
         elsif miembro.status == 'kicked'

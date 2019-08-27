@@ -3,7 +3,8 @@ class Dankie
                                      descripción: 'Busco una imagen')
 
     def search_image(msj)
-        args = get_command_params(msj) || msj.reply_to_message&.text || msj.reply_to_message&.caption
+        args = get_command_params(msj) || msj.reply_to_message&.text ||
+               msj.reply_to_message&.caption
 
         unless args
             @tg.send_message(chat_id: msj.chat.id,

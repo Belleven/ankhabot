@@ -1,18 +1,34 @@
 class Dankie
-    add_handler Handler::Comando.new(:pin, :anclar, permitir_params: true)
+    add_handler Handler::Comando.new(:pin, :anclar, permitir_params: true,
+                                                    chats_permitidos: %i[group supergroup])
     add_handler Handler::Comando.new(:anclar, :anclar, permitir_params: true,
-                                                       descripción: 'Anclo el mensaje '\
-                                                                    'al que respondas '\
-                                              'en el grupete (agregá ''tranca'' para '\
-                                              'que no mande notificaciones al hacerlo)')
+                                                       chats_permitidos: %i[group supergroup],
+                                                       descripción: 'Anclo el mensaje al que respondas '\
+                                                  "en el grupete (agregá ''tranca'' "\
+                                                  'para que no mande notificaciones '\
+                                                  'al hacerlo)')
     add_handler Handler::Comando.new(:unpin, :desanclar)
     add_handler Handler::Comando.new(:desanclar, :desanclar,
+                                     chats_permitidos: %i[group supergroup],
                                      descripción: 'Desanclo el mensaje anclado '\
                                                   'en el grupete')
     # add_handler Handler::Comando.new(:ponerfoto, :poner_foto,
-    #                                 descripción: 'Cambio la foto del grupete')
+    #                                  chats_permitidos: %i[group supergroup],
+    #                                  descripción: 'Cambio la foto del grupete')
     add_handler Handler::Comando.new(:sacarfoto, :sacar_foto,
+                                     chats_permitidos: %i[group supergroup],
                                      descripción: 'Quito la foto del grupete')
+    add_handler Handler::Comando.new(:cambiartítulo, :cambiar_título,
+                                     permitir_params: true,
+                                     chats_permitidos: %i[group supergroup])
+    add_handler Handler::Comando.new(:cambiartitulo, :cambiar_título,
+                                     permitir_params: true,
+                                     chats_permitidos: %i[group supergroup],
+                                     descripción: 'Cambio el título del grupete')
+    add_handler Handler::Comando.new(:cambiardesc, :cambiar_descripción,
+                                     permitir_params: true,
+                                     chats_permitidos: %i[group supergroup],
+                                     descripción: 'Cambio la descripción del grupete')
 
     # Comando /pin /anclar
     def anclar(msj, params)
@@ -162,19 +178,74 @@ class Dankie
         end
     end
 
+    def cambiar_título(msj, params)
+        if params.nil? || params.length.zero?
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: "Qué título le pongo, #{TROESMAS.sample}?",
+                             reply_to_message_id: msj.message_id)
+        elsif params.length > 255
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: "Hasta 255 caracteres, #{TROESMAS.sample}",
+                             reply_to_message_id: msj.message_id)
+        elsif cumple_req_modificar_chat(msj, false, :can_change_info,
+                                        'No tengo permisos para cambiar '\
+                                           'el título del chat')
+            @tg.set_chat_title(chat_id: msj.chat.id, title: params)
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: "Título cambiadísimo #{TROESMAS.sample}",
+                             reply_to_message_id: msj.message_id)
+        end
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        case e.to_s
+        when /not enough rights to change chat title/
+            error_permisos = 'Me restringieron los permisos o me sacaron el admin '\
+                          'mientras se ejecutaba el comando, y por '\
+                          'ahora no puedo cambiar el título'
+            log_y_aviso(msj, error_permisos, al_canal: false)
+        else
+            raise
+        end
+    end
+
+    def cambiar_descripción(msj, params)
+        if params.length > 255
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: "Hasta 255 caracteres, #{TROESMAS.sample}",
+                             reply_to_message_id: msj.message_id)
+        elsif cumple_req_modificar_chat(msj, false, :can_change_info,
+                                        'No tengo permisos para cambiar '\
+                                           'la descripción del chat')
+        else
+            @tg.set_chat_description(chat_id: msj.chat.id, title: params)
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: "Descripción cambiadísima #{TROESMAS.sample}",
+                             reply_to_message_id: msj.message_id)
+        end
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        case e.to_s
+        when /not enough rights to change chat description/
+            error_permisos = 'Me restringieron los permisos o me sacaron el admin '\
+                          'mientras se ejecutaba el comando, y por '\
+                          'ahora no puedo cambiar el título'
+            log_y_aviso(msj, error_permisos, al_canal: false)
+        else
+            raise
+        end
+    end
+
     private
 
     # Chequea que sea en un grupo, que responda a un mensaje (si corresponde)
     # y que tengan los permisos adecuados el bot y quien llama al comando.
-    def cumple_req_modificar_chat(msj, necesita_responder, permiso, error_permisos)
-        validar_grupo(msj.chat.type, msj.chat.id, msj.message_id) &&
-            # Esto es una implicación, recordar que p => q es equivalente a
-            # ¬p V q, y yo lo que quiero es que esto de verdadero cuando no se
-            # necesite responder (p = false) o cuando se necesite responder y
-            # se responda a un mensaje válido (p = true && q = true). Lo que no puede
-            # valer es que necesite responder y el mensaje no sea válido (p = true
-            # && q = false). Está hecho así para que se use esta función desde /desanclar
-            (!necesita_responder || resp_msj_válido(msj)) &&
+    def cumple_req_modificar_chat(msj, necesita_responder,
+                                  permiso, error_permisos)
+        # Esto es una implicación, recordar que p => q es equivalente a
+        # ¬p V q, y yo lo que quiero es que esto de verdadero cuando no se
+        # necesite responder (p = false) o cuando se necesite responder y
+        # se responda a un mensaje válido (p = true && q = true). Lo que no puede
+        # valer es que necesite responder y el mensaje no sea válido (p = true
+        # && q = false). Está hecho así para que se use esta función desde /desanclar
+        (!necesita_responder || resp_msj_válido(msj)) &&
             tiene_permisos(msj, @user.id, permiso, 'Necesito', error_permisos) &&
             tiene_permisos(msj, msj.from.id, permiso, 'Tenés que', error_permisos)
     end

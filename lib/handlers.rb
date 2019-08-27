@@ -7,7 +7,9 @@ module Handler
         def initialize(callback, args = {})
             @callback = callback
             @permitir_editados = args[:permitir_editados] || false
-            @chats_permitidos = args[:chats_permitidos]&.map(&:to_s) || %w[private group supergroup] # 'channel' es otra opción
+            # 'channel' es otra opción
+            @chats_permitidos = args[:chats_permitidos]&.map(&:to_s) ||
+                                %w[private group supergroup]
             @tipos = args[:tipos] || MSJ_TYPES
         end
 
@@ -41,12 +43,20 @@ module Handler
             @descripción = args[:descripción]
             @permitir_params = args[:permitir_params] || false
             @permitir_editados = args[:permitir_editados] || false
+            # 'channel' es otra opción
+            @chats_permitidos = args[:chats_permitidos]&.map(&:to_s) ||
+                                %w[private group supergroup]
         end
 
         def ejecutar(bot, msj)
             return unless msj.is_a? Telegram::Bot::Types::Message
 
             return if !@permitir_editados && msj.edit_date
+
+            unless @chats_permitidos.include?(msj.chat.type)
+                bot.chat_inválido(msj, @chats_permitidos)
+                return
+            end
 
             cmd = bot.get_command(msj)
             return if @cmd != cmd
@@ -104,7 +114,7 @@ module Handler
                 end
             end
 
-            @chats_permitidos = args[:chats]&.map(&:to_s) || %w[private group supergroup] # 'channel' es otra opción
+            @chats_permitidos = args[:chats_permitidos]&.map(&:to_s) || %w[private group supergroup] # 'channel' es otra opción
             @callback = callback
         end
 

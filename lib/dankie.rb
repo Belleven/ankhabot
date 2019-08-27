@@ -130,6 +130,27 @@ class Dankie
         cmd[:params]
     end
 
+    def chat_inválido(msj, válidos)
+        if msj.chat.type != 'channel'
+
+            traducciones = { 'private' => 'privado', 'group' => 'grupos',
+                             'supergroup' => 'supergrupos', 'channel' => 'canales' }
+
+            texto = "Este comando es válido solo en #{traducciones[válidos.first]}"
+
+            if válidos.length == 2
+                texto << " y #{traducciones[válidos[1]]}"
+            elsif válidos.length == 3
+                texto << ", #{traducciones[válidos[1]]} y #{traducciones[válidos[2]]}"
+            end
+
+            @tg.send_message(chat_id: msj.chat.id,
+                             reply_to_message_id: msj.message_id,
+                             text: texto)
+
+        end
+    end
+
     private
 
     # Analiza un texto y se fija si es un comando válido, devuelve el comando
@@ -203,20 +224,6 @@ class Dankie
         end
 
         false
-    end
-
-    def validar_grupo(type, chat_id, mensaje_id)
-        if type == 'private'
-            @tg.send_message(chat_id: chat_id, reply_to_message_id: mensaje_id,
-                             text: 'Esto solo funciona en grupetes')
-            return false
-
-        elsif type == 'channel'
-            return false
-
-        end
-
-        true
     end
 
     def validar_desarrollador(usuario_id, chat_id, mensaje_id, _text = nil, _id = nil)

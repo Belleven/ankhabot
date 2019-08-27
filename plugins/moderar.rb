@@ -1,35 +1,51 @@
 class Dankie
-    add_handler Handler::Comando.new(:kick, :rajar)
+    add_handler Handler::Comando.new(:kick, :rajar,
+                                     chats_permitidos: %i[group supergroup])
     add_handler Handler::Comando.new(:rajar, :rajar,
+                                     chats_permitidos: %i[group supergroup],
                                      descripción: 'Echo al usuario del grupo')
-    add_handler Handler::Comando.new(:ban, :ban)
+    add_handler Handler::Comando.new(:ban, :ban,
+                                     chats_permitidos: %i[supergroup])
     add_handler Handler::Comando.new(:nisban, :ban,
+                                     chats_permitidos: %i[supergroup],
                                      descripción: 'Baneo al usuario del grupo')
-    add_handler Handler::Comando.new(:unban, :desban)
+    add_handler Handler::Comando.new(:unban, :desban,
+                                     chats_permitidos: %i[supergroup])
     add_handler Handler::Comando.new(:desbanificar, :desban,
+                                     chats_permitidos: %i[supergroup],
                                      descripción: 'Desbaneo al usuario del grupo')
 
     # Comando /rajar /kick
     def rajar(msj)
-        # Función que uso para chequear que se cumplan condiciones específicas del comando
+        # Función que uso para chequear que se cumplan condiciones
+        # específicas del comando
         chequeo_afectado = proc do |miembro|
             miembro.status == 'left' || miembro.status == 'kicked' ||
                 (miembro.status == 'restricted' && !miembro.is_member)
         end
         # Función para moderar el grupete
-        func_moderadora = proc do |chat_id, id_afectada|
-            # Por alguna razón misteriosa la función unban_chat_member kickea
-            @tg.unban_chat_member(chat_id: chat_id, user_id: id_afectada)
+        if msj.chat.type == 'supergroup'
+            func_moderadora = proc do |chat_id, id_afectada|
+                # Por alguna razón misteriosa la función unban_chat_member
+                # kickea en supergrupos
+                @tg.unban_chat_member(chat_id: chat_id, user_id: id_afectada)
+            end
+        elsif msj.chat.type == 'group'
+            func_moderadora = proc do |chat_id, id_afectada|
+                # Por alguna razón misteriosa esta función solo kickea
+                # en grupos normales
+                @tg.kick_chat_member(chat_id: chat_id, user_id: id_afectada)
+            end
         end
 
         error_afectado = 'No voy a echar a alguien que no estaba en el grupo '\
                          'al momento de mandar este comando'
         msj_final = 'Ni nos vimos'
 
-        para_aplicar_restriccion = true
+        para_aplicar_restricción = true
 
         aplicar_moderación(msj, chequeo_afectado, func_moderadora,
-                           error_afectado, msj_final, para_aplicar_restriccion)
+                           error_afectado, msj_final, para_aplicar_restricción)
     end
 
     # Comando /ban /nisban
@@ -45,10 +61,10 @@ class Dankie
                          'al momento de mandar este comando'
         msj_final = 'Pero mirá el ban que te comiste'
 
-        para_aplicar_restriccion = true
+        para_aplicar_restricción = true
 
         aplicar_moderación(msj, chequeo_afectado, func_moderadora,
-                           error_afectado, msj_final, para_aplicar_restriccion)
+                           error_afectado, msj_final, para_aplicar_restricción)
     end
 
     # Comando /unban /desbanificar
@@ -63,18 +79,18 @@ class Dankie
         error_afectado = 'No puedo desbanear a alguien que no está baneado'
         msj_final = 'Ya podés meterte de nuevo, pero no vuelvas a mandarte cagadas'
         # Acá el afectado claramente no va a ser un admin
-        para_aplicar_restriccion = false
+        para_aplicar_restricción = false
 
         aplicar_moderación(msj, chequeo_afectado, func_moderadora,
-                           error_afectado, msj_final, para_aplicar_restriccion)
+                           error_afectado, msj_final, para_aplicar_restricción)
     end
 
     private
 
     # Función que chequea los requisitos y ejecuta finalmente el comando moderador
     def aplicar_moderación(msj, chequeo_afectado, func_moderadora,
-                           error_afectado, msj_final, para_aplicar_restriccion)
-        cumple, miembro, razón = cumple_requisitos(msj, para_aplicar_restriccion)
+                           error_afectado, msj_final, para_aplicar_restricción)
+        cumple, miembro, razón = cumple_requisitos(msj, para_aplicar_restricción)
 
         if cumple
             if chequeo_afectado.call(miembro)
@@ -93,38 +109,35 @@ class Dankie
     end
 
     # Todos los requisitos que hay que cumplir para banear/kickear
-    def cumple_requisitos(msj, para_aplicar_restriccion)
+    def cumple_requisitos(msj, para_aplicar_restricción)
         # Siempre que alguna de estas sea falsa, va a mandar un mensaje de error
         cumple = false
         miembro = nil
         razón = nil
 
-        # Chequeo que sea en un grupo (implementada en Dankie.rb)
-        if validar_grupo(msj.chat.type, msj.chat.id, msj.message_id)
-            # Chequeo que esté pasando una id para afectar
-            id_afectada, razón, alias_id = dar_id_afectada(msj, para_aplicar_restriccion)
+        # Chequeo que esté pasando una id para afectar
+        id_afectada, razón, alias_id = dar_id_afectada(msj, para_aplicar_restricción)
 
-            if id_afectada && razón && razón.length > 233
-                @tg.send_message(chat_id: msj.chat.id,
-                                 text: "No puedo ejecutar el comando\n"\
-                                 'Razón: la razón es muy larga.',
-                                 reply_to_message_id: msj.message_id)
-            elsif !id_afectada.nil? &&
-                  # Chequeo que el bot sea admin en ese grupo y tenga los permisos correspondientes
-                  # 'Necesito' y 'No tengo' son para los mensajes de error
-                  tiene_permisos(msj, @user.id, :can_restrict_members, 'Necesito',
-                                 'No tengo permisos para restringir/suspender usuarios')
+        if id_afectada && razón && razón.length > 233
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: "No puedo ejecutar el comando\n"\
+                                'Razón: la razón es muy larga.',
+                             reply_to_message_id: msj.message_id)
+        elsif !id_afectada.nil? &&
+              # Chequeo que el bot sea admin en ese grupo y tenga los permisos correspondientes
+              # 'Necesito' y 'No tengo' son para los mensajes de error
+              tiene_permisos(msj, @user.id, :can_restrict_members, 'Necesito',
+                             'No tengo permisos para restringir/suspender usuarios')
 
-                # Chequeo que el usuario que llamó al comando sea admin y que quién se vea afectado no
-                # Además devuelve el chat_member del usuario afectado.
-                cumple, miembro = chequear_usuarios(msj, id_afectada, alias_id, para_aplicar_restriccion)
-            end
+            # Chequeo que el usuario que llamó al comando sea admin y que quién se vea afectado no
+            # Además devuelve el chat_member del usuario afectado.
+            cumple, miembro = chequear_usuarios(msj, id_afectada, alias_id, para_aplicar_restricción)
         end
         [cumple, miembro, razón]
     end
 
     # Chequea que se esté respondiendo un mensaje
-    def dar_id_afectada(msj, para_aplicar_restriccion)
+    def dar_id_afectada(msj, para_aplicar_restricción)
         # Si el mensaje tiene argumentos, reviso si me sirven para identificar
         # al usuario y/o si tiene la razón del baneo/kickeo/etc
         id_afectada, alias_id, razón = id_y_resto(msj)
@@ -152,7 +165,7 @@ class Dankie
                                  reply_to_message_id: msj.message_id)
             end
         # Al botazo no le pueden afectar los comandos
-        elsif para_aplicar_restriccion && id_afectada == @user.id
+        elsif para_aplicar_restricción && id_afectada == @user.id
             @tg.send_message(chat_id: msj.chat.id,
                              text: 'Ni se te ocurra',
                              reply_to_message_id: msj.message_id)
@@ -162,7 +175,7 @@ class Dankie
         [id_afectada, razón, alias_id]
     end
 
-    def chequear_usuarios(msj, id_afectada, alias_id, para_aplicar_restriccion)
+    def chequear_usuarios(msj, id_afectada, alias_id, para_aplicar_restricción)
         resultado = false
         miembro = nil
 
@@ -174,7 +187,7 @@ class Dankie
 
             if miembro
                 # Chequeo si a quien le afecta el comando es admin
-                if para_aplicar_restriccion && (miembro.status == 'administrator' || miembro.status == 'creator')
+                if para_aplicar_restricción && (miembro.status == 'administrator' || miembro.status == 'creator')
                     @tg.send_message(chat_id: msj.chat.id,
                                      text: 'No podés usar este comando contra un admin',
                                      reply_to_message_id: msj.message_id)

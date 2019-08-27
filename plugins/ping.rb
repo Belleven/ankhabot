@@ -18,20 +18,19 @@ class Dankie
         tiempo_bbdd = format('%.3f', tiempo3.to_r - tiempo2.to_r)
 
         # Atraso por flooding
-        respuesta = (enviado.date - msj.date).to_r
+        respuesta = (enviado.date - msj.date).to_i
 
         # Creo texto
         texto = "pong\n"\
-                "tg: <code>#{tiempo_tg}</code>\n"\
-                "bbdd: <code>#{tiempo_bbdd}</code>"
+                "tg: <code>#{tiempo_tg}s</code>\n"\
+                "bbdd: <code>#{tiempo_bbdd}s</code>"
 
         # Loggeo
-        texto_log = "Ping: tg: #{tiempo_tg} bbdd: #{tiempo_bbdd}"
+        texto_log = "Ping: tg: #{tiempo_tg}s, bbdd: #{tiempo_bbdd}s"
 
         if respuesta > 10
-            tiempo_resp = format('%.3f', respuesta)
-            texto << "\nresp: <code>#{tiempo_resp}</code>"
-            texto_log << " resp: #{tiempo_resp}"
+            texto << "\nresp: <code>#{respuesta}s</code>"
+            texto_log << ", resp: #{respuesta}s"
         end
 
         # Edito mensaje
