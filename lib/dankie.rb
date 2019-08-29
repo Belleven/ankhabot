@@ -192,7 +192,7 @@ class Dankie
     def obtener_enlace_usuario(id_chat, id_usuario)
         usuario = @tg.get_chat_member(chat_id: id_chat, user_id: id_usuario)
         usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
-        enlace_usuario = crear_enlace(usuario)
+        enlace_usuario = crear_enlace(usuario, id_chat)
     rescue Telegram::Bot::Exceptions::ResponseError => e
         enlace_usuario = nil
         @logger.error(e)
@@ -200,8 +200,11 @@ class Dankie
         return enlace_usuario || 'ay no c (' + id_usuario.to_s + ')'
     end
 
-    def crear_enlace(usuario)
-        if usuario.username
+    def crear_enlace(usuario, id_chat)
+        if (apodo = @redis.hget("apodo:#{id_chat}", usuario.id.to_s))
+            "<a href='tg://user?id=#{usuario.id}'>" \
+                "#{html_parser(apodo)}</a>"
+        elsif usuario.username
             "<a href='https://telegram.me/#{usuario.username}'>" \
                 "#{usuario.username}</a>"
         elsif !usuario.first_name.empty?
