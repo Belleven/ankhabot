@@ -189,22 +189,33 @@ class Dankie
         { command: command&.to_sym, params: params }
     end
 
-    def obtener_enlace_usuario(id_chat, id_usuario)
-        usuario = @tg.get_chat_member(chat_id: id_chat, user_id: id_usuario)
-        usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
-        enlace_usuario = crear_enlace(usuario, id_chat)
-    rescue Telegram::Bot::Exceptions::ResponseError => e
+    def enlace_usuario_id(id_usuario, id_chat)
+        if (apodo = @redis.hget("apodo:#{id_chat}", id_usuario.to_s))
+            enlace_usuario = "<a href='tg://user?id=#{id_usuario}'>" \
+                             "#{html_parser(apodo)}</a>"
+        else
+            usuario = @tg.get_chat_member(chat_id: id_chat, user_id: id_usuario)
+            usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
+            enlace_usuario = crear_enlace(usuario, id_chat)
+        end
+    rescue StandardError => e
         enlace_usuario = nil
-        @logger.error(e)
+        @logger.error(e, al_canal: true)
     ensure
-        return enlace_usuario || 'ay no c (' + id_usuario.to_s + ')'
+        enlace_usuario || 'ay no c (' + id_usuario.to_s + ')'
     end
 
-    def crear_enlace(usuario, id_chat)
+    def enlace_usuario_objeto(usuario, id_chat)
         if (apodo = @redis.hget("apodo:#{id_chat}", usuario.id.to_s))
             "<a href='tg://user?id=#{usuario.id}'>" \
-                "#{html_parser(apodo)}</a>"
-        elsif usuario.username
+                   "#{html_parser(apodo)}</a>"
+        else
+            crear_enlace(usuario, id_chat)
+        end
+    end
+
+    def crear_enlace(usuario, _id_chat)
+        if usuario.username
             "<a href='https://telegram.me/#{usuario.username}'>" \
                 "#{usuario.username}</a>"
         elsif !usuario.first_name.empty?

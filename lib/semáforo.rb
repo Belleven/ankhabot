@@ -25,7 +25,6 @@ class Semáforo
                 break if @semáforo.compare_and_set(actual, actual + 1)
 
             end
-
             # Si no pude tomar el recurso, duermo al proceso por 1 segundo
             sleep(1)
         end

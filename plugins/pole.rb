@@ -183,7 +183,7 @@ class Dankie
         poles.each do |pole|
             # Armo la línea y el cargando... si es que no es la última línea
             línea = "\n<code>#{format("%#{dígitos}d", pole[1].to_i)}</code> "
-            línea << obtener_enlace_usuario(enviado.chat.id, pole[0])
+            línea << enlace_usuario_id(pole.first, enviado.chat.id)
 
             cargando = índice == poles.length - 1 ? '' : "\n<i>cargando...</i>"
 

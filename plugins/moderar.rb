@@ -99,7 +99,9 @@ class Dankie
                                  reply_to_message_id: msj.message_id)
             elsif moderar(msj, miembro.user.id, func_moderadora)
                 razón = razón.nil? ? '' : ".\nRazón: " + razón + (razón[-1] == '.' ? '' : '.')
-                texto = msj_final + ' ' + crear_enlace(miembro.user, msj.chat.id) + razón
+                nombre = enlace_usuario_objeto(miembro.user, msj.chat.id)
+
+                texto = msj_final + ' ' + nombre + razón
                 @tg.send_message(chat_id: msj.chat.id,
                                  text: texto,
                                  parse_mode: :html,

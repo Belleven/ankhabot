@@ -175,8 +175,8 @@ class Dankie
                 else
                     @tg.send_message(chat_id: id_chat,
                                      text: 'ya no te doy bola '\
-                                           "#{obtener_enlace_usuario(id_chat, id)} ¬_¬",
-                                     parse_mode: 'html',
+                                           "#{enlace_usuario_id(id, id_chat)} ¬_¬",
+                                     parse_mode: :html,
                                      disable_web_page_preview: true,
                                      disable_notification: true)
                 end
@@ -184,8 +184,8 @@ class Dankie
                 @tg.send_message(chat_id: id_chat,
                                  reply_to_message_id: msj.reply_to_message.message_id,
                                  text: 'ya no te doy bola '\
-                                       "#{obtener_enlace_usuario(id_chat, id)} ¬_¬",
-                                 parse_mode: 'html',
+                                       "#{enlace_usuario_id(id, id_chat)} ¬_¬",
+                                 parse_mode: :html,
                                  disable_web_page_preview: true,
                                  disable_notification: true)
             end
@@ -222,8 +222,8 @@ class Dankie
                 else
                     @tg.send_message(chat_id: id_chat,
                                      text: 'ola de nuevo '\
-                                           "#{obtener_enlace_usuario(id_chat, id)} nwn",
-                                     parse_mode: 'html',
+                                           "#{enlace_usuario_id(id, id_chat)} nwn",
+                                     parse_mode: :html,
                                      disable_web_page_preview: true,
                                      disable_notification: true)
                 end
@@ -232,8 +232,8 @@ class Dankie
                 @tg.send_message(chat_id: id_chat,
                                  reply_to_message_id: msj.reply_to_message.message_id,
                                  text: 'ola de nuevo '\
-                                       "#{obtener_enlace_usuario(id_chat, id)} nwn",
-                                 parse_mode: 'html',
+                                       "#{enlace_usuario_id(id, id_chat)} nwn",
+                                 parse_mode: :html,
                                  disable_web_page_preview: true,
                                  disable_notification: true)
             end
@@ -296,7 +296,7 @@ class Dankie
             miembro = if es_global
                           elemento
                       else
-                          obtener_enlace_usuario(msj.chat.id, elemento)
+                          enlace_usuario_id(elemento, msj.chat.id)
                       end
             "\n- #{miembro}"
         end

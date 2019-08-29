@@ -17,10 +17,14 @@ class Dankie
                            'administrator' => 'ADMINISTRADOR',
                            'restricted' => 'USUARIO RESTRINGIDO' }
 
-            estado = miembro.user.first_name.empty? ?
-                        'DESAPARECIDO' : traducción[miembro.status]
+            estado = if miembro.user.first_name.empty?
+                         'DESAPARECIDO'
+                     else
+                         traducción[miembro.status]
+                     end
 
-            texto = "Estatus de #{crear_enlace(miembro.user)}: #{estado}"
+            texto = "Estatus de #{enlace_usuario_objeto(miembro.user, msj.chat.id)}"\
+                    ": #{estado}"
             agregar_cualidades(miembro, texto) unless miembro.user.first_name.empty?
 
             texto << "\n\nPermisos de los miembros comunes en este chat:"

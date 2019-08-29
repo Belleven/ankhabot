@@ -81,7 +81,7 @@ class Dankie
             fecha = Time.at(elemento[1].to_i, in: @tz.utc_offset)
             fecha = fecha.strftime('%d/%m/%Y %T')
             # Armo la línea
-            "\n- #{obtener_enlace_usuario(msj.chat.id, id_usuario)} (#{fecha})"
+            "\n- #{enlace_usuario_id(id_usuario, msj.chat.id)} (#{fecha})"
         end
 
         # Error a mandar en caso de que sea un conjunto vacío
