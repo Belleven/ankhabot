@@ -179,58 +179,17 @@ class Dankie
     end
 
     def cambiar_título(msj, params)
-        if params.nil? || params.length.zero?
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: "Qué título le pongo, #{TROESMAS.sample}?",
-                             reply_to_message_id: msj.message_id)
-        elsif params.length > 255
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: "Hasta 255 caracteres, #{TROESMAS.sample}",
-                             reply_to_message_id: msj.message_id)
-        elsif cumple_req_modificar_chat(msj, false, :can_change_info,
-                                        'No tengo permisos para cambiar '\
-                                           'el título del chat')
-            @tg.set_chat_title(chat_id: msj.chat.id, title: params)
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: "Título cambiadísimo #{TROESMAS.sample}",
-                             reply_to_message_id: msj.message_id)
+        modificador = proc do |chat_id, título|
+            @tg.set_chat_title(chat_id: chat_id, title: título)
         end
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        case e.to_s
-        when /not enough rights to change chat title/
-            error_permisos = 'Me restringieron los permisos o me sacaron el admin '\
-                          'mientras se ejecutaba el comando, y por '\
-                          'ahora no puedo cambiar el título'
-            log_y_aviso(msj, error_permisos, al_canal: false)
-        else
-            raise
-        end
+        cambiar_texto_chat(msj, params, 'title', modificador, :título_rep)
     end
 
     def cambiar_descripción(msj, params)
-        if params.length > 255
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: "Hasta 255 caracteres, #{TROESMAS.sample}",
-                             reply_to_message_id: msj.message_id)
-        elsif cumple_req_modificar_chat(msj, false, :can_change_info,
-                                        'No tengo permisos para cambiar '\
-                                           'la descripción del chat')
-        else
-            @tg.set_chat_description(chat_id: msj.chat.id, title: params)
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: "Descripción cambiadísima #{TROESMAS.sample}",
-                             reply_to_message_id: msj.message_id)
+        modificador = proc do |chat_id, descripción|
+            @tg.set_chat_description(chat_id: chat_id, description: descripción)
         end
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        case e.to_s
-        when /not enough rights to change chat description/
-            error_permisos = 'Me restringieron los permisos o me sacaron el admin '\
-                          'mientras se ejecutaba el comando, y por '\
-                          'ahora no puedo cambiar el título'
-            log_y_aviso(msj, error_permisos, al_canal: false)
-        else
-            raise
-        end
+        cambiar_texto_chat(msj, params, 'description', modificador, :descripción_rep)
     end
 
     private
@@ -271,5 +230,76 @@ class Dankie
         else
             return true
        end
+    end
+
+    def cambiar_texto_chat(msj, params, modificar, modificador, texto_no_repetido)
+        if params.nil? || params.length.zero?
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: "Qué tengo que poner, #{TROESMAS.sample}?",
+                             reply_to_message_id: msj.message_id)
+        elsif params.length > 255
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: "Hasta 255 caracteres, #{TROESMAS.sample}",
+                             reply_to_message_id: msj.message_id)
+        elsif !send(texto_no_repetido, msj, params) &&
+              cumple_req_modificar_chat(msj, false, :can_change_info,
+                                        'No tengo permisos para cambiar eso')
+            modificador.call(msj.chat.id, params)
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: "Listo el pollo #{TROESMAS.sample}",
+                             reply_to_message_id: msj.message_id)
+        end
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        case e.to_s
+        when /not enough rights to change chat #{modificar}/
+            error_permisos = 'Me restringieron los permisos o me sacaron el admin '\
+                          'mientras se ejecutaba el comando, y por '\
+                          'ahora no puedo cambiar nada'
+            log_y_aviso(msj, error_permisos, al_canal: false)
+        when /not enough rights to set chat #{modificar}/
+            error_permisos = 'Me restringieron los permisos o me sacaron el admin '\
+                          'mientras se ejecutaba el comando, y por '\
+                          'ahora no puedo cambiar nada'
+            log_y_aviso(msj, error_permisos, al_canal: false)
+        when /chat description is not modified/
+            error_permisos = 'Cambiaron la descripción del grupo mientras procesaba '\
+                             'el comando y justo justo pusieron la misma que vos me '\
+                             'habías pasado'
+            log_y_aviso(msj, error_permisos, al_canal: false)
+        else
+            raise
+        end
+    end
+
+    def título_rep(msj, params)
+        if (se_repite = (msj.chat.title == params))
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: 'El título que me pasas es el mismo que ya tiene '\
+                                    "el chat, #{TROESMAS.sample}",
+                             reply_to_message_id: msj.message_id)
+        end
+        se_repite
+    end
+
+    def descripción_rep(msj, params)
+        chat = obtener_chat(msj.chat.id)
+        if (se_repite = (chat.description == params))
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: 'La descripción que me pasás es la misma que ya '\
+                                    "tiene el chat, #{TROESMAS.sample}",
+                             reply_to_message_id: msj.message_id)
+        end
+        se_repite
+    end
+
+    def chat_tiene(msj, elemento, error_no_tiene)
+        chat = obtener_chat(msj.chat.id)
+        tiene = chat.send(elemento)
+        if (tiene = (tiene.nil? || tiene.empty?))
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: error_no_tiene,
+                             reply_to_message_id: msj.message_id)
+        end
+        tiene
     end
 end
