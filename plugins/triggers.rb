@@ -27,7 +27,7 @@ class Dankie
                                      permitir_params: false,
                                      descripción:  'Muestra que triggers reaccionan'\
                                      ' al mensaje respsondido')
-    #     add_handler CallbackQueryHandler.new()
+    #add_handler Handler::CallbackQuery.new()
 
     def chequear_triggers(msj)
         return unless (texto = msj.text || msj.caption)
@@ -168,8 +168,16 @@ class Dankie
             end
         end
 
-        texto = "<b>Lista de triggers:</b>\n"
+        texto = "<b>Lista de triggers:</b>\n" # poner un time.now en el texto
         hay_elementos = false
+
+        unless triggers_locales.empty?
+            hay_elementos = true
+            texto << "\n<b>Locales:</b>"
+            triggers_locales.sort!.each do |trig|
+                texto << "\n<pre> - #{html_parser trig}</pre>"
+            end
+        end
 
         # cuando se haga el coso para desactivar triggers globales,
         # hacer algo para ignorar estas dos líneas
@@ -181,13 +189,6 @@ class Dankie
             end
         end
 
-        unless triggers_locales.empty?
-            hay_elementos = true
-            texto << "\n<b>Locales:</b>"
-            triggers_locales.sort!.each do |trig|
-                texto << "\n<pre> - #{html_parser trig}</pre>"
-            end
-        end
 
         @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
                          text: if hay_elementos 
@@ -231,13 +232,19 @@ class Dankie
         end
         
         texto = '<b>Info del trigger:</b>'
-        texto << "\nRegexp: <code>#{html_parser Trigger.regexp_a_str(trigger)}</code>"
+        texto << "\nRegexp: <code>"
+        texto << "#{html_parser Trigger.regexp_a_str(trigger.regexp)}</code>"
+        campo = trigger.data.compact
+        texto << "\nMedia: #{campo.keys.first.to_s}"
+        texto << "\n#{campo.keys.first.to_s == 'text' ? 'Valor' : 'Id'}: "
+        texto << "<code>#{html_parser campo.values.first}</code>"
+        unless trigger.caption.empty?
+            texto << "\nCaption: <code>#{html_parser trigger.caption}</code>"
+        end
         texto << "\nTipo: #{id == :global ? 'global' : 'de grupo'}"
         texto << "\nCreador: #{obtener_enlace_usuario(msj.chat.id, trigger.creador)}"
         texto << "\nTotal de usos: #{trigger.contador}"
-        texto << "\nMedia: #{trigger.data.compact.keys.first.to_s}"
-        texto << "\nid/valor: <code>#{html_parser trigger.data.compact.values.first}</code>"
-        texto << "\nCaption: <code>#{html_parser trigger.caption}</code>"
+        texto << "\nAñadido: <code>#{trigger.fecha.to_s}</code>"
 
         @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
                          disable_web_page_preview: true, text: texto)
@@ -337,7 +344,7 @@ class Dankie
 end
 
 class Trigger
-    attr_reader :regexp, :caption, :data, :contador, :creador
+    attr_reader :regexp, :caption, :data, :contador, :creador, :fecha
 
     # id_grupo debe ser un Integer o el Symbol :global
     # regexp debe ser una Regexp
@@ -353,6 +360,7 @@ class Trigger
         @regexp = regexp
         @contador = self.class.redis.hget @clave + ':metadata', 'contador'
         @creador = self.class.redis.hget @clave + ':metadata', 'creador'
+        @fecha = Time.at self.class.redis.hget(@clave + ':metadata', 'fecha').to_i
     end
 
     def aumentar_contador
@@ -372,7 +380,7 @@ class Trigger
         @redis.sadd "triggers:#{id_grupo}", regexp_a_str(regexp)
         @redis.hmset("trigger:#{id_grupo}:#{regexp_a_str regexp}", *data)
         @redis.mapped_hmset("trigger:#{id_grupo}:#{regexp_a_str regexp}:metadata",
-                            creador: id_usuario, contador: 0)
+                            creador: id_usuario, contador: 0, fecha: Time.now.to_i)
     end
 
     # Método que borra un trigger, sus metadatos y su clave en el conjunto de triggers.
