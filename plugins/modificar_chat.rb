@@ -73,38 +73,6 @@ class Dankie
         end
     end
 
-    # Comando /unpin /desanclar
-    def desanclar(msj)
-        chat = obtener_chat(msj.chat.id)
-
-        if chat.pinned_message.nil?
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: 'No hay ningún mensaje '\
-                                   "anclado #{TROESMAS.sample}",
-                             reply_to_message_id: msj.message_id)
-        elsif cumple_req_modificar_chat(msj, false, :can_pin_messages,
-                                        'No tengo permisos para pinear mensajes')
-            @tg.unpin_chat_message(chat_id: msj.chat.id)
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: "Desancladísimo #{TROESMAS.sample}",
-                             reply_to_message_id: msj.message_id)
-        end
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        case e.to_s
-        when /not enough rights to unpin a message/
-            error_permisos = 'Me restringieron los permisos o me sacaron el admin '\
-                          'mientras se ejecutaba el comando, y por '\
-                          'ahora no puedo desanclar mensajes'
-            log_y_aviso(msj, error_permisos, al_canal: false)
-        when /CHAT_NOT_MODIFIED/
-            error_permisos = 'Desanclaron el mensaje mientras ejecutaba el comando, '\
-                             "#{TROESMAS.sample}"
-            log_y_aviso(msj, error_permisos, al_canal: false)
-        else
-            raise
-        end
-    end
-
     # /ponerfoto
     def poner_foto(msj)
         id_imagen = nil
@@ -147,49 +115,52 @@ class Dankie
         # end
     end
 
-    def sacar_foto(msj)
-        chat = obtener_chat(msj.chat.id)
+    # Comando /unpin /desanclar
+    def desanclar(msj)
+        # Función a ejecutar
+        quitar = proc do |_id_chat|
+            @tg.unpin_chat_message(chat_id: msj.chat.id)
+        end
+        # Textos para responder
+        error_no_tiene = "No hay ningún mensaje anclado #{TROESMAS.sample}"
+        texto_éxito = 'Desancladísimo'
+        error_mientras = 'Desanclaron el mensaje mientras ejecutaba el '\
+                         "comando, #{TROESMAS.sample}"
 
-        if chat.photo.nil?
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: "No hay ninguna foto en el chat #{TROESMAS.sample}",
-                             reply_to_message_id: msj.message_id)
-        elsif cumple_req_modificar_chat(msj, false, :can_change_info,
-                                        'No tengo permisos para cambiar '\
-                                           'la foto del chat')
-            @tg.delete_chat_photo(chat_id: msj.chat.id)
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: "Foto eliminadísima #{TROESMAS.sample}",
-                             reply_to_message_id: msj.message_id)
-        end
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        case e.to_s
-        when /not enough rights to change chat photo/
-            error_permisos = 'Me restringieron los permisos o me sacaron el admin '\
-                          'mientras se ejecutaba el comando, y por '\
-                          'ahora no puedo borrar la foto'
-            log_y_aviso(msj, error_permisos, al_canal: false)
-        when /CHAT_NOT_MODIFIED/
-            error_permisos = 'Sacaron la foto del grupete mientras ejecutaba el '\
-                             "comando, #{TROESMAS.sample}"
-            log_y_aviso(msj, error_permisos, al_canal: false)
-        else
-            raise
-        end
+        quitar_elemento_chat(msj, quitar, :pinned_message, error_no_tiene,
+                             texto_éxito, error_mientras, :can_pin_messages)
     end
 
+    # Comando /sacarfoto
+    def sacar_foto(msj)
+        # Función a ejecutar
+        quitar = proc do |_id_chat|
+            @tg.delete_chat_photo(chat_id: msj.chat.id)
+        end
+        # Textos para responder
+        error_no_tiene = "No hay ninguna foto en el chat #{TROESMAS.sample}"
+        texto_éxito = 'Foto eliminadísima'
+        error_mientras = 'Sacaron la foto del grupete mientras ejecutaba el '\
+                         "comando, #{TROESMAS.sample}"
+
+        quitar_elemento_chat(msj, quitar, :photo, error_no_tiene,
+                             texto_éxito, error_mientras, :can_change_info)
+    end
+
+    # Comandos /cambiartitulo y /cambiartítulo (notar la tilde)
     def cambiar_título(msj, params)
         modificador = proc do |chat_id, título|
             @tg.set_chat_title(chat_id: chat_id, title: título)
         end
-        cambiar_texto_chat(msj, params, 'title', modificador, :título_rep)
+        cambiar_texto_chat(msj, params, modificador, :título_rep)
     end
 
+    # Comando /cambiardesc
     def cambiar_descripción(msj, params)
         modificador = proc do |chat_id, descripción|
             @tg.set_chat_description(chat_id: chat_id, description: descripción)
         end
-        cambiar_texto_chat(msj, params, 'description', modificador, :descripción_rep)
+        cambiar_texto_chat(msj, params, modificador, :descripción_rep)
     end
 
     private
@@ -232,40 +203,66 @@ class Dankie
        end
     end
 
-    def cambiar_texto_chat(msj, params, modificar, modificador, texto_no_repetido)
-        if params.nil? || params.length.zero?
+    # Para camabiar un texto del chat
+    def cambiar_texto_chat(msj, params, modificador, texto_no_repetido)
+        texto = params || msj&.reply_to_message&.text
+        # Me fijo si no hay parámetros
+        if texto.nil? || texto.length.zero?
             @tg.send_message(chat_id: msj.chat.id,
                              text: "Qué tengo que poner, #{TROESMAS.sample}?",
                              reply_to_message_id: msj.message_id)
-        elsif params.length > 255
+        # Si los parámetros superan lo permitido
+        elsif texto.length > 255
             @tg.send_message(chat_id: msj.chat.id,
                              text: "Hasta 255 caracteres, #{TROESMAS.sample}",
                              reply_to_message_id: msj.message_id)
-        elsif !send(texto_no_repetido, msj, params) &&
+        # Chequeo que el texto que me pasan no sea el mismo que está actualmente
+        # en el grupete
+        elsif !send(texto_no_repetido, msj, texto) &&
               cumple_req_modificar_chat(msj, false, :can_change_info,
                                         'No tengo permisos para cambiar eso')
-            modificador.call(msj.chat.id, params)
+            # Cambio lo que tenga que cambiar
+            modificador.call(msj.chat.id, texto)
             @tg.send_message(chat_id: msj.chat.id,
                              text: "Listo el pollo #{TROESMAS.sample}",
                              reply_to_message_id: msj.message_id)
         end
     rescue Telegram::Bot::Exceptions::ResponseError => e
         case e.to_s
-        when /not enough rights to change chat #{modificar}/
+        when /not enough rights to [set|change] chat [title|description]/
             error_permisos = 'Me restringieron los permisos o me sacaron el admin '\
                           'mientras se ejecutaba el comando, y por '\
                           'ahora no puedo cambiar nada'
             log_y_aviso(msj, error_permisos, al_canal: false)
-        when /not enough rights to set chat #{modificar}/
+        when /chat [title|description] is not modified/
+            error_permisos = 'Justo pusieron lo mismo que vos me pasaste mientras '\
+                             'procesaba el comando'
+            log_y_aviso(msj, error_permisos, al_canal: false)
+        else
+            raise
+        end
+    end
+
+    # Para quitar algo del chat
+    def quitar_elemento_chat(msj, quitar, elemento, error_no_tiene,
+                             texto_éxito, error_mientras, permiso)
+        if chat_tiene(msj, elemento, error_no_tiene) &&
+           cumple_req_modificar_chat(msj, false, permiso,
+                                     'No tengo permisos para sacar eso')
+            quitar.call(msj.chat.id)
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: texto_éxito + ' ' + TROESMAS.sample,
+                             reply_to_message_id: msj.message_id)
+        end
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        case e.to_s
+        when /not enough rights to [unpin a message|change chat photo]/
             error_permisos = 'Me restringieron los permisos o me sacaron el admin '\
-                          'mientras se ejecutaba el comando, y por '\
-                          'ahora no puedo cambiar nada'
+                             'mientras se ejecutaba el comando, y por '\
+                             'ahora no puedo hacer eso'
             log_y_aviso(msj, error_permisos, al_canal: false)
-        when /chat description is not modified/
-            error_permisos = 'Cambiaron la descripción del grupo mientras procesaba '\
-                             'el comando y justo justo pusieron la misma que vos me '\
-                             'habías pasado'
-            log_y_aviso(msj, error_permisos, al_canal: false)
+        when /CHAT_NOT_MODIFIED/
+            log_y_aviso(msj, error_mientras, al_canal: false)
         else
             raise
         end
@@ -294,8 +291,7 @@ class Dankie
 
     def chat_tiene(msj, elemento, error_no_tiene)
         chat = obtener_chat(msj.chat.id)
-        tiene = chat.send(elemento)
-        if (tiene = (tiene.nil? || tiene.empty?))
+        unless (tiene = chat.send(elemento))
             @tg.send_message(chat_id: msj.chat.id,
                              text: error_no_tiene,
                              reply_to_message_id: msj.message_id)
