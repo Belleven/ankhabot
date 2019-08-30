@@ -220,7 +220,7 @@ class Dankie
             end
         end
 
-        if partes_obtenidas == 0
+        if partes_obtenidas.zero?
             texto = 'No pude encontrar información de '\
                     "lo que estás escuchando #{TROESMAS.sample} :("
         else

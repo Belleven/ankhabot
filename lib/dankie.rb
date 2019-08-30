@@ -176,7 +176,8 @@ class Dankie
         else
             arr = text.split(' ', 3) # ["user", "comando", "params"]
             arr.first.downcase!
-            if (arr.size > 1) && arr.first.casecmp(@user.username.sub(/...$/, '').downcase).zero?
+            if (arr.size > 1) &&
+               arr.first.casecmp(@user.username.sub(/...$/, '').downcase).zero?
                 command = arr[1]&.downcase.to_sym
                 params = arr[2]
 
@@ -260,7 +261,9 @@ class Dankie
         # Si no lo es, manda mensaje de error
         if (status != 'administrator') && (status != 'creator')
             unless text.nil?
-                @tg.send_message(chat_id: chat_id, reply_to_message_id: mensaje_id, text: text)
+                @tg.send_message(chat_id: chat_id,
+                                 reply_to_message_id: mensaje_id,
+                                 text: text)
             end
             return false
         end
@@ -276,7 +279,8 @@ class Dankie
         end
     end
 
-    def cambiar_claves_supergrupo(vieja_id, nueva_id, texto_antes = '', texto_después = '')
+    def cambiar_claves_supergrupo(vieja_id, nueva_id, texto_antes = '',
+                                  texto_después = '')
         vieja_clave = texto_antes + vieja_id.to_s + texto_después
         nueva_clave = texto_antes + nueva_id.to_s + texto_después
 
@@ -324,7 +328,7 @@ class Dankie
                 # cuenta como una entidad
                 if lista_entidades.length >= 2 &&
                    lista_entidades[0].type == 'bot_command' &&
-                   lista_entidades[0].offset == 0
+                   lista_entidades[0].offset.zero?
 
                     entidad = lista_entidades[1]
                 # msj.entities.length == 1, por ejemplo si se llama
@@ -333,21 +337,22 @@ class Dankie
                     entidad = lista_entidades[0]
                 end
 
-                # Veo si efectivamente había una entidad que ocupaba el principio del argumento del comando
-                # (me parece mal chequear que ocupe todo el texto acá, porque
-                # podría ser un hashtag por ejemplo y estaría chequeando cosas al
-                # pedo, pero bueno las posibilidades de eso son muy bajas y prefiero
-                # eso a estar repitiendo código)
+                fin = entidad.offset + entidad.length
+                # Veo si efectivamente había una entidad que ocupaba el principio del
+                # argumento del comando (me parece mal chequear que ocupe todo el texto
+                # acá, porque podría ser un hashtag por ejemplo y estaría chequeando
+                # cosas al pedo, pero bueno las posibilidades de eso son muy bajas y
+                # prefiero eso a estar repitiendo código)
                 if entidad &&
-                   args_mensaje.start_with?(texto[entidad.offset..(entidad.offset + entidad.length - 1)])
+                   args_mensaje.start_with?(texto[entidad.offset..(fin - 1)])
 
-                    otro_texto = texto[(entidad.offset + entidad.length)..-1].strip
+                    otro_texto = texto[fin..-1].strip
                     otro_texto = nil if otro_texto.empty?
 
                     # Me fijo si esa entidad efectivamente era un alias
                     if entidad.type == 'mention'
                         # La entidad arranca con un @, por eso el + 1
-                        alias_usuario = texto[(entidad.offset + 1)..(entidad.offset + entidad.length - 1)].strip
+                        alias_usuario = texto[(entidad.offset + 1)..(fin - 1)].strip
                         id_afectada = obtener_id_de_alias(alias_usuario)
                     # Me fijo si esa entidad efectivamente era una mención de usuario sin alias
                     elsif entidad.type == 'text_mention'
@@ -356,8 +361,11 @@ class Dankie
                 end
             end
 
-            # Si no logré nada con las entidades, entonces chequeo si me pasaron una id como texto
-            id_afectada, otro_texto = id_numérica_y_otro_texto(args_mensaje) if id_afectada.nil?
+            # Si no logré nada con las entidades, entonces chequeo si
+            # me pasaron una id como texto
+            if id_afectada.nil?
+                id_afectada, otro_texto = id_numérica_y_otro_texto(args_mensaje)
+            end
             # Si no conseguí ninguna id, entonces todo el argumento es "otro_texto"
             otro_texto = args_mensaje if id_afectada.nil?
 
@@ -385,15 +393,17 @@ class Dankie
     # Trata de obtener un miembro de chat, y si no lo consigue
     # manda un mensaje de error.
     def obtener_miembro(msj, id_usuario)
-        miembro = @tg.get_chat_member(chat_id: msj.chat.id, user_id: id_usuario)['result']
+        miembro = @tg.get_chat_member(chat_id: msj.chat.id, user_id: id_usuario)
+        miembro = miembro['result']
         Telegram::Bot::Types::ChatMember.new(miembro)
     rescue Telegram::Bot::Exceptions::ResponseError => e
         case e.to_s
         when /USER_ID_INVALID/
             @logger.error('Me dieron una id inválida en ' + grupo_del_msj(msj))
             @tg.send_message(chat_id: msj.chat.id,
-                             text: "Disculpame pero no puedo reconocer esta id: #{id_usuario}. "\
-                                   'O es inválida, o es de alguien que nunca estuvo en este chat.',
+                             text: 'Disculpame pero no puedo reconocer esta '\
+                                   "id: #{id_usuario}. O es inválida, o es de "\
+                                   'alguien que nunca estuvo en este chat.',
                              reply_to_message_id: msj.message_id)
         else
             raise
