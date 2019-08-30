@@ -114,9 +114,9 @@ class Dankie
         Trigger.redis ||= @redis
 
         if Trigger.existe_trigger?(msj.chat.id, regexp)
-            texto = "Ya hay un trigger, #{TROESMAS.sample}.\n"
-            texto << "Borralo con <pre>/deltrigger #{params}</pre>"
-            @tg.send_message chat_id: msj.chat.id, text: texto
+            texto = "Ya hay un trigger así, #{TROESMAS.sample}.\n"
+            texto << "Borralo con <code>/deltrigger #{html_parser params}</code>"
+            @tg.send_message chat_id: msj.chat.id, parse_mode: :html, text: texto
             return
         end
 
@@ -237,7 +237,11 @@ class Dankie
         campo = trigger.data.compact
         texto << "\nMedia: #{campo.keys.first.to_s}"
         texto << "\n#{campo.keys.first.to_s == 'text' ? 'Valor' : 'Id'}: "
-        texto << "<code>#{html_parser campo.values.first}</code>"
+        texto << if campo.values.first.size < 100
+                    "<code>#{html_parser campo.values.first}</code>"
+                 else
+                    "<code>#{html_parser campo.values.first[0, 100]}...</code>"
+                 end
         unless trigger.caption.empty?
             texto << "\nCaption: <code>#{html_parser trigger.caption}</code>"
         end
@@ -318,7 +322,7 @@ class Dankie
         texto << "#{obtener_enlace_usuario(msj.chat.id, id_usuario)} "
         texto << "en #{html_parser(msj.chat&.title || msj.chat&.username)} "
         texto << "(#{msj.chat.id})\nTrigger: "
-        texto << "<pre>#{html_parser Trigger.regexp_a_str(regexp)}</pre>"
+        texto << "<code>#{html_parser Trigger.regexp_a_str(regexp)}</code>"
 
         @logger.info(texto, al_canal: id_grupo == 'global')
 

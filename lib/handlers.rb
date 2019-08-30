@@ -62,22 +62,24 @@ module Handler
     end
 
     class CallbackQuery
-        def initialize(callback, patrón, _args = {})
+        def initialize(callback, clave, _args = {})
             @callback = callback
-            @patrón = patrón
+            @clave = clave
+            @cache = {}
         end
 
-        def verificar(_bot, msj)
-            return unless msj.is_a? Telegram::Bot::Types::CallbackQuery
+        def verificar(_bot, callback)
+            return unless callback.is_a? Telegram::Bot::Types::CallbackQuery
 
-            return unless @patrón =~ msj.data
+            return unless callback.data.start_with? @clave
 
             true
         end
 
-        def ejecutar(bot, msj)
-            bot.logger.info "CallbackQueryHandler: patrón #{@patrón} en #{msj.chat.id}"
-            bot.public_send(@callback, msj)
+        def ejecutar(bot, callback)
+            bot.logger.info "CallbackQueryHandler: callback #{callback.data} "\
+                            "en #{callback.message.chat.id}"
+            bot.public_send(@callback, callback)
         end
     end
 

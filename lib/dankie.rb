@@ -5,6 +5,7 @@ require_relative 'telegram.rb'
 require_relative 'images.rb'
 require_relative 'last_fm_parser.rb'
 require_relative 'semáforo.rb'
+require_relative 'botoneras.rb'
 require 'redis'
 require 'tzinfo'
 require 'set'
@@ -44,6 +45,9 @@ class Dankie
         @comandos ||= {}
     end
 
+    # Handler de las botoneras de lista, lo meto acá porque no se donde mas ponerlo
+    add_handler Handler::CallbackQuery.new(:editar_botonera_lista, 'lista')
+
     # Creo que esto es un dispatch si entendí bien
     def dispatch(msj)
         # Handlers generales, no los de comando
@@ -52,6 +56,7 @@ class Dankie
         end
 
         # Handlers de comando
+        return unless msj.is_a? Telegram::Bot::Types::Message
         self.class.comandos[get_command(msj)]&.ejecutar(self, msj)
     end
 

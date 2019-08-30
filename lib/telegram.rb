@@ -89,6 +89,10 @@ class TelegramAPI
         enviar(:send_sticker, args)
     end
 
+    def answer_callback_query(args)
+        enviar :answer_callback_query, args
+    end
+
     private
 
     def enviar(función_envío, args, acción = nil)
@@ -189,8 +193,7 @@ class TelegramAPI
         end
     end
 
-    # Tengo acceso a toda la api de telegram (bot.api) desde la clase Dankie
-    # suena horrible pero está bueno y pude hacer unos rescue
+    # Tengo acceso a toda la api de telegram (bot.api) desde esta clase
     def method_missing(method_name, *args)
         super unless @client.api.respond_to?(method_name)
         @client.api.send(method_name, *args)
