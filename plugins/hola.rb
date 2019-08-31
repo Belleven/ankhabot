@@ -16,9 +16,11 @@ class Dankie
             texto = msj.text.downcase
 
             if frases.include? texto
-                @tg.send_message(chat_id: msj.chat.id,
-                                 text: respuesta)
-               end
+                resp = @tg.send_message(chat_id: msj.chat.id,
+                                        text: respuesta)
+                return unless resp['ok']
+                añadir_a_cola_spam(msj.chat.id, resp.dig('result', 'message_id').to_i)
+            end
         end
     end
 end

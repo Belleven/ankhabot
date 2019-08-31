@@ -306,8 +306,7 @@ class Dankie
                                                media => trigger.data[media])
             trigger.aumentar_contador
             return unless resp['ok']
-            resp = Telegram::Bot::Types::Message.new resp['result']
-            añadir_a_lista_spam(id_grupo, resp.message_id)
+            añadir_a_cola_spam(id_grupo, resp.dig('result', 'message_id').to_i)
             @logger.info("Trigger enviado en #{id_grupo}", al_canal: false)
         end
     end
@@ -362,7 +361,7 @@ class Dankie
         arr = ['']
         temp = texto.partition %r{<pre>.*</pre>}
         while !temp[1].empty?
-            if contador == 30
+            if contador == 5
                 arr << ''
                 contador = 0
             end
