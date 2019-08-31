@@ -488,4 +488,12 @@ class Dankie
                          disable_web_page_preview: true,
                          disable_notification: true)
     end
+
+    def añadir_a_lista_spam(id_chat, id_mensaje)
+        @redis.rpush "spam:#{id_chat}", id_mensaje
+        if @redis.llen("spam:#{id_chat}") > 4 # está en 4 por propósitos de test, cambiar a 50 antes de terminar
+            id_mensaje = @redis.lpop("spam:#{id_chat}").to_i
+            @tg.delete_message(chat_id: id_chat, message_id: id_mensaje)
+        end
+    end
 end

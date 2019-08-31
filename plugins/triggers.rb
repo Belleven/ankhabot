@@ -301,10 +301,13 @@ class Dankie
             next unless trigger.data[media]
 
             # espero que esta línea mágica funcione
-            @tg.public_send(send_media, chat_id: id_grupo,
-                                        caption: trigger.caption,
-                                        media => trigger.data[media])
+            resp = @tg.public_send(send_media, chat_id: id_grupo,
+                                               caption: trigger.caption,
+                                               media => trigger.data[media])
             trigger.aumentar_contador
+            return unless resp['ok']
+            resp = Telegram::Bot::Types::Message.new resp['result']
+            añadir_a_lista_spam(id_grupo, resp.message_id)
             @logger.info("Trigger enviado en #{id_grupo}", al_canal: false)
         end
     end
