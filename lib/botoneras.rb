@@ -36,6 +36,7 @@ class Dankie
 
             @tg.answer_callback_query(callback_query_id: callback.id)
             @tg.edit_message_text(chat_id: callback.message.chat.id,
+                                  parse_mode: :html,
                                   message_id: callback.message.message_id,
                                   text: texto,
                                   reply_markup: opciones)

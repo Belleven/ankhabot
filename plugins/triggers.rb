@@ -190,12 +190,20 @@ class Dankie
         end
 
 
-        @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
-                         text: if hay_elementos 
-                                   texto
-                               else
-                                   'No hay triggers en este grupo u.u'
-                               end)
+        # armo botonera y envío
+        arr = partir_lista_de_triggers_en_arreglo texto
+        opciones = armar_botonera 0, arr.size, msj.from.id
+        
+        respuesta = @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
+                                     reply_markup: opciones,
+                                     text: if hay_elementos 
+                                               arr.first
+                                           else
+                                               'No hay triggers en este grupo u.u'
+                                           end)
+        return unless respuesta
+        respuesta = Telegram::Bot::Types::Message.new respuesta['result']
+        armar_lista(msj.chat.id, respuesta.message_id, arr)
     end
 
     def enviar_info_trigger(msj, params)
@@ -345,6 +353,24 @@ class Dankie
         @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
                          disable_web_page_preview: true, text: texto)
     end
+
+    def partir_lista_de_triggers_en_arreglo(texto)
+        contador = 0
+        arr = ['']
+        temp = texto.partition %r{<pre>.*</pre>}
+        while !temp[1].empty?
+            if contador == 30
+                arr << ''
+                contador = 0
+            end
+            arr.last << temp.shift << temp.shift
+            temp = temp.last.partition %r{<pre>.*</pre>}
+            contador += 1
+        end
+        arr
+    end
+
+
 end
 
 class Trigger
