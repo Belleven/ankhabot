@@ -217,7 +217,7 @@ class Dankie
             texto = '<b>Modo de uso:</b>'
             texto << "\n<pre>/infotrigger trigger</pre>"
             texto << "\n<pre>trigger</pre> tiene que ser exactamente"
-            texto << "la expresión regular que activa al trigger."
+            texto << " la expresión regular que activa al trigger."
             @tg.send_message(chat_id: msj.chat.id, parse_mode: :html, text: texto)
             return
         end
