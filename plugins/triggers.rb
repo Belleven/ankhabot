@@ -98,10 +98,16 @@ class Dankie
     # POR AHORA ESTÁ PONIENDO TRIGGERS DE GRUPO, ACOMODAR PARA PREGUNTAR SI SE QUIEREN GLOBALES
     def validar_set_trigger(msj, params)
         if !params || !msj.reply_to_message
-            text = '<b>Modo de uso:</b>'
-            text << "\nRespondé a un mensaje con /settrigger trigger"
-            text << "\npodés tirar una expresión regular"
-            @tg.send_message(chat_id: msj.chat.id, parse_mode: :html, text: text)
+            texto = '<b>Modo de uso:</b>'
+            texto << "\nRespondé a un mensaje con /settrigger trigger"
+            texto << "\npodés tirar una expresión regular"
+            @tg.send_message(chat_id: msj.chat.id, parse_mode: :html, text: texto)
+            return
+        end
+
+        if params.lenght > 89 && !DEVS.member?(msj.from.id)
+            texto = "Perdón, #{TROESMAS.sample}, pero tu trigger es muy largo."
+            @tg.send_message(chat_id: msj.chat.id, text: texto)
             return
         end
 
@@ -361,7 +367,7 @@ class Dankie
         arr = ['']
         temp = texto.partition %r{<pre>.*</pre>}
         while !temp[1].empty?
-            if contador == 5
+            if contador == 5 || arr.last.size >= 1000 # CAMBIAR CONTADOR == 5 POR CONTADOR == 30
                 arr << ''
                 contador = 0
             end
