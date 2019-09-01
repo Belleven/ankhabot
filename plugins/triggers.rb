@@ -17,8 +17,11 @@ class Dankie
     add_handler Handler::Comando.new(:deltrigger, :validar_borrar_trigger,
                                      permitir_params: true,
                                      descripción: 'Borra un trigger')
+#    params_triggers = Parámetros.new(órden: [:fecha, :uso, :nombre],
+#                                     máximo: Integer)
     add_handler Handler::Comando.new(:triggers, :listar_triggers,
                                      permitir_params: true,
+#                                     parámetros: params_triggers,
                                      descripción: 'Envía la lista de triggers')
     add_handler Handler::Comando.new(:infotrigger, :enviar_info_trigger,
                                      permitir_params: true,
@@ -105,7 +108,7 @@ class Dankie
             return
         end
 
-        if params.lenght > 89 && !DEVS.member?(msj.from.id)
+        if params.length > 89 && !DEVS.member?(msj.from.id)
             texto = "Perdón, #{TROESMAS.sample}, pero tu trigger es muy largo."
             @tg.send_message(chat_id: msj.chat.id, text: texto)
             return
@@ -174,30 +177,43 @@ class Dankie
             end
         end
 
-        texto = "<b>Lista de triggers:</b>\n" # poner un time.now en el texto
+        título = "<b>Lista de triggers</b> <i>(#{Time.now.strftime('%d/%m/%Y %T')})</i>:"
         hay_elementos = false
+        contador = 0
+        arr = ["#{título}"]
 
         unless triggers_locales.empty?
             hay_elementos = true
-            texto << "\n<b>Locales:</b>"
-            triggers_locales.sort!.each do |trig|
-                texto << "\n<pre> - #{html_parser trig}</pre>"
+            arr.first << "\n<b>Locales:</b>"
+        end
+        triggers_locales.each do |trig|
+            if contador == 5 || arr.last.size >= 1000
+                arr << "#{título}"
+                arr.last << "\n<b>Locales:</b>"
+                contador = 0
             end
+            arr.last << "\n<pre> - #{html_parser trig}</pre>"
+            contador +=1
         end
 
         # cuando se haga el coso para desactivar triggers globales,
-        # hacer algo para ignorar estas dos líneas
+        # hacer algo para ignorar estos dos bloques
         unless triggers_globales.empty?
             hay_elementos = true
-            texto << "\n<b>Globales:</b>"
-            triggers_globales.sort!.each do |trig|
-                texto << "\n<pre> - #{html_parser trig}</pre>"
+            arr.last << "\n<b>Globales:</b>"
+        end
+        triggers_globales.each do |trig|
+            if contador == 5 || arr.last.size >= 1000
+                arr << "{título}"
+                arr.last << "\n<b>Globales:</b>"
+                contador = 0
             end
+            arr.last << "\n<pre> - #{html_parser trig}</pre>"
+            contador +=1
         end
 
-
+        puts arr.inspect
         # armo botonera y envío
-        arr = partir_lista_de_triggers_en_arreglo texto
         opciones = armar_botonera 0, arr.size, msj.from.id
         
         respuesta = @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
@@ -262,7 +278,7 @@ class Dankie
         texto << "\nTipo: #{id == :global ? 'global' : 'de grupo'}"
         texto << "\nCreador: #{obtener_enlace_usuario(msj.chat.id, trigger.creador)}"
         texto << "\nTotal de usos: #{trigger.contador}"
-        texto << "\nAñadido: <code>#{trigger.fecha.to_s}</code>"
+        texto << "\nAñadido: <i>#{trigger.fecha.strftime('%d/%m/%Y %T')}</i>"
 
         @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
                          disable_web_page_preview: true, text: texto)
@@ -461,8 +477,4 @@ class Trigger
     def self.regexp_a_str(regexp)
         return regexp.inspect.gsub(/\/(.*)\/i/m, "\\1")
     end
-
-
-
-
 end

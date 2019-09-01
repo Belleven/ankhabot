@@ -24,27 +24,24 @@ class Dankie
                                        callback.message.message_id,
                                        índice)
 
-        begin
-            if texto.nil?
-                @tg.answer_callback_query(callback_query_id: callback.id)
-                @tg.edit_message_text(chat_id: callback.message.chat.id,
-                                      message_id: callback.message.message_id,
-                                      text: 'Gomenasai, esta lista es muy vieja, '\
-                                            'pedí una lista nueva oniisan.')
-                return
-            end
-
+        if texto.nil?
             @tg.answer_callback_query(callback_query_id: callback.id)
             @tg.edit_message_text(chat_id: callback.message.chat.id,
-                                  parse_mode: :html,
                                   message_id: callback.message.message_id,
-                                  text: texto,
-                                  reply_markup: opciones)
-
-        rescue Telegram::Bot::Exceptions::ResponseError
-            puts 'lol'
+                                  text: 'Gomenasai, esta lista es muy vieja, '\
+                                        'pedí una lista nueva oniisan.')
+            return
         end
 
+        @tg.answer_callback_query(callback_query_id: callback.id)
+        @tg.edit_message_text(chat_id: callback.message.chat.id,
+                              parse_mode: :html,
+                              message_id: callback.message.message_id,
+                              text: texto,
+                              reply_markup: opciones)
+
+    rescue Telegram::Bot::Exceptions::ResponseError
+        puts 'lol'
 
     end
 
