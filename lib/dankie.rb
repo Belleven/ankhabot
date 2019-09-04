@@ -117,9 +117,6 @@ class Dankie
         end
     end
 
-    # El to_s es al pedo, si lo que le pasamos no es un string entonces
-    # tiene que saltar el error para que veamos bien qué carajo le estamos pasando
-    # Hecho así solo recorre una vez el string en vez de 3.
     def html_parser(texto)
         html_dicc = { '&' => '&amp;', '<' => '&lt;', '>' => '&gt;', '"' => '&quot;' }
         texto.gsub(/&|<|>|\"/, html_dicc)
@@ -130,6 +127,10 @@ class Dankie
         cmd[:command]
     end
 
+    # Este método analiza parámetros en el mensaje. se podría hacer una combinación
+    # tomando parámetros de acá y usar un mensaje respondido como el resto del
+    # argumento, pero eso no se hace acá porque podría ser peligroso en algunos
+    # comandos.
     def get_command_params(msj)
         cmd = _parse_command(msj)
         cmd[:params]
@@ -154,13 +155,13 @@ class Dankie
             command.downcase!
             command.gsub!(%r{^/([a-z]+)(@#{@user.username.downcase})?}, '\\1')
 
-        elsif ['!', '>', '$'].include? text[0] # "!cmd params" o ">cmd params"
+        elsif ['!', '>', '$', '.'].include? text[0] # "!cmd params" o ">cmd params"
             command, params = text[1..-1].split ' ', 2
             command.downcase!
         else
             arr = text.split(' ', 3) # ["user", "comando", "params"]
             arr.first.downcase!
-            if (arr.size > 1) && arr.first.casecmp(@user.username.sub(/...$/, '').downcase).zero?
+            if (arr.size > 1) && arr.first.casecmp(@user.username[0..-4]).zero?
                 command = arr[1]&.downcase.to_sym
                 params = arr[2]
 
