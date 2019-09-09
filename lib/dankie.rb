@@ -9,6 +9,7 @@ require 'redis'
 require 'tzinfo'
 require 'set'
 require 'securerandom'
+require "ruby_reddit_api"
 
 class Dankie
     attr_reader :tg, :logger, :redis, :reddit, :user
@@ -65,6 +66,7 @@ class Dankie
         @user = Telegram::Bot::Types::User.new @tg.get_me['result']
         @lastFM = LastFMParser.new args[:last_fm_api]
         @tz = TZInfo::Timezone.get args[:timezone]
+        @redditApi = Reddit::Api.new
     end
 
     def run
