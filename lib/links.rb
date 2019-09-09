@@ -5,12 +5,14 @@ class Link
         @link = link
         @type = nil
 
-        extension = link.split('.').last
+        extensión = link.split('.').last
 
         # si tenés http://algo.com/foo.jpg?alguna=boludez, le saca el final
-        @link.gsub!(/\?.*$/, '') if extension.include? '?'
+        # TODO: poner mejor esta mugre
+        @link.gsub!(/\?.*$/, '') if extensión.include? '?'
+        extensión = link.split('.').last
 
-        case extension
+        case extensión
         when 'jpg', 'png', 'bmp', 'jpeg'
             @type = :image
         when 'mp4', 'gif'

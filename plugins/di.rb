@@ -15,10 +15,7 @@ class Dankie
     end
 
     def grita(msj, parámetros)
-        con_todo = !parámetros.nil? && parámetros.length >= 12 &&
-                   parámetros[0..11].downcase == '-perocontodo' &&
-                   (parámetros.length == 12 || parámetros[12] == ' ' ||
-                        parámetros[12] == "\n")
+        con_todo = parámetros && /^-perocontodo[\s|$]/i === parámetros
 
         if con_todo
             # Caso 1: al comando solo lo acompaña un -perocontodo

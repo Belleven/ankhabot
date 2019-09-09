@@ -197,8 +197,8 @@ class Dankie
         texto << if miembro.until_date.zero?
                      "\n- #{estatus} para siempre."
                  else
-                     "\n- #{estatus} hasta "\
-                          "#{miembro.until_date.strftime('%d/%m/%Y %T')}."
+                     fecha = Time.at(miembro.until_date, in: @tz.utc_offset).to_datetime
+                     "\n- #{estatus} hasta #{fecha.strftime('%d/%m/%Y %T %Z')}."
                  end
     end
 

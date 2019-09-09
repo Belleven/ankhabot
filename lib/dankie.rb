@@ -61,7 +61,7 @@ class Dankie
         @tg = TelegramAPI.new args[:tg_token], logger
         @logger = DankieLogger.new logger, args[:canal_logging], @tg.client
         @redis = Redis.new port: args[:redis_port], host: args[:redis_host], password: args[:redis_pass]
-        @img = ImageSearcher.new args[:google_image_key], args[:google_image_cx]
+        @img = ImageSearcher.new args[:google_image_key], args[:google_image_cx], @logger
         @user = Telegram::Bot::Types::User.new @tg.get_me['result']
         @lastFM = LastFMParser.new args[:last_fm_api]
         @tz = TZInfo::Timezone.get args[:timezone]

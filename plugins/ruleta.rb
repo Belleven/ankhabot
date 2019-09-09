@@ -27,7 +27,7 @@ class Dankie
 
         balas_arr = Array.new(cant_balas, true)
         (6 - cant_balas).times { balas_arr.push(false) }
-        balas_arr = balas_arr.shuffle
+        balas_arr.shuffle!
         @@juegos[msj.chat.id] = [cant_balas, balas_arr]
 
         texto = "Recargado y girado. Hay #{cant_balas} balas "\

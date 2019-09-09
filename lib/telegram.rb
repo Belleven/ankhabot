@@ -119,69 +119,57 @@ class TelegramAPI
         case e.to_s
 
         when /Too Many Requests: retry after/
-            @client.logger.log(Logger::ERROR,
-                               'Por un tiempo no puedo mandar mensajes '\
-                               "en #{args[:chat_id]}\n#{e}")
+            @client.logger.error('Por un tiempo no puedo mandar mensajes '\
+                                 "en #{args[:chat_id]}\n#{e}")
 
         when /have no rights to send a message/
-            @client.logger.log(Logger::ERROR,
-                               "Me restringieron los mensajes en #{args[:chat_id]}")
+            @client.logger.error("Me restringieron los mensajes en #{args[:chat_id]}")
 
         when /reply message not found/
-            @client.logger.log(Logger::ERROR,
-                               'No puedo responder a un mensaje '\
-                               "borrado (ID: #{args[:reply_to_message_id]}) "\
-                               "en #{args[:chat_id]}",
-                               al_canal: true)
+            @client.logger.error('No puedo responder a un mensaje '\
+                                 "borrado (ID: #{args[:reply_to_message_id]}) "\
+                                 "en #{args[:chat_id]}",
+                                 al_canal: true)
 
         when /bot was kicked from the [supergroup|group] chat/
-            @client.logger.log(Logger::FATAL,
-                               "Me echaron de este grupete: #{args[:chat_id]}, "\
-                               'y no puedo mandar mensajes')
+            @client.logger.fatal("Me echaron de este grupete: #{args[:chat_id]}, "\
+                                 'y no puedo mandar mensajes')
 
         when /USER_IS_BOT/
             texto, backtrace = @client.logger.excepcion_texto(e)
             texto << "\nLe quise mandar un mensaje privado a "\
                      "este bot: #{args[:chat_id]}"
-            @client.logger.log(Logger::FATAL, texto,
-                               al_canal: true, backtrace: backtrace)
+            @client.logger.fatal(texto, al_canal: true, backtrace: backtrace)
 
         when /chat not found/
-            @client.logger.log(Logger::FATAL,
-                               "Chat inválido: #{args[:chat_id]}",
-                               al_canal: true)
+            @client.logger.fatal("Chat inválido: #{args[:chat_id]}", al_canal: true)
             # Relanzo excepción
             raise
 
         when /message text is empty/
-            @client.logger.log(Logger::FATAL,
-                               'Quise mandar un mensaje '\
-                               "vacío en el chat: #{args[:chat_id]}",
-                               al_canal: true)
+            @client.logger.fatal('Quise mandar un mensaje '\
+                                 "vacío en el chat: #{args[:chat_id]}",
+                                 al_canal: true)
 
         when /message is too long/
-            @client.logger.log(Logger::FATAL,
-                               'Quise mandar un mensaje '\
-                               "muy largo en el chat: #{args[:chat_id]}",
-                               al_canal: true)
+            @client.logger.fatal('Quise mandar un mensaje '\
+                                 "muy largo en el chat: #{args[:chat_id]}",
+                                 al_canal: true)
             args[:text] = args[:text][0..4095]
-            @client.api.send_message(args)
+            enviar(función_envío, args, acción)
 
         when /PEER_ID_INVALID/
-            @client.logger.log(Logger::ERROR,
-                               'Le quise mandar un mensaje privado a '\
-                               'alguien que no me habló primero o me '\
-                               "bloqueó (ID: #{args[:chat_id]}")
+            @client.logger.error('Le quise mandar un mensaje privado a '\
+                                 'alguien que no me habló primero o me '\
+                                 "bloqueó (ID: #{args[:chat_id]}")
             # Vuelvo a relanzar la excepción (esto fue solo para registral la id)
             raise
 
         when /not enough rights to send photos to the chat/
-            @client.logger.log(Logger::ERROR,
-                               "Me restringieron las imágenes en #{args[:chat_id]}")
+            @client.logger.error("Me restringieron las imágenes en #{args[:chat_id]}")
 
         when /not enough rights to send stickers to the chat/
-            @client.logger.log(Logger::ERROR,
-                               "Me restringieron los stickers en #{args[:chat_id]}")
+            @client.logger.error("Me restringieron los stickers en #{args[:chat_id]}")
 
         else
             raise

@@ -205,7 +205,7 @@ class Dankie
 
     # Para camabiar un texto del chat
     def cambiar_texto_chat(msj, params, modificador, texto_no_repetido)
-        texto = params || msj&.reply_to_message&.text
+        texto = params || msj&.reply_to_message&.text || msj&.reply_to_message&.caption
         # Me fijo si no hay parámetros
         if texto.nil? || texto.length.zero?
             @tg.send_message(chat_id: msj.chat.id,
