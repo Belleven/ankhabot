@@ -2,26 +2,31 @@ class Link
     attr_reader :link, :type
 
     def initialize(link)
-        @link = link
-        @type = nil
+        # https://en.wikipedia.org/wiki/Uniform_Resource_Identifier#Generic_syntax
+        # La con .gsub sacamos las consultas (vienen después de un '?') y los fragmentos
+        # (vienen después de un '#'). Si un link tiene consultas y fragmentos, entra
+        # en el primer caso de la expresión regular así que no hay problema.
+        @link = link.gsub(/\?.*$|#.*$/, '')
+        @type = :image
 
-        extensión = link.split('.').last
-
-        # si tenés http://algo.com/foo.jpg?alguna=boludez, le saca el final
-        # TODO: poner mejor esta mugre
-        @link.gsub!(/\?.*$/, '') if extensión.include? '?'
-        extensión = link.split('.').last
+        # Tomo extensión
+        extensión = @link.split('.').last
 
         case extensión
-        when 'jpg', 'png', 'bmp', 'jpeg'
-            @type = :image
-        when 'mp4', 'gif'
+        # En cualquiera de estos casos no tengo nada más que hacer
+        when 'jpg', 'png', 'bmp', 'jpeg', 'ppm'
+            return
+        when 'gif'
+            @type = :gif
+        when 'mp4'
             @type = :video
+        when 'svg'
+            @type = :link
+
         else
             # los links de reddit vienen con &amp:
             if @link.include? 'i.reddituploads.com'
                 @link.gsub! 'amp:', ''
-                @type = :image
 
             # los gifs de imgur vienen como gifv, es mejor mp4
             elsif /i\.imgur\.com.*gifv/.match?(@link)
@@ -30,12 +35,9 @@ class Link
 
             # acomoda los links de gfycat para que sean gifs
             elsif @link.include? 'gfycat.com'
-                @link.gsub!(%r{https?://gfycat.com/(.*)}, 'https://thumbs.gfycat.com/\\1-size_restricted.gif')
-                @type = :video
-
-            # supongo que otro caso será imagen
-            else
-                @type = :image
+                @link.gsub!(%r{https?://gfycat.com/(.*)},
+                            'https://thumbs.gfycat.com/\\1-size_restricted.gif')
+                @type = :gif
             end
         end
     end

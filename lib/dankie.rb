@@ -9,7 +9,7 @@ require 'redis'
 require 'tzinfo'
 require 'set'
 require 'securerandom'
-require "ruby_reddit_api"
+require 'ruby_reddit_api'
 
 class Dankie
     attr_reader :tg, :logger, :redis, :reddit, :user

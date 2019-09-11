@@ -1,30 +1,31 @@
 require 'telegram/bot'
 
 class Dankie
-
     add_handler Handler::Comando.new(:sub, :sub,
                                      permitir_params: true,
-                                     descripción: 'Busco un post en el subreddit que me pidas')
+                                     descripción: 'Busco un post en el subreddit '\
+                                                  'que me pidas')
 
-    def sub(msj,subr)
-        return if no_hay_subreddit(msj, subr)
-        return if verificar_link(msj, subr)
+    def sub(msj, subr)
+        return if no_hay_subreddit(msj, subr) || sub_inválido(msj, subr)
+
         result = @redditApi.browse(subr)
 
-        if result.is_a? Array and result != []
+        if result.is_a?(Array) && (result != [])
             a = result.sample
 
             @tg.send_message(chat_id: msj.chat.id,
                              reply_to_message_id: msj.message_id,
                              text: a.url)
-            return
-        end
-
+        else
             @tg.send_message(chat_id: msj.chat.id,
                              reply_to_message_id: msj.message_id,
-                             text: "Perdón #{TROESMAS.sample}, pero ese sub es privado o no existe.")
-
+                             text: "Perdón #{TROESMAS.sample}, pero ese sub es "\
+                                   'privado o no existe.')
+        end
     end
+
+    private
 
     def no_hay_subreddit(msj, sub)
         if (hay = sub.nil? || sub.empty?)
@@ -36,13 +37,13 @@ class Dankie
         hay
     end
 
-    def verificar_link(msj, sub)
+    def sub_inválido(msj, sub)
         if (inválido = sub =~ /\W/ || sub.size > 21)
             @tg.send_message(chat_id: msj.chat.id,
                              reply_to_message_id: msj.message_id,
-                             text: "Ese nombre de subreddit es inválido, #{TROESMAS.sample}.")
+                             text: 'Ese nombre de subreddit es '\
+                                   "inválido, #{TROESMAS.sample}.")
         end
-        return inválido
+        inválido
     end
-
 end

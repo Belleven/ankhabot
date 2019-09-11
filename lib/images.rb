@@ -22,8 +22,6 @@ class ImageSearcher
         respuesta = Net::HTTP.get_response(URI.parse(URI.escape(dirección)))
         resultado = JSON.parse(respuesta.body)
 
-        puts resultado
-
         if resultado['error'] &&
            resultado['error']['errors'].first['reason'] == 'dailyLimitExceeded'
             @logger.info('Alcancé el límite diario de imágenes')
