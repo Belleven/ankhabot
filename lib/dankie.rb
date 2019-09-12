@@ -202,10 +202,11 @@ class Dankie
             enlace_usuario = crear_enlace(usuario, id_chat)
         end
     rescue StandardError => e
+        puts "\n\nERROR\n\n"
         enlace_usuario = nil
-        @logger.error(e, al_canal: true)
+        @logger.error(e.to_s, al_canal: true)
     ensure
-        enlace_usuario || 'ay no c (' + id_usuario.to_s + ')'
+        return enlace_usuario || 'ay no c (' + id_usuario.to_s + ')'
     end
 
     def enlace_usuario_objeto(usuario, id_chat)
