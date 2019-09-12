@@ -1,6 +1,16 @@
 class Dankie
-    add_handler Handler::Comando.new(:img, :buscar_imagen, permitir_params: true,
-                                                           descripción: 'Busco una imagen')
+    add_handler Handler::Comando.new(:img,
+                                     :buscar_imagen,
+                                     permitir_params: true,
+                                     descripción: 'Busco una imagen')
+
+    add_handler Handler::Comando.new(:imgtest,
+                                     :img_test,
+                                     permitir_params: true)
+
+    def img_test(msj, parámetros)
+        @tg.send_photo(chat_id: msj.chat.id, photo: parámetros) if parámetros
+    end
 
     def buscar_imagen(msj, parámetros)
         args = parámetros || msj.reply_to_message&.text ||
@@ -47,7 +57,7 @@ class Dankie
                 @tg.send_message(chat_id: msj.chat.id,
                                  reply_to_message_id: msj.message_id,
                                  text: 'No más imágenes por hoy uwu')
-            when :error_parser
+            when :error
                 @tg.send_message(chat_id: msj.chat.id,
                                  reply_to_message_id: msj.message_id,
                                  text: 'Hubo un error re turbina :c')

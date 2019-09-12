@@ -3,29 +3,32 @@ require 'json'
 require_relative 'links.rb'
 
 class ImageSearcher
-    def initialize(key, cx, logger)
+    def initialize(key, cx, gl, logger)
         @key = key
         @cx = cx
+        @gl = gl
         @logger = logger
     end
 
     def buscar_imagen(búsqueda, params_búsqueda: nil)
-        # Armo la consulta
-        consulta = "q=#{búsqueda}&key=#{@key}&cx=#{@cx}"
-        agregar_params_búsqueda(consulta, params_búsqueda) if params_búsqueda
-        consulta << '&searchType=image'
-
         # Armo la dirección
-        dirección = "https://www.googleapis.com/customsearch/v1?#{consulta}"
+        dirección = 'https://www.googleapis.com/customsearch/v1?'\
+                    "q=#{búsqueda}&key=#{@key}&cx=#{@cx}&gl=#{@gl}"\
+                    '&searchType=image'
+
+        agregar_params_búsqueda(consulta, params_búsqueda) if params_búsqueda
 
         # Obtengo el resultado
         respuesta = Net::HTTP.get_response(URI.parse(URI.escape(dirección)))
         resultado = JSON.parse(respuesta.body)
 
-        if resultado['error'] &&
-           resultado['error']['errors'].first['reason'] == 'dailyLimitExceeded'
-            @logger.info('Alcancé el límite diario de imágenes')
-            return :límite_diario
+        if resultado['error']
+            if resultado['error']['errors'].first['reason'] == 'dailyLimitExceeded'
+                @logger.info('Alcancé el límite diario de imágenes')
+                return :límite_diario
+            else
+                return :error
+            end
         elsif resultado['searchInformation']['totalResults'] == '0'
             @logger.info('Sin resultados en la búsqueda')
             return :sin_resultados
@@ -40,7 +43,7 @@ class ImageSearcher
     # Error de parseo
     rescue JSON::ParserError => e
         @logger.error(e)
-        :error_parser
+        :error
     end
 
     private

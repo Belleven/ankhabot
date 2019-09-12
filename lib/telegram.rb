@@ -165,6 +165,11 @@ class TelegramAPI
             # Vuelvo a relanzar la excepción (esto fue solo para registral la id)
             raise
 
+        when %r{(?-x:wrong file identifier/HTTP URL specified)|
+                (?-x:wrong type of the web page content)}x
+            @client.logger.error('Error al mandar archivo al '\
+                                 "chat (ID: #{args[:chat_id]})")
+
         when /not enough rights to send photos to the chat/
             @client.logger.error("Me restringieron las imágenes en #{args[:chat_id]}")
 

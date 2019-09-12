@@ -10,17 +10,17 @@ class Link
         @type = :image
 
         # Tomo extensión
-        extensión = @link.split('.').last
+        extensión = @link.split('.').last.downcase
 
         case extensión
         # En cualquiera de estos casos no tengo nada más que hacer
-        when 'jpg', 'png', 'bmp', 'jpeg', 'ppm'
+        when 'jpg', 'png', 'jpeg', 'ppm'
             return
         when 'gif'
             @type = :gif
         when 'mp4'
             @type = :video
-        when 'svg'
+        when 'svg', 'bmp', 'webp', 'ico'
             @type = :link
 
         else
