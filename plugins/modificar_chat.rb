@@ -118,8 +118,8 @@ class Dankie
     # Comando /unpin /desanclar
     def desanclar(msj)
         # Función a ejecutar
-        quitar = proc do |_id_chat|
-            @tg.unpin_chat_message(chat_id: msj.chat.id)
+        quitar = proc do |id_chat|
+            @tg.unpin_chat_message(chat_id: id_chat)
         end
         # Textos para responder
         error_no_tiene = "No hay ningún mensaje anclado #{TROESMAS.sample}"
@@ -134,8 +134,8 @@ class Dankie
     # Comando /sacarfoto
     def sacar_foto(msj)
         # Función a ejecutar
-        quitar = proc do |_id_chat|
-            @tg.delete_chat_photo(chat_id: msj.chat.id)
+        quitar = proc do |id_chat|
+            @tg.delete_chat_photo(chat_id: id_chat)
         end
         # Textos para responder
         error_no_tiene = "No hay ninguna foto en el chat #{TROESMAS.sample}"
