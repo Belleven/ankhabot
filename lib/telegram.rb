@@ -131,7 +131,7 @@ class TelegramAPI
                                  "en #{args[:chat_id]}",
                                  al_canal: true)
 
-        when /bot was kicked from the [supergroup|group] chat/
+        when /bot was kicked from the (super)?group chat/
             @client.logger.fatal("Me echaron de este grupete: #{args[:chat_id]}, "\
                                  'y no puedo mandar mensajes')
 
