@@ -38,6 +38,8 @@ class Link
                 @link.gsub!(%r{https?://gfycat.com/(.*)},
                             'https://thumbs.gfycat.com/\\1-size_restricted.gif')
                 @type = :gif
+            elsif @link.include? 'https://youtu.be/'
+                @type = :link
             elsif %r{^https?://www\.reddit\.com/r/(\w)*/comments/}.match?(@link)
                 @type = :link
             end

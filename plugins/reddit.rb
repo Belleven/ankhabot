@@ -49,15 +49,15 @@ class Dankie
                                        parse_mode: :html)
                     end
                 elsif post.media['type']
-                    if post.media['type'] == 'gfycat.com'
+                    if post.media['type'] == 'gfycat.com' && post.media['oembed']['thumbnail_url']
                         enviar_url(msj, texto, post.media['oembed']['thumbnail_url'])
                     elsif post.media['type'] == 'youtube.com'
-                        enviar_url(msj, texto, post.media['oembed']['source'])
+                        enviar_url(msj, texto, url)
                     else
-                        json_no_reconocido(msj, post)
+                        json_no_reconocido(msj, post, texto)
                     end
                 else
-                    json_no_reconocido(msj, post)
+                    json_no_reconocido(msj, post, texto)
                 end
             # Si no, puede ser texto o imagen
             else
@@ -122,12 +122,14 @@ class Dankie
         end
     end
 
-    def json_no_reconocido(msj, post)
+    def json_no_reconocido(msj, post, texto)
         mensaje_log = "JSON todavía no validado:\n#{post.media}"
         @logger.info(mensaje_log, al_canal: true)
+
+        # Paso el link del post
         @tg.send_message(chat_id: msj.chat.id,
                          reply_to_message_id: msj.message_id,
-                         text: 'Hubo un error y no pude pasar nada :(',
+                         text: texto,
                          parse_mode: :html)
     end
 
