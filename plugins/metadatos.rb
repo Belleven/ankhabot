@@ -93,11 +93,15 @@ class Dankie
         end
 
         # Si hay autor, lo agrego
-        texto << "\n - Autor: #{msj.author_signature}" if msj.author_signature
+        if msj.author_signature
+            texto << "\n - Autor: "\
+                     "#{html_parser(msj.author_signature)}"
+        end
 
         # Agrego usuario
         if msj.from
-            título = "\n\n - Enviado por: #{enlace_usuario_objeto(msj.from, msj.chat.id)}"
+            usuario = enlace_usuario_objeto(msj.from, msj.chat.id)
+            título = "\n\n - Enviado por: #{usuario}"
             agregar_usuario(texto, msj.from, título, nivel + 1)
         end
 
@@ -222,9 +226,9 @@ class Dankie
 
         # Otros
         if !msj.photo.empty?
-            agregar_imágenes(respuesta, msj.photo, nivel)
+            agregar_imágenes(respuesta, msj.photo, "\n\n - Imagen:", nivel)
         elsif msj.animation
-            agregar_animación(respuesta, msj.animation, nivel)
+            agregar_animación(respuesta, msj.animation, "\n\n - Gif:", nivel)
         elsif msj.sticker
             agregar_sticker(respuesta, msj.sticker, nivel)
         elsif msj.audio
@@ -244,7 +248,7 @@ class Dankie
         elsif msj.contact
             agregar_contacto(respuesta, msj.contact, nivel)
         elsif msj.game
-            agregar_juego(respuesta, msj.game, nivel)
+            agregar_juego(respuesta, msj.game, nivel, pasar_entidades)
         elsif msj.reply_markup
             agregar_botones(respuesta, msj.reply_markup, nivel)
         elsif msj.venue
@@ -310,8 +314,14 @@ class Dankie
                  "#{tab} Duración:<code> #{duracion_entera(audio.duration)}</code>"
 
         # Agrego datos opcionales
-        texto << "#{tab} Artista:<code> #{audio.performer}</code>" if audio.performer
-        texto << "#{tab} Título:<code> #{audio.title}</code>" if audio.title
+        if audio.performer
+            texto << "#{tab} Artista:<code> "\
+                     "#{html_parser(audio.performer)}</code>"
+        end
+        if audio.title
+            texto << "#{tab} Título:<code> "\
+                     "#{html_parser(audio.title)}</code>"
+        end
         texto << "#{tab} MIME:<code> #{audio.mime_type}</code>" if audio.mime_type
 
         # Agrego tamaño
@@ -330,7 +340,10 @@ class Dankie
                  "#{tab} ID:<code> #{doc.file_id}</code>"
 
         # Agrego datos opcionales
-        texto << "#{tab} Nombre:<code> #{doc.file_name}</code>" if doc.file_name
+        if doc.file_name
+            texto << "#{tab} Nombre:<code> "\
+                     "#{html_parser(doc.file_name)}</code>"
+        end
         texto << "#{tab} MIME:<code> #{doc.mime_type}</code>" if doc.mime_type
 
         # Agrego tamaño
@@ -341,15 +354,12 @@ class Dankie
         agregar_imagen(texto, doc.thumb, nivel, 'Miniatura') if doc.thumb
     end
 
-    def agregar_animación(texto, animación, nivel)
+    def agregar_animación(texto, animación, título, nivel)
         tab = crear_tab(nivel)
 
         # Agrego datos que seguro aparecen
-        texto << "\n\n - Gif:"\
+        texto << "#{título}"\
                  "#{tab} ID:<code> #{animación.file_id}</code>"
-        # "#{tab} Duración:<code> #{duracion_entera(animación.duration)}</code>"\
-        # "#{tab} Ancho:<code> #{animación.width} px</code>"\
-        # "#{tab} Alto:<code> #{animación.height} px</code>"
 
         # Agrego datos opcionales
         if animación.respond_to?(:duration) && animación.duration
@@ -367,7 +377,7 @@ class Dankie
 
         if animación.file_name
             texto << "#{tab} Nombre:<code> "\
-                     "#{animación.file_name}</code>"
+                     "#{html_parser(animación.file_name)}</code>"
         end
         if animación.mime_type
             texto << "#{tab} MIME:<code> "\
@@ -382,10 +392,29 @@ class Dankie
         agregar_imagen(texto, animación.thumb, nivel, 'Miniatura') if animación.thumb
     end
 
-    def agregar_juego(texto, game, nivel); end
+    def agregar_juego(texto, juego, nivel, pasar_entidades)
+        tab = crear_tab(nivel)
 
-    def agregar_imágenes(texto, imágenes, nivel)
-        texto << "\n\n - Imagen:"
+        texto << "\n\n - Juego:"\
+                 "#{tab} Título:<code> #{html_parser(juego.title)}</code>"\
+                 "#{tab} Descripción:<code> #{html_parser(juego.description)}</code>"
+        # Si hay gifs los agrego
+        if juego.animation
+            agregar_animación(texto, juego.animation,
+                              "#{tab} Gif:", nivel + 1)
+        end
+        # Si hay texto lo agrego
+        if juego.text
+            agregar_texto(texto, "#{tab} Texto:", juego.text,
+                          juego.text_entities, nivel, pasar_entidades)
+        end
+        # Las imágenes
+        texto << "\n"
+        agregar_imágenes(texto, juego.photo, "#{tab} Imagen:", nivel)
+    end
+
+    def agregar_imágenes(texto, imágenes, título, nivel)
+        texto << título
         imágenes.each do |imagen|
             texto << "\n"
             agregar_imagen(texto, imagen, nivel + 1)
@@ -456,18 +485,21 @@ class Dankie
         # Agrego datos que seguro aparecen
         texto << "\n\n - Contacto:"\
                  "#{tab} Número:<code> #{contacto.phone_number}</code>"\
-                 "#{tab} Nombre:<code> #{contacto.first_name}</code>"
+                 "#{tab} Nombre:<code> #{html_parser(contacto.first_name)}</code>"
 
         # Agrego datos opcionales
         if contacto.last_name
             texto << "#{tab} Apellido:<code> "\
-                     "#{contacto.last_name}</code>"
+                     "#{html_parser(contacto.last_name)}</code>"
         end
         if contacto.user_id
             texto << "#{tab} ID usuario:<code> "\
                      "#{contacto.user_id}</code>"
         end
-        texto << "#{tab} vCard:<code> #{contacto.vcard}</code>" if contacto.vcard
+        if contacto.vcard
+            texto << "#{tab} vCard:<code> "\
+                     "#{html_parser(contacto.vcard)}</code>"
+        end
     end
 
     def agregar_ubicación(texto, ubicación, nivel)
