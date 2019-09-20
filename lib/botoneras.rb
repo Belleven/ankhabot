@@ -42,7 +42,6 @@ class Dankie
 
     rescue Telegram::Bot::Exceptions::ResponseError
         puts 'lol'
-
     end
 
     def armar_lista(id_chat, id_msj, arreglo)
