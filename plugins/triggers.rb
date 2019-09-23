@@ -109,8 +109,9 @@ class Dankie
         @tg.edit_message_text(chat_id: callback.message.chat.id,
                               parse_mode: :html, text: texto,
                               message_id: callback.message.message_id)
-        texto = "Trigger <code>#{html_parser Trigger.regexp_a_str(temp[:regexp])}"\
-                "</code> aceptado." # TODO: QUE EL TEXTO SEA ACEPTADO O RECHAZADO
+        texto = "Trigger <code>"
+        texto << "#{html_parser Trigger.regexp_a_str(temp[:regexp])}"
+        texto << "</code> #{match[:acción] == 'confirmar' ? 'aceptado' : 'rechazado'}."
         @tg.send_message(chat_id: temp[:id_grupo], parse_mode: :html,
                          text: texto)
     rescue Telegram::Bot::Exceptions::ResponseError
@@ -128,7 +129,6 @@ class Dankie
         case match[:acción]
         when 'borrar'
             temp = Trigger.obtener_del_trigger_temp match[:id_regexp]
-            puts temp
             Trigger.borrar_trigger :global, temp[:regexp]
             texto = "Trigger <code>#{html_parser Trigger.regexp_a_str(temp[:regexp])}"\
                     "</code> borrado por #{callback.from.id}."
@@ -142,8 +142,9 @@ class Dankie
         @tg.edit_message_text(chat_id: callback.message.chat.id,
                               parse_mode: :html, text: texto,
                               message_id: callback.message.message_id)
-        texto = "Trigger <code>#{html_parser Trigger.regexp_a_str(temp[:regexp])}"\
-                "</code> borrado" # TODO: QUE EL TEXTO SEA BORRADO O NO BORRADO
+        texto = "Trigger <code>"
+        texto << "#{html_parser Trigger.regexp_a_str(temp[:regexp])}"
+        texto << "</code> #{match[:acción] == 'borrar' ? 'borrado' : 'no borrado'}."
         @tg.send_message(chat_id: temp[:id_grupo], parse_mode: :html,
                          text: texto)
     rescue Telegram::Bot::Exceptions::ResponseError
@@ -250,12 +251,13 @@ class Dankie
             texto << "\n<pre>/infotrigger trigger</pre>"
             texto << "\n<pre>trigger</pre> tiene que ser exactamente"
             texto << " la expresión regular que activa al trigger."
-            @tg.send_message(chat_id: msj.chat.id, parse_mode: :html, text: texto)
+            @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
+                             reply_to_message_id: msj.message_id, text: texto)
             return
         end
 
         unless regexp_recibida = Trigger.str_a_regexp(params)
-            @tg.send_message(chat_id: msj.chat.id,
+            @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
                              text: "No sirve tu trigger, #{TROESMAS.sample}.")
             return
         end
@@ -272,7 +274,7 @@ class Dankie
         end
 
         unless trigger
-            @tg.send_message(chat_id: msj.chat.id,
+            @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
                              text: 'No pude encontrar el trigger úwù')
             return
         end
@@ -297,6 +299,7 @@ class Dankie
         texto << "\nAñadido: <i>#{trigger.fecha.strftime('%d/%m/%Y %T')}</i>"
 
         @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
+                         reply_to_message_id: msj.message_id,
                          disable_web_page_preview: true, text: texto)
 
 
@@ -305,7 +308,7 @@ class Dankie
     def triggered(msj)
         unless (texto = msj.reply_to_message&.text || msj.reply_to_message&.caption)
             texto = "Respondele a un mensaje de texto, #{TROESMAS.sample}."
-            @tg.send_message(chat_id: msj.chat.id, text: texto)
+            @tg.send_message(chat_id: msj.chat.id, text: texto, reply_to_message_id: message_id)
             return
         end
 
@@ -325,7 +328,8 @@ class Dankie
         end
         enviar = emparejó ? enviar : 'Ningún trigger matchea con este mensaje'
 
-        @tg.send_message(chat_id: msj.chat.id, parse_mode: :html, text: enviar)
+        @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
+                         reply_to_message_id: msj.message_id, text: enviar)
 
 
     end
@@ -380,9 +384,11 @@ class Dankie
 
         @logger.info(texto, al_canal: global)
 
-        @tg.send_message(chat_id: global ? @canal : msj.chat.id,
-                         parse_mode: :html, text: texto,
-                         disable_web_page_preview: true)
+        unless global
+            @tg.send_message(chat_id: msj.chat.id,
+                             parse_mode: :html, text: texto,
+                             disable_web_page_preview: true)
+        end
         i
     end
 
@@ -407,10 +413,8 @@ class Dankie
         opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new inline_keyboard: arr
         @tg.send_message(chat_id: @canal, parse_mode: :html, text: texto,
                          reply_markup: opciones, disable_web_page_preview: true)
-        # TODO: validar que el forward no sea muy viejo o enviar el trigger temporal
-        @tg.forward_message(chat_id: @canal, from_chat_id: msj.chat.id,
-                            message_id: msj.message_id)
-
+        trigger = Trigger.new(regexp, :global, true)
+        enviar_trigger(@canal, trigger)
     end
 
     # Función para enviar un mensaje de logging y confirmar si se borra un trigger
@@ -450,6 +454,7 @@ class Dankie
         @logger.info(texto, al_canal: id_grupo == 'global')
 
         @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
+                         reply_to_message_id: msj.message_id,
                          disable_web_page_preview: true, text: texto)
     end
 
@@ -458,18 +463,20 @@ class Dankie
             texto = '<b>Modo de uso:</b>'
             texto << "\nRespondé a un mensaje con /settrigger trigger"
             texto << "\npodés tirar una expresión regular"
-            @tg.send_message(chat_id: msj.chat.id, parse_mode: :html, text: texto)
+            @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
+                             reply_to_message_id: msj.message_id, text: texto)
             return
         end
 
         if params.length > 89 && !DEVS.member?(msj.from.id)
             texto = "Perdón, #{TROESMAS.sample}, pero tu trigger es muy largo."
-            @tg.send_message(chat_id: msj.chat.id, text: texto)
+            @tg.send_message(chat_id: msj.chat.id, text: texto,
+                             reply_to_message_id: message_id)
             return
         end
 
         unless regexp = Trigger.str_a_regexp(params)
-            @tg.send_message(chat_id: msj.chat.id,
+            @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
                              text: "No sirve tu trigger, #{TROESMAS.sample}.")
             return
         end
@@ -479,11 +486,18 @@ class Dankie
         if Trigger.existe_trigger?(msj.chat.id, regexp)
             texto = "Ya hay un trigger así, #{TROESMAS.sample}.\n"
             texto << "Borralo con <code>/deltrigger #{html_parser params}</code>"
-            @tg.send_message chat_id: msj.chat.id, parse_mode: :html, text: texto
+            @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
+                             reply_to_message_id: msj.message_id, text: texto)
             return
         end
 
-        # TODO: VALIDAR QUE EL TRIGGER NO ESTÉ EN LOS TEMPORALES GLOBALES !!!!!
+        if tipo == :global && Trigger.temporal?(regexp)
+            texto = "Alguien ya está poniendo un trigger con esa expresión "
+            texto << "regular, #{TROESMAS.sample}."
+            @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
+                             reply_to_message_id: msj.message_id, text: texto)
+            return
+        end
 
         i = poner_trigger(regexp, msj.reply_to_message, msj.chat.id,
                           msj.from.id, tipo == :global)
@@ -491,6 +505,10 @@ class Dankie
         if tipo == :global
             confirmar_trigger_global(regexp, msj.reply_to_message,
                                      msj.chat.id, msj.from.id, i)
+            @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
+                             reply_to_message_id: msj.message_id,
+                             text: "Esperando a que mi senpai acepte el trigger uwu.")
+
         end
     end
 
@@ -501,8 +519,9 @@ class Trigger
 
     # id_grupo debe ser un Integer o el Symbol :global
     # regexp debe ser una Regexp
-    def initialize(id_grupo, regexp)
-        @clave = "trigger:#{id_grupo}:#{Trigger.regexp_a_str regexp}"
+    def initialize(id_grupo, regexp, temp = false)
+        @clave = "trigger:#{temp ? 'temp:' : ''}"
+        @clave << "#{id_grupo}:#{Trigger.regexp_a_str regexp}"
 
         trigger = self.class.redis.hgetall @clave
 
@@ -621,9 +640,17 @@ class Trigger
 
     end
 
-    def self.existe_trigger?(id_grupo, trigger)
+    def self.existe_trigger?(id_grupo, regexp)
         triggers(id_grupo) do |_id, exp|
-            return true if trigger == exp
+            return true if regexp == exp
+        end
+        false
+    end
+
+    def self.temporal?(regexp)
+        regexp = regexp_a_str regexp
+        @redis.smembers('triggers:temp:global').shuffle!.each do |exp|
+            return true if regexp == exp
         end
         false
     end
