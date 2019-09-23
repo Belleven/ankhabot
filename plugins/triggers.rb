@@ -110,7 +110,7 @@ class Dankie
                               parse_mode: :html, text: texto,
                               message_id: callback.message.message_id)
         texto = "Trigger <code>#{html_parser Trigger.regexp_a_str(temp[:regexp])}"\
-                "</code> aceptado."
+                "</code> aceptado." # TODO: QUE EL TEXTO SEA ACEPTADO O RECHAZADO
         @tg.send_message(chat_id: temp[:id_grupo], parse_mode: :html,
                          text: texto)
     rescue Telegram::Bot::Exceptions::ResponseError
@@ -143,7 +143,7 @@ class Dankie
                               parse_mode: :html, text: texto,
                               message_id: callback.message.message_id)
         texto = "Trigger <code>#{html_parser Trigger.regexp_a_str(temp[:regexp])}"\
-                "</code> borrado"
+                "</code> borrado" # TODO: QUE EL TEXTO SEA BORRADO O NO BORRADO
         @tg.send_message(chat_id: temp[:id_grupo], parse_mode: :html,
                          text: texto)
     rescue Telegram::Bot::Exceptions::ResponseError
@@ -482,6 +482,8 @@ class Dankie
             @tg.send_message chat_id: msj.chat.id, parse_mode: :html, text: texto
             return
         end
+
+        # TODO: VALIDAR QUE EL TRIGGER NO ESTÉ EN LOS TEMPORALES GLOBALES !!!!!
 
         i = poner_trigger(regexp, msj.reply_to_message, msj.chat.id,
                           msj.from.id, tipo == :global)
