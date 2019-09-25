@@ -499,5 +499,11 @@ class Dankie
             id_mensaje = @redis.lpop("spam:#{id_chat}").to_i
             @tg.delete_message(chat_id: id_chat, message_id: id_mensaje)
         end
+    rescue Telegram::Bot::Exceptions::ResponseError
+        # Loggear mejor esto, la excepción que salta es
+=begin
+Telegram API has returned the error. (ok: "false", error_code: "400", description: "Bad Request: message can't be deleted") (Telegram::Bot::Exceptions::ResponseError)
+=end
+        @logger.error 'Traté de borrar un mensaje muy viejo', al_canal: true
     end
 end
