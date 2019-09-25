@@ -15,7 +15,7 @@ class Dankie
     end
 
     def grita(msj, parámetros)
-        con_todo = parámetros && /^-perocontodo[\s|\z]/i === parámetros
+        con_todo = parámetros && parámetros.downcase == '--perocontodo'
 
         if con_todo
             # Caso 1: al comando solo lo acompaña un -perocontodo

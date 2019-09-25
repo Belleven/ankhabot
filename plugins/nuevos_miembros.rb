@@ -5,16 +5,20 @@ class Dankie
 
     def nuevos_miembros(msj)
         if msj.new_chat_members.any? { |miembro| miembro.id == @user.id }
-            nombre_bot = @user.first_name.nil? ? @user.id.to_s : @user.first_name
+            nombre_bot = primer_nombre(@user)
             saludo = "hyoroskune soy #{nombre_bot} nwn arigato x meterme al grupete"
-            @tg.send_message(chat_id: msj.chat.id, text: saludo)
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: saludo,
+                             reply_to_message_id: msj.message_id)
 
         elsif msj.new_chat_members.size == 1
             saludo = ['Bienvenido ', 'Hola ', 'Buenas ', 'Que onda '].sample
             nombre = primer_nombre(msj.new_chat_members[0])
             extra = [', pasá y sentate al fondo.', ', ponete cómodo.',
                      ', querés bizcochitos?', ', qué te trae por acá?'].sample
-            @tg.send_message(chat_id: msj.chat.id, text: saludo + nombre + extra)
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: saludo + nombre + extra,
+                             reply_to_message_id: msj.message_id)
 
         elsif msj.new_chat_members.size >= 2
             texto = ['Bienvenidos ', 'Hola ', 'Buenas ', 'Que onda '].sample
@@ -33,7 +37,9 @@ class Dankie
 
             extra = [', pasen y siéntense al fondo.', ', pónganse cómodos.',
                      ', quieren bizcochitos?', ', qué los trae por acá?'].sample
-            @tg.send_message(chat_id: msj.chat.id, text: texto + extra)
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: texto + extra,
+                             reply_to_message_id: msj.message_id)
         end
     end
 end

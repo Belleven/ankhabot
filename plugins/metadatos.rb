@@ -20,7 +20,7 @@ class Dankie
                              text: "Respondele a un mensaje #{TROESMAS.sample}")
         else
             # Me fijo si me piden que pase las entidades
-            pasar_entidades = parámetros && /^--entidades[\s|\z]/i === parámetros
+            pasar_entidades = parámetros && parámetros.downcase == '--entidades'
 
             # De ser así reviso que haya sido un dev pues puede floodear violentamente
             # mostras las entidades de un mensaje
@@ -244,7 +244,7 @@ class Dankie
         elsif msj.poll
             agregar_encuesta(respuesta, msj.poll, nivel)
         elsif msj.location
-            agregar_ubicación(respuesta, msj.location, nivel)
+            agregar_ubicación(respuesta, msj.location, "\n\n - Ubicación:", nivel)
         elsif msj.contact
             agregar_contacto(respuesta, msj.contact, nivel)
         elsif msj.game
@@ -421,7 +421,29 @@ class Dankie
         end
     end
 
-    def agregar_sticker(texto, sticker, nivel); end
+    def agregar_sticker(texto, sticker, nivel)
+        tab = crear_tab(nivel)
+
+        # Agrego datos que siempre aparecen
+        texto << "\n\n - Sticker:"\
+                 "#{tab} ID:<code> #{sticker.file_id}</code>"\
+                 "#{tab} Ancho:<code> #{sticker.width} px</code>"\
+                 "#{tab} Alto:<code> #{sticker.height} px</code>"
+        "#{tab} Animado:<code> #{sticker.is_animated ? 'Sí' : 'No'}</code>"
+
+        texto << "#{tab} Emoji:<code> #{sticker.emoji}</code>" if sticker.emoji
+        texto << "#{tab} Pack:<code> #{sticker.set_name}</code>" if sticker.set_name
+
+        # Agrego tamaño
+        tamaño = Filesize.from("#{sticker.file_size} B").pretty
+        texto << "#{tab} Tamaño:<code> #{tamaño}</code>" if sticker.file_size
+
+        # Agrego imagen si tiene
+        agregar_imagen(texto, sticker.thumb, nivel, 'Miniatura') if sticker.thumb
+
+        # Agrego posición de la máscara si tiene
+        agregar_máscara(texto, sticker.mask_position, nivel) if sticker.mask_position
+    end
 
     def agregar_video(texto, video, nivel)
         tab = crear_tab(nivel)
@@ -502,16 +524,38 @@ class Dankie
         end
     end
 
-    def agregar_ubicación(texto, ubicación, nivel)
+    def agregar_ubicación(texto, ubicación, título, nivel)
         tab = crear_tab(nivel)
 
         # Agrego datos que seguro aparecen
-        texto << "\n\n - Ubicación:"\
+        texto << "#{título}"\
                  "#{tab} Latitud:<code> #{ubicación.latitude}</code>"\
                  "#{tab} Longitud:<code> #{ubicación.longitude}</code>"
     end
 
-    def agregar_venue(texto, venue, nivel); end
+    def agregar_venue(texto, venue, nivel)
+        tab = crear_tab(nivel)
+
+        # Título
+        texto << "\n\n - Venue:"
+
+        # Datos que seguro aparecen
+        texto << "#{tab} Título:<code> #{html_parser(venue.title)}</code>"\
+                 "#{tab} Dirección:<code> #{html_parser(venue.address)}</code>"
+
+        # Datos opcionales
+        if venue.foursquare_id
+            texto << "#{tab} ID Foursquare:<code> "\
+                     "#{venue.foursquare_id}</code>"
+        end
+        if venue.foursquare_type
+            texto << "#{tab} Tipo Foursquare:<code> "\
+                     "#{html_parser(venue.foursquare_type)}</code>"
+        end
+
+        # Ubicación
+        agregar_ubicación(texto, venue.location, "#{tab} Ubicación:", nivel + 2)
+    end
 
     def agregar_encuesta(texto, encuesta, nivel); end
 
@@ -543,6 +587,17 @@ class Dankie
             tamaño = Filesize.from("#{imagen.file_size} B").pretty
             texto << "#{tab} Tamaño:<code> #{tamaño}</code>"
         end
+    end
+
+    def agregar_máscara(texto, máscara, nivel)
+        tab1 = crear_tab(nivel)
+        tab2 = crear_tab(nivel + 1)
+
+        texto << "#{tab1} Máscara:"\
+                 "#{tab2} Punto:<code> #{máscara.point}</code>"\
+                 "#{tab2} x_shift:<code> #{máscara.x_shift}</code>"\
+                 "#{tab2} y_shift:<code> #{máscara.y_shift}</code>"\
+                 "#{tab2} Escala:<code> #{máscara.scale}</code>"
     end
 
     def duracion_entera(seg_totales)
