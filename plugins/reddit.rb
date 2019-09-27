@@ -45,12 +45,24 @@ class Dankie
 
     def mandar_post(msj, post, título, id_post)
         enlace_post = "redd.it/#{id_post}"
-        puts post.url.class
         # Si es un posteo de texto, lo mando así
-        if post.selftext_html && !post.selftext_html.empty?
+        if post.selftext && !post.selftext.empty?
             @logger.info("Mandando post texto: #{post.url}", al_canal: true)
+
+            # Me fijo que el mensaje supere los 4096 cracteres (y si lo hace, lo corto)
+            longitud_otros = título.length + enlace_post.length + 17
+            # Si el texto parseado + título + post + otros caracteres que voy a poner
+            # para acomodar el texto (como <i> o </i> o \n, etc) supera los 4096
+            # caracteres, corto el post para que no lo haga y le agrego tres puntos
+            # para que se sepa que continúa
+            texto_post = if post.selftext.length + longitud_otros > 4096
+                             post.selftext[0..(4092 - longitud_otros)] + '...'
+                         else
+                             post.selftext
+                         end
+
             texto = "#{título}\n\n"\
-                    "<i>#{post.selftext}</i>\n\n"\
+                    "<i>#{texto_post}</i>\n\n"\
                     "Post: #{enlace_post}"
 
             @tg.send_message(chat_id: msj.chat.id,
@@ -76,12 +88,13 @@ class Dankie
                                    caption: texto,
                                    parse_mode: :html)
             else
-                puts 'BUSCAR AUDIAZO: ' + post.media.to_s
+                # TODO: en un futuro descargar el archivo de video y resubirlo
                 @logger.info("Mandando video: #{enlace}", al_canal: true)
-                @tg.send_video(chat_id: msj.chat.id,
-                               video: enlace,
-                               caption: texto,
-                               parse_mode: :html)
+                enviar_multimedia(msj, título, enlace_post, post.url)
+                # @tg.send_video(chat_id: msj.chat.id,
+                #               video: enlace,
+                #               caption: texto,
+                #               parse_mode: :html)
             end
 
         # Si no, mando la multimedia/link
