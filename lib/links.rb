@@ -48,6 +48,11 @@ class Link
                 @link.gsub! '.gifv', '.mp4'
                 @type = :video
 
+            elsif @link.include? 'imgur.com'
+                @type = :image
+                @link.gsub! 'imgur', 'i.imgur'
+                @link << '.png'
+
             elsif %r{^https?://(www\.reddit\.com/r/(\w)*/comments|
                                 youtu\.be|
                                 v\.redd\.it)/}x.match?(@link)

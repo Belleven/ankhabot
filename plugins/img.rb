@@ -4,14 +4,6 @@ class Dankie
                                      permitir_params: true,
                                      descripción: 'Busco una imagen')
 
-    add_handler Handler::Comando.new(:imgtest,
-                                     :img_test,
-                                     permitir_params: true)
-
-    def img_test(msj, parámetros)
-        @tg.send_photo(chat_id: msj.chat.id, photo: parámetros) if parámetros
-    end
-
     def buscar_imagen(msj, parámetros)
         args = parámetros || msj.reply_to_message&.text ||
                msj.reply_to_message&.caption
