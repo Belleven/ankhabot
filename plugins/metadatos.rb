@@ -9,7 +9,12 @@ class Dankie
 
     add_handler Handler::Comando.new(:contenido,
                                      :contenido,
-                                     descripción: 'Muestro los metadatos del '\
+                                     descripción: 'Muestro el contenido del '\
+                                                  'mensaje respondido')
+
+    add_handler Handler::Comando.new(:infomensaje,
+                                     :info_mensaje,
+                                     descripción: 'Muestro la información del '\
                                                   'mensaje respondido')
 
     def metadatos(msj, parámetros)
@@ -20,7 +25,7 @@ class Dankie
                              text: "Respondele a un mensaje #{TROESMAS.sample}")
         else
             # Me fijo si me piden que pase las entidades
-            pasar_entidades = parámetros && parámetros.downcase == '--entidades'
+            pasar_entidades = parámetros && parámetros.downcase == '-entidades'
 
             # De ser así reviso que haya sido un dev pues puede floodear violentamente
             # mostras las entidades de un mensaje
@@ -64,9 +69,34 @@ class Dankie
         end
     end
 
+    def info_mensaje(msj)
+        # Si no responde a nada mando error
+        if msj.reply_to_message.nil?
+            @tg.send_message(chat_id: msj.chat.id,
+                             reply_to_message_id: msj.message_id,
+                             text: "Respondele a un mensaje #{TROESMAS.sample}")
+        else
+            texto = '<b>Info del mensaje:</b>'
+            agregar_info_mensaje(msj.reply_to_message, texto, 0)
+            # Mando el mensaje
+            @tg.send_message(chat_id: msj.chat.id,
+                             parse_mode: :html,
+                             text: texto,
+                             disable_web_page_preview: true,
+                             disable_notification: true)
+        end
+    end
+
     private
 
     def agregar_datos_mensaje(msj, texto, pasar_entidades, nivel)
+        # Agrego info del mensaje (usuario, chat, etc)
+        agregar_info_mensaje(msj, texto, nivel)
+        # Agrego contenido del mensaje (texto, imágenes, etc)
+        agregar_contenido(texto, msj, nivel + 1, pasar_entidades)
+    end
+
+    def agregar_info_mensaje(msj, texto, nivel)
         # Pongo la id del mensaje
         texto << "\n- ID del mensaje:<code> #{msj.message_id}</code>"
         # Fecha del mensaje
@@ -109,8 +139,6 @@ class Dankie
         agregar_chat(texto, msj.chat, "\n\n -Chat:", nivel + 1)
         # Agregar info reenvío
         agregar_info_reenvío(texto, msj, nivel + 1) if msj.forward_date
-        # Agrego contenido del mensaje (texto, imágenes, etc)
-        agregar_contenido(texto, msj, nivel + 1, pasar_entidades)
     end
 
     def agregar_usuario(texto, usuario, título, nivel)
@@ -557,8 +585,28 @@ class Dankie
         agregar_ubicación(texto, venue.location, "#{tab} Ubicación:", nivel + 2)
     end
 
-    def agregar_encuesta(texto, encuesta, nivel); end
+    def agregar_encuesta(texto, encuesta, nivel, formato = true)
+        tab = crear_tab(nivel, formato)
 
+        inic = formato ? '<code>' : ''
+        fin = formato ? '</code>' : ''
+
+        # Título
+        texto << "\n\n - Encuesta:"
+
+        # Datos que seguro aparecen
+        texto << "#{tab} ID:#{inic} #{encuesta.id}#{fin}"\
+                 "#{tab} Pregunta:#{inic} #{html_parser(encuesta.question)}#{fin}"\
+                 "#{tab} Cerrada:#{inic} #{encuesta.is_closed ? 'Sí' : 'No'}#{fin}"
+
+        # Agrego opciones de la encuesta
+        return if encuesta.options.length.zero?
+
+        texto << "#{tab} Opciones:"
+        agregar_opciones(texto, encuesta.options, nivel + 1, formato)
+    end
+
+    # TODO
     def agregar_pago(texto, pago_exitoso, nivel); end
 
     def agregar_pasaporte(texto, data_pasaporte, nivel); end
@@ -612,11 +660,32 @@ class Dankie
         end.join(':')
     end
 
-    def crear_tab(profundidad)
-        tab = "\n<code>"
+    def agregar_opciones(texto, opciones, nivel, formato = true)
+        tab = crear_tab(nivel, formato)
+        tab2 = crear_tab(nivel + 1, formato)
+
+        inic = formato ? '<code>' : ''
+        fin = formato ? '</code>' : ''
+        inic_opción = formato ? '<b>' : ''
+        fin_opción = formato ? '</b>' : ''
+
+        # Pongo las opciones
+        opciones.each_with_index do |opción, índice|
+            texto << "#{tab} Opción #{inic_opción}#{índice + 1}#{fin_opción}:"\
+                     "#{tab2} Texto:#{inic} #{html_parser(opción.text)}#{fin}"\
+                     "#{tab2} Votos:#{inic} #{opción.voter_count}#{fin}"
+        end
+    end
+
+    def crear_tab(profundidad, formato = true)
+        tab = "\n"
+        tab << '<code>' if formato
+
         profundidad.times do
             tab << "\t\t"
         end
-        tab << '</code> -'
+
+        tab << '</code>' if formato
+        tab << ' -'
     end
 end

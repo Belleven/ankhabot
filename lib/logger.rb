@@ -47,8 +47,8 @@ class DankieLogger
         else
             # La regex turbina esa es para no doxxearnos a los que usamos linux
             # / es para "/" => /home/ es para "/home/"
-            # [^/]+ es para que detecte todos los caracteres que no sean "/" => /home/user/dankie/... queda
-            # como /dankie/...
+            # [^/]+ es para que detecte todos los caracteres que no sean "/" =>
+            # /home/user/dankie/... queda como /dankie/...
             return texto, excepcion.backtrace.join("\n").gsub(%r{/home/[^/]+}, '~')
         end
     end
@@ -58,15 +58,19 @@ class DankieLogger
     def log(nivel, texto, al_canal: false, backtrace: nil)
         texto = 'LOG SIN NOMBRE' if texto.nil? || texto.empty?
 
-        backtrace.nil? ? @logger.log(nivel, texto) : @logger.log(nivel, texto + "\n" + backtrace)
+        if backtrace.nil?
+            @logger.log(nivel, texto)
+        else
+            @logger.log(nivel, texto + "\n" + backtrace)
+        end
 
         return unless al_canal
 
+        # Formateo el texto
+        texto = html_parser(texto)
         unless backtrace.nil?
-
             lineas = '<pre>' + ('-' * 30) + "</pre>\n"
-            texto = html_parser(texto)
-            texto << "\n" + lineas + lineas + "Rastreo de la excepción:\n" + lineas
+            texto << "\n#{lineas}#{lineas} Rastreo de la excepción:\n#{lineas}"
             texto << "<pre>#{html_parser(backtrace)}</pre>"
         end
 
@@ -95,7 +99,8 @@ class DankieLogger
         begin
             mensaje = if backtrace.nil? || backtrace.empty?
                       then "\nMientras se loggeaba surgió una excepción:\n"
-                      else backtrace + "\n\n\nMientras se manejaba una excepción surgió otra:\n"
+                      else "#{backtrace}\n\n\nMientras se manejaba una excepción"\
+                           " surgió otra:\n"
                       end
 
             lineas = ('-' * 30) + "\n"
@@ -108,7 +113,8 @@ class DankieLogger
                                    'ERROR SIN NOMBRE'
                             end
 
-            texto_excepcion << "\n" + lineas + lineas + e.backtrace.join("\n") + "\n" + lineas + lineas + "\n"
+            texto_excepcion << "\n#{lineas}#{lineas}#{e.backtrace.join("\n")}\n"\
+                               "#{lineas}#{lineas}\n"
             @logger.fatal(texto_excepcion)
         rescue StandardError => e
             puts "\nFATAL, múltiples excepciones.\n"

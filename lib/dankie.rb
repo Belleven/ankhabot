@@ -74,6 +74,15 @@ class Dankie
     def run
         # Ciclo principal
         @tg.client.listen do |msj|
+            # Si se cerró una encuesta, no hago nada más que loggear
+            if msj.is_a?(Telegram::Bot::Types::Poll)
+                # información = "Acaba de cerrar esta encuesta:\n\n#{msj.inspect}\n\n"\
+                #              "La dejo pasar sin hacer nada"
+                información = 'Este mensaje contenía:'
+                agregar_encuesta(información, msj, 1, false)
+                @logger.info(información, al_canal: true)
+                next
+            end
             # Chequeo que msj sea un mensaje válido, y que quien lo manda no
             # esté bloqueado por el bot, o restringido del bot en el chat
             next unless msj&.from&.id
@@ -180,12 +189,13 @@ class Dankie
         else
             arr = text.split(' ', 3) # ["user", "comando", "params"]
             arr.first.downcase!
+            # Esa regexp ...$ es para borrar el 'bot' que aparece al final del alias
             if (arr.size > 1) &&
                arr.first.casecmp(@user.username.sub(/...$/, '').downcase).zero?
                 command = arr[1]&.downcase.to_sym
                 params = arr[2]
-
-            elsif msj.reply_to_message&.from&.id == @user.id # responde al bot
+            # Responde al bot
+            elsif msj.reply_to_message&.from&.id == @user.id
                 command, params = text.split ' ', 2
                 command.downcase!
             end
@@ -204,9 +214,13 @@ class Dankie
             enlace_usuario = crear_enlace(usuario, id_chat)
         end
     rescue StandardError => e
-        puts "\n\nERROR\n\n"
         enlace_usuario = nil
-        @logger.error(e.to_s, al_canal: true)
+        error = if e.to_s.include? 'USER_ID_INVALID'
+                    "Traté de obtener el nombre de una cuenta eliminada: #{id_usuario}"
+                else
+                    error = e.to_s
+                end
+        @logger.error(error, al_canal: true)
     ensure
         return enlace_usuario || 'ay no c (' + id_usuario.to_s + ')'
     end
@@ -338,7 +352,7 @@ class Dankie
                     entidad = lista_entidades[1]
                 # msj.entities.length == 1, por ejemplo si se llama
                 # así -> "!comando"
-                elsif !lista_entidades.empty?
+                elsif lista_entidades.length == 1
                     entidad = lista_entidades[0]
                 end
 
