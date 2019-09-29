@@ -76,13 +76,12 @@ class Dankie
         @tg.client.listen do |msj|
             # Si se cerró una encuesta, no hago nada más que loggear
             if msj.is_a?(Telegram::Bot::Types::Poll)
-                # información = "Acaba de cerrar esta encuesta:\n\n#{msj.inspect}\n\n"\
-                #              "La dejo pasar sin hacer nada"
-                información = 'Este mensaje contenía:'
+                información = 'Se acaba de cerrar esta encuesta:'
                 agregar_encuesta(información, msj, 1, false)
                 @logger.info(información, al_canal: true)
                 next
             end
+
             # Chequeo que msj sea un mensaje válido, y que quien lo manda no
             # esté bloqueado por el bot, o restringido del bot en el chat
             next unless msj&.from&.id

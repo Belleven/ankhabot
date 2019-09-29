@@ -603,7 +603,8 @@ class Dankie
         return if encuesta.options.length.zero?
 
         texto << "#{tab} Opciones:"
-        agregar_opciones(texto, encuesta.options, nivel + 1, formato)
+        agregar_opciones(texto, encuesta.options, nivel + 1,
+                         encuesta.is_closed, formato)
     end
 
     # TODO
@@ -660,7 +661,7 @@ class Dankie
         end.join(':')
     end
 
-    def agregar_opciones(texto, opciones, nivel, formato = true)
+    def agregar_opciones(texto, opciones, nivel, terminada, formato = true)
         tab = crear_tab(nivel, formato)
         tab2 = crear_tab(nivel + 1, formato)
 
@@ -672,8 +673,8 @@ class Dankie
         # Pongo las opciones
         opciones.each_with_index do |opción, índice|
             texto << "#{tab} Opción #{inic_opción}#{índice + 1}#{fin_opción}:"\
-                     "#{tab2} Texto:#{inic} #{html_parser(opción.text)}#{fin}"\
-                     "#{tab2} Votos:#{inic} #{opción.voter_count}#{fin}"
+                     "#{tab2} Texto:#{inic} #{html_parser(opción.text)}#{fin}"
+            texto << "#{tab2} Votos:#{inic} #{opción.voter_count}#{fin}" if terminada
         end
     end
 
