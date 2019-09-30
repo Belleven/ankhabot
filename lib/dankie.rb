@@ -85,7 +85,7 @@ class Dankie
             if msj.is_a?(Telegram::Bot::Types::Poll)
                 información = 'Se acaba de cerrar esta encuesta:'
                 agregar_encuesta(información, msj, 1, false)
-                @logger.info(información, al_canal: true)
+                @logger.info información
                 next
             end
 
