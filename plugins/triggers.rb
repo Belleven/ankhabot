@@ -1,3 +1,5 @@
+require 'concurrent-ruby'
+
 TIPOS_MMEDIA = { text: :send_message,
                  photo: :send_photo,
                  sticker: :send_sticker,
@@ -8,7 +10,8 @@ TIPOS_MMEDIA = { text: :send_message,
                  document: :send_document }.freeze
 
 class Dankie
-    add_handler Handler::Mensaje.new(:chequear_triggers, permitir_editados: false,
+    add_handler Handler::Mensaje.new(:chequear_triggers,
+                                     permitir_editados: false,
                                      ignorar_comandos: true,
                                      chats_permitidos: %i[group supergroup])
     add_handler Handler::Comando.new(:settrigger, :validar_poner_trigger_local,
@@ -36,6 +39,51 @@ class Dankie
     add_handler Handler::CallbackQuery.new(:callback_set_trigger_global, 'settrigger')
     add_handler Handler::CallbackQuery.new(:callback_del_trigger_global, 'deltrigger')
 
+    # Método que mete un mensaje en la cola de mensajes a procesar por los triggers.
+    def despachar_mensaje_a_trigger(msj)
+        puts "entra a función"
+        @cola_triggers ||= Concurrent::Array.new
+        @cola_triggers << msj
+        @hilo_triggers_creado ||= false
+
+        unless @hilo_triggers_creado
+            $hilo_triggers = Thread.new { loop_hilo_triggers }
+            $hilo_triggers.abort_on_exception = true
+            @hilo_triggers_creado = true
+        end
+        puts "fuera de hilos"
+
+        # por las dudas que esto se ejecute antes que el otro bloque
+        $hilo_triggers[:hora] ||= Concurrent::AtomicFixnum.new
+
+        if $hilo_triggers[:hora].value > 0 && (Time.now.to_i - $hilo_triggers[:hora].value) > 10
+            puts "por matar el hilo"
+            $hilo_triggers.kill
+            puts "hilo matado"
+            $hilo_triggers_creado = false
+            @logger.info("triggers colgados en algún grupo", al_canal: true)
+        end
+        puts "termina"
+    end
+
+    def loop_hilo_triggers
+        puts "hilo creado"
+        Thread.current[:hora] ||= Concurrent::AtomicFixnum.new
+
+        loop do
+            puts "en el loop"
+            Thread.current[:hora].value = Time.now.to_i
+
+            if @cola_triggers.empty?
+                sleep(0.200)
+                next
+            end
+            puts "mensaje: #{@cola_triggers.first&.text}"
+
+            chequear_triggers @cola_triggers.shift
+        end
+    end
+
     def chequear_triggers(msj)
         return unless (texto = msj.text || msj.caption)
 
@@ -46,9 +94,27 @@ class Dankie
         @trigger_flood[msj.chat.id] ||= []
 
         Trigger.triggers(msj.chat.id) do |id_grupo, regexp|
-            next unless chequear_flood(@trigger_flood[msj.chat.id])
-            next unless regexp =~ texto
+            t1 = Time.now
+            match = regexp =~ texto
+            t2 = Time.now
 
+            # Si el trigger tardó mucho en procesar, lo borro.
+            if (t2.to_f - t1.to_f) > 0.500 # 500ms
+                Trigger.borrar_trigger(id_grupo, regexp)
+                texto = 'Trigger '
+                texto << "<code>#{html_parser Trigger.regexp_a_str(regexp)}</code> "
+                texto << 'borrado en el grupo '
+                texto << "#{html_parser msj.chat&.title} (#{msj.chat.id}) "
+                texto << "por ralentizar al bot.\n"
+                texto << "Tiempo de procesado: <pre>#{t2.to_f - t1.to_f}s</pre>"
+                @tg.send_message(chat_id: msj.chat.id, parse_mode: :html, text: texto)
+                @tg.send_message(chat_id: @canal, parse_mode: :html, text: texto)
+                next
+            end
+
+            next unless match
+
+            next unless chequear_flood(@trigger_flood[msj.chat.id])
             incremetar_arr_flood(@trigger_flood[msj.chat.id], Time.now)
 
             trigger = Trigger.new(id_grupo, regexp)
