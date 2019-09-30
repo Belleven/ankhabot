@@ -221,8 +221,8 @@ class Dankie
         end
 
         if partes_obtenidas.zero?
-            texto = 'No pude encontrar información de '\
-                    "lo que estás escuchando #{TROESMAS.sample} :("
+            texto << 'No pude encontrar información de '
+            texto << "lo que estás escuchando #{TROESMAS.sample} :("
         else
             ahora = actual ? ' (ahora)' : ''
             texto << "#{ahora}\n"

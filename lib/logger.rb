@@ -111,12 +111,12 @@ class DankieLogger
                                    excepcion
                                else
                                    'ERROR SIN NOMBRE'
-                            end
+                               end
 
             texto_excepcion << "\n#{lineas}#{lineas}#{e.backtrace.join("\n")}\n"\
                                "#{lineas}#{lineas}\n"
             @logger.fatal(texto_excepcion)
-        rescue StandardError => e
+        rescue StandardError
             puts "\nFATAL, múltiples excepciones.\n"
         end
     end

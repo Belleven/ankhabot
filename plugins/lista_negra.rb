@@ -71,7 +71,6 @@ class Dankie
     def comando_lista_negra(msj, funcion_validadora, execute_function,
                             block_site, params, text = nil)
 
-        tipo = msj.chat.type
         id_chat = msj.chat.id
         id_mensaje = msj.message_id
         id_usuario = msj.from.id

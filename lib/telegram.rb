@@ -113,7 +113,8 @@ class TelegramAPI
         @client.api.send(función_envío, args)
 
     # Si hay error de conexión, lo reintento
-    rescue Faraday::ConnectionFailed, Net::OpenTimeout
+    rescue Faraday::ConnectionFailed, Faraday::TimeoutError,
+           HTTPClient::ReceiveTimeoutError, Net::OpenTimeout => e
         retry
     # Si hay un error de telegram, loggeo si es conocido,
     # si no lo vuelvo a lanzar
@@ -189,7 +190,8 @@ class TelegramAPI
     def method_missing(method_name, *args)
         super unless @client.api.respond_to?(method_name)
         @client.api.send(method_name, *args)
-    rescue Faraday::ConnectionFailed, Net::OpenTimeout => e
+    rescue Faraday::ConnectionFailed, Faraday::TimeoutError,
+           HTTPClient::ReceiveTimeoutError, Net::OpenTimeout => e
         @client.logger.error(e)
         retry
     rescue Telegram::Bot::Exceptions::ResponseError => e

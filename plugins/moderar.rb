@@ -116,7 +116,6 @@ class Dankie
         # Siempre que alguna de estas sea falsa, va a mandar un mensaje de error
         cumple = false
         miembro = nil
-        razón = nil
 
         # Chequeo que esté pasando una id para afectar
         id_afectada, razón, alias_id = dar_id_afectada(msj, para_aplicar_restricción)

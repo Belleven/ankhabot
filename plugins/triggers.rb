@@ -227,7 +227,7 @@ class Dankie
             return
         end
 
-        unless regexp_recibida = Trigger.str_a_regexp(params)
+        unless (regexp_recibida = Trigger.str_a_regexp params)
             @tg.send_message(chat_id: msj.chat.id,
                              text: "No sirve tu trigger, #{TROESMAS.sample}.")
             return
@@ -324,7 +324,7 @@ class Dankie
             return
         end
 
-        unless regexp_recibida = Trigger.str_a_regexp(params)
+        unless (regexp_recibida = Trigger.str_a_regexp params)
             @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
                              text: "No sirve tu trigger, #{TROESMAS.sample}.")
             return
@@ -411,7 +411,7 @@ class Dankie
                                                caption: trigger.caption,
                                                media => trigger.data[media])
             trigger.aumentar_contador
-            return unless resp['ok']
+            break unless resp['ok']
 
             añadir_a_cola_spam(id_grupo, resp.dig('result', 'message_id').to_i)
             @logger.info("Trigger enviado en #{id_grupo}", al_canal: false)
@@ -540,7 +540,7 @@ class Dankie
             return
         end
 
-        unless regexp = Trigger.str_a_regexp(params)
+        unless (regexp = Trigger.str_a_regexp params)
             @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
                              text: "No sirve tu trigger, #{TROESMAS.sample}.")
             return

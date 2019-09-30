@@ -200,7 +200,7 @@ class Dankie
             return false
         else
             return true
-       end
+        end
     end
 
     # Para camabiar un texto del chat
@@ -229,12 +229,12 @@ class Dankie
         end
     rescue Telegram::Bot::Exceptions::ResponseError => e
         case e.to_s
-        when /not enough rights to [set|change] chat [title|description]/
+        when /not enough rights to (set|change) chat (title|description)/
             error_permisos = 'Me restringieron los permisos o me sacaron el admin '\
                           'mientras se ejecutaba el comando, y por '\
                           'ahora no puedo cambiar nada'
             log_y_aviso(msj, error_permisos, al_canal: false)
-        when /chat [title|description] is not modified/
+        when /chat (title|description) is not modified/
             error_permisos = 'Justo pusieron lo mismo que vos me pasaste mientras '\
                              'procesaba el comando'
             log_y_aviso(msj, error_permisos, al_canal: false)
@@ -256,7 +256,7 @@ class Dankie
         end
     rescue Telegram::Bot::Exceptions::ResponseError => e
         case e.to_s
-        when /not enough rights to [unpin a message|change chat photo]/
+        when /not enough rights to (unpin a message|change chat photo)/
             error_permisos = 'Me restringieron los permisos o me sacaron el admin '\
                              'mientras se ejecutaba el comando, y por '\
                              'ahora no puedo hacer eso'

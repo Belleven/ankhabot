@@ -19,7 +19,8 @@ class ImageSearcher
         agregar_params_búsqueda(consulta, params_búsqueda) if params_búsqueda
 
         # Obtengo el resultado
-        respuesta = Net::HTTP.get_response(URI.parse(URI.escape(dirección)))
+        dirección_codificada = URI.encode_www_form_component(dirección)
+        respuesta = Net::HTTP.get_response URI.parse(dirección_codificada)
         resultado = JSON.parse(respuesta.body)
 
         if resultado['error']
@@ -37,7 +38,8 @@ class ImageSearcher
         end
 
     # Error de conexión
-    rescue Faraday::ConnectionFailed, Net::OpenTimeout => e
+    rescue Faraday::ConnectionFailed, Faraday::TimeoutError,
+           HTTPClient::ReceiveTimeoutError, Net::OpenTimeout => e
         @logger.error(e)
         retry
     # Error de parseo

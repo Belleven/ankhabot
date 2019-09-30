@@ -198,7 +198,7 @@ class Dankie
             arr = text.split(' ', 3) # ["user", "comando", "params"]
             arr.first.downcase!
             if (arr.size > 1) && arr.first.casecmp(@user.username[0..-4]).zero?
-                command = arr[1]&.downcase.to_sym
+                command = arr[1].downcase.to_sym
                 params = arr[2]
             # Responde al bot
             elsif msj.reply_to_message&.from&.id == @user.id
@@ -224,11 +224,11 @@ class Dankie
         error = if e.to_s.include? 'USER_ID_INVALID'
                     "Traté de obtener el nombre de una cuenta eliminada: #{id_usuario}"
                 else
-                    error = e.to_s
+                    e.to_s
                 end
         @logger.error(error, al_canal: true)
     ensure
-        return enlace_usuario || 'ay no c (' + id_usuario.to_s + ')'
+        enlace_usuario || 'ay no c (' + id_usuario.to_s + ')'
     end
 
     def enlace_usuario_objeto(usuario, id_chat)
