@@ -7,16 +7,16 @@ module Handler
         def initialize(callback, args = {})
             @callback = callback
             @permitir_editados = args[:permitir_editados] || false
-            # 'channel' es otra opción
             @chats_permitidos = args[:chats_permitidos]&.map(&:to_s) ||
-                                %w[private group supergroup]
+                                %w[private group supergroup] # channel es otra opción
+            @ignorar_comandos = args[:ignorar_comandos] || false
             @tipos = args[:tipos] || MSJ_TYPES
         end
 
-        def verificar(_bot, msj)
+        def verificar(bot, msj)
             return unless msj.is_a? Telegram::Bot::Types::Message
             return if !@permitir_editados && msj.edit_date
-
+            return if @ignorar_comandos && bot.class.comandos.include?(bot.get_command(msj))
             return unless @chats_permitidos.include?(msj.chat.type)
 
             tipo_msj = nil
@@ -71,22 +71,24 @@ module Handler
     end
 
     class CallbackQuery
-        def initialize(callback, patrón, _args = {})
+        def initialize(callback, clave, _args = {})
             @callback = callback
-            @patrón = patrón
+            @clave = clave
+            @cache = {}
         end
 
-        def verificar(_bot, msj)
-            return unless msj.is_a? Telegram::Bot::Types::CallbackQuery
+        def verificar(_bot, callback)
+            return unless callback.is_a? Telegram::Bot::Types::CallbackQuery
 
-            return unless @patrón =~ msj.data
+            return unless callback.data.start_with? @clave
 
             true
         end
 
-        def ejecutar(bot, msj)
-            bot.logger.info "CallbackQueryHandler: patrón #{@patrón} en #{msj.chat.id}"
-            bot.public_send(@callback, msj)
+        def ejecutar(bot, callback)
+            bot.logger.info "CallbackQueryHandler: callback #{callback.data} "\
+                            "en #{callback.message.chat.id}"
+            bot.public_send(@callback, callback)
         end
     end
 

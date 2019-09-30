@@ -5,6 +5,7 @@ require_relative 'telegram.rb'
 require_relative 'images.rb'
 require_relative 'last_fm_parser.rb'
 require_relative 'semáforo.rb'
+require_relative 'botoneras.rb'
 require 'redis'
 require 'tzinfo'
 require 'set'
@@ -45,6 +46,9 @@ class Dankie
         @comandos ||= {}
     end
 
+    # Handler de las botoneras de lista, lo meto acá porque no se donde mas ponerlo
+    add_handler Handler::CallbackQuery.new(:editar_botonera_lista, 'lista')
+
     # Creo que esto es un dispatch si entendí bien
     def dispatch(msj)
         # Handlers generales, no los de comando si no los de mensajes/eventos de chat
@@ -53,6 +57,7 @@ class Dankie
         end
 
         # Handlers de comando
+        return unless msj.is_a? Telegram::Bot::Types::Message
         self.class.comandos[get_command(msj)]&.ejecutar(self, msj)
     end
 
@@ -60,7 +65,8 @@ class Dankie
     def initialize(args)
         logger = Logger.new $stderr
         @tg = TelegramAPI.new args[:tg_token], logger
-        @logger = DankieLogger.new logger, args[:canal_logging], @tg.client
+        @canal = args[:canal_logging]
+        @logger = DankieLogger.new logger, @canal, @tg.client
         @redis = Redis.new port: args[:redis_port], host: args[:redis_host],
                            password: args[:redis_pass]
         @img = ImageSearcher.new args[:google_image_key], args[:google_image_cx],
@@ -124,9 +130,6 @@ class Dankie
         end
     end
 
-    # El to_s es al pedo, si lo que le pasamos no es un string entonces
-    # tiene que saltar el error para que veamos bien qué carajo le estamos pasando
-    # Hecho así solo recorre una vez el string en vez de 3.
     def html_parser(texto)
         html_dicc = { '&' => '&amp;', '<' => '&lt;', '>' => '&gt;', '"' => '&quot;' }
         texto.gsub(/&|<|>|\"/, html_dicc)
@@ -137,6 +140,10 @@ class Dankie
         cmd[:command]
     end
 
+    # Este método analiza parámetros en el mensaje. se podría hacer una combinación
+    # tomando parámetros de acá y usar un mensaje respondido como el resto del
+    # argumento, pero eso no se hace acá porque podría ser peligroso en algunos
+    # comandos.
     def get_command_params(msj)
         cmd = _parse_command(msj)
         cmd[:params]
@@ -182,15 +189,13 @@ class Dankie
             command.downcase!
             command.gsub!(%r{^/([a-z]+)(@#{@user.username.downcase})?}, '\\1')
 
-        elsif ['!', '>', '$'].include? text[0] # "!cmd params" o ">cmd params"
+        elsif ['!', '>', '$', '.'].include? text[0] # "!cmd params" o ">cmd params"
             command, params = text[1..-1].split ' ', 2
             command.downcase!
         else
             arr = text.split(' ', 3) # ["user", "comando", "params"]
             arr.first.downcase!
-            # Esa regexp ...$ es para borrar el 'bot' que aparece al final del alias
-            if (arr.size > 1) &&
-               arr.first.casecmp(@user.username.sub(/...$/, '').downcase).zero?
+            if (arr.size > 1) && arr.first.casecmp(@user.username[0..-4]).zero?
                 command = arr[1]&.downcase.to_sym
                 params = arr[2]
             # Responde al bot
@@ -531,5 +536,21 @@ class Dankie
                          text: texto,
                          disable_web_page_preview: true,
                          disable_notification: true)
+    end
+
+    # Método que mete un id_mensaje en una cola de mensajes que
+    # son borrados despues de cierto límite, para evitar el spam.
+    def añadir_a_cola_spam(id_chat, id_mensaje)
+        @redis.rpush "spam:#{id_chat}", id_mensaje
+        if @redis.llen("spam:#{id_chat}") > 4 # está en 4 por propósitos de test, cambiar a 50 antes de terminar
+            id_mensaje = @redis.lpop("spam:#{id_chat}").to_i
+            @tg.delete_message(chat_id: id_chat, message_id: id_mensaje)
+        end
+    rescue Telegram::Bot::Exceptions::ResponseError
+        # Loggear mejor esto, la excepción que salta es
+=begin
+Telegram API has returned the error. (ok: "false", error_code: "400", description: "Bad Request: message can't be deleted") (Telegram::Bot::Exceptions::ResponseError)
+=end
+        @logger.error 'Traté de borrar un mensaje muy viejo', al_canal: true
     end
 end
