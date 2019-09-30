@@ -58,6 +58,7 @@ class Dankie
 
         # Handlers de comando
         return unless msj.is_a? Telegram::Bot::Types::Message
+
         self.class.comandos[get_command(msj)]&.ejecutar(self, msj)
     end
 
@@ -548,9 +549,7 @@ class Dankie
         end
     rescue Telegram::Bot::Exceptions::ResponseError
         # Loggear mejor esto, la excepción que salta es
-=begin
-Telegram API has returned the error. (ok: "false", error_code: "400", description: "Bad Request: message can't be deleted") (Telegram::Bot::Exceptions::ResponseError)
-=end
+        # Telegram API has returned the error. (ok: "false", error_code: "400", description: "Bad Request: message can't be deleted") (Telegram::Bot::Exceptions::ResponseError)
         @logger.error 'Traté de borrar un mensaje muy viejo', al_canal: true
     end
 end

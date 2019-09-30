@@ -23,25 +23,25 @@ class Dankie
     add_handler Handler::Comando.new(:deltrigger, :validar_borrar_trigger,
                                      permitir_params: true,
                                      descripción: 'Borra un trigger')
-#    params_triggers = Parámetros.new(órden: [:fecha, :uso, :nombre],
-#                                     máximo: Integer)
+    # params_triggers = Parámetros.new(órden: [:fecha, :uso, :nombre],
+    #                                  máximo: Integer)
     add_handler Handler::Comando.new(:triggers, :listar_triggers,
                                      permitir_params: true,
-#                                     parámetros: params_triggers,
+                                     #                                     parámetros: params_triggers,
                                      descripción: 'Envía la lista de triggers')
     add_handler Handler::Comando.new(:infotrigger, :enviar_info_trigger,
                                      permitir_params: true,
                                      descripción: 'Envía información del trigger')
     add_handler Handler::Comando.new(:triggered, :triggered,
                                      permitir_params: false,
-                                     descripción:  'Muestra que triggers reaccionan'\
+                                     descripción: 'Muestra que triggers reaccionan'\
                                      ' al mensaje respsondido')
     add_handler Handler::CallbackQuery.new(:callback_set_trigger_global, 'settrigger')
     add_handler Handler::CallbackQuery.new(:callback_del_trigger_global, 'deltrigger')
 
     # Método que mete un mensaje en la cola de mensajes a procesar por los triggers.
     def despachar_mensaje_a_trigger(msj)
-        puts "entra a función"
+        puts 'entra a función'
         @cola_triggers ||= Concurrent::Array.new
         @cola_triggers << msj
         @hilo_triggers_creado ||= false
@@ -51,27 +51,27 @@ class Dankie
             $hilo_triggers.abort_on_exception = true
             @hilo_triggers_creado = true
         end
-        puts "fuera de hilos"
+        puts 'fuera de hilos'
 
         # por las dudas que esto se ejecute antes que el otro bloque
         $hilo_triggers[:hora] ||= Concurrent::AtomicFixnum.new
 
         if $hilo_triggers[:hora].value > 0 && (Time.now.to_i - $hilo_triggers[:hora].value) > 10
-            puts "por matar el hilo"
+            puts 'por matar el hilo'
             $hilo_triggers.kill
-            puts "hilo matado"
+            puts 'hilo matado'
             $hilo_triggers_creado = false
-            @logger.info("triggers colgados en algún grupo", al_canal: true)
+            @logger.info('triggers colgados en algún grupo', al_canal: true)
         end
-        puts "termina"
+        puts 'termina'
     end
 
     def loop_hilo_triggers
-        puts "hilo creado"
+        puts 'hilo creado'
         Thread.current[:hora] ||= Concurrent::AtomicFixnum.new
 
         loop do
-            puts "en el loop"
+            puts 'en el loop'
             Thread.current[:hora].value = Time.now.to_i
 
             if @cola_triggers.empty?
@@ -115,6 +115,7 @@ class Dankie
             next unless match
 
             next unless chequear_flood(@trigger_flood[msj.chat.id])
+
             incremetar_arr_flood(@trigger_flood[msj.chat.id], Time.now)
 
             trigger = Trigger.new(id_grupo, regexp)
@@ -155,7 +156,7 @@ class Dankie
     def callback_set_trigger_global(callback)
         # valido usuario
         return unless DEVS.member? callback.from.id
-        
+
         match = callback.data.match(/settrigger:(?<id_regexp>\d+):(?<acción>.+)/)
 
         Trigger.redis ||= @redis
@@ -175,8 +176,8 @@ class Dankie
         @tg.edit_message_text(chat_id: callback.message.chat.id,
                               parse_mode: :html, text: texto,
                               message_id: callback.message.message_id)
-        texto = "Trigger <code>"
-        texto << "#{html_parser Trigger.regexp_a_str(temp[:regexp])}"
+        texto = 'Trigger <code>'
+        texto << (html_parser Trigger.regexp_a_str(temp[:regexp])).to_s
         texto << "</code> #{match[:acción] == 'confirmar' ? 'aceptado' : 'rechazado'}."
         @tg.send_message(chat_id: temp[:id_grupo], parse_mode: :html,
                          text: texto)
@@ -201,15 +202,15 @@ class Dankie
         when 'dejar'
             Trigger.descartar_temporal match[:id_regexp]
             texto = "Trigger <code>#{html_parser Trigger.regexp_a_str(temp[:regexp])}"\
-                    "</code> no fue borrado."
+                    '</code> no fue borrado.'
         end
 
         @tg.answer_callback_query(callback_query_id: callback.id)
         @tg.edit_message_text(chat_id: callback.message.chat.id,
                               parse_mode: :html, text: texto,
                               message_id: callback.message.message_id)
-        texto = "Trigger <code>"
-        texto << "#{html_parser Trigger.regexp_a_str(temp[:regexp])}"
+        texto = 'Trigger <code>'
+        texto << (html_parser Trigger.regexp_a_str(temp[:regexp])).to_s
         texto << "</code> #{match[:acción] == 'borrar' ? 'borrado' : 'no borrado'}."
         @tg.send_message(chat_id: temp[:id_grupo], parse_mode: :html,
                          text: texto)
@@ -264,7 +265,7 @@ class Dankie
         título = "<b>Lista de triggers</b> <i>(#{Time.now.strftime('%d/%m/%Y %T')})</i>:"
         hay_elementos = false
         contador = 0
-        arr = ["#{título}"]
+        arr = [título.to_s]
 
         unless triggers_locales.empty?
             hay_elementos = true
@@ -272,12 +273,12 @@ class Dankie
         end
         triggers_locales.each do |trig|
             if contador == 30 || arr.last.size >= 1000
-                arr << "#{título}"
+                arr << título.to_s
                 arr.last << "\n<b>Locales:</b>"
                 contador = 0
             end
             arr.last << "\n<pre> - #{html_parser trig}</pre>"
-            contador +=1
+            contador += 1
         end
 
         # cuando se haga el coso para desactivar triggers globales,
@@ -288,25 +289,26 @@ class Dankie
         end
         triggers_globales.each do |trig|
             if contador == 30 || arr.last.size >= 1000
-                arr << "#{título}"
+                arr << título.to_s
                 arr.last << "\n<b>Globales:</b>"
                 contador = 0
             end
             arr.last << "\n<pre> - #{html_parser trig}</pre>"
-            contador +=1
+            contador += 1
         end
 
         # armo botonera y envío
         opciones = armar_botonera 0, arr.size, msj.from.id
-        
+
         respuesta = @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
                                      reply_markup: opciones,
-                                     text: if hay_elementos 
+                                     text: if hay_elementos
                                                arr.first
                                            else
                                                'No hay triggers en este grupo u.u'
                                            end)
         return unless respuesta
+
         respuesta = Telegram::Bot::Types::Message.new respuesta['result']
         armar_lista(msj.chat.id, respuesta.message_id, arr)
     end
@@ -316,7 +318,7 @@ class Dankie
             texto = '<b>Modo de uso:</b>'
             texto << "\n<pre>/infotrigger trigger</pre>"
             texto << "\n<pre>trigger</pre> tiene que ser exactamente"
-            texto << " la expresión regular que activa al trigger."
+            texto << ' la expresión regular que activa al trigger.'
             @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
                              reply_to_message_id: msj.message_id, text: texto)
             return
@@ -344,31 +346,29 @@ class Dankie
                              text: 'No pude encontrar el trigger úwù')
             return
         end
-        
+
         texto = '<b>Info del trigger:</b>'
         texto << "\nRegexp: <code>"
         texto << "#{html_parser Trigger.regexp_a_str(trigger.regexp)}</code>"
         campo = trigger.data.compact
-        texto << "\nMedia: #{campo.keys.first.to_s}"
+        texto << "\nMedia: #{campo.keys.first}"
         texto << "\n#{campo.keys.first.to_s == 'text' ? 'Valor' : 'Id'}: "
         texto << if campo.values.first.size < 100
-                    "<code>#{html_parser campo.values.first}</code>"
+                     "<code>#{html_parser campo.values.first}</code>"
                  else
-                    "<code>#{html_parser campo.values.first[0, 100]}...</code>"
+                     "<code>#{html_parser campo.values.first[0, 100]}...</code>"
                  end
         unless trigger.caption.empty?
             texto << "\nCaption: <code>#{html_parser trigger.caption}</code>"
         end
         texto << "\nTipo: #{id == :global ? 'global' : 'de grupo'}"
-        texto << "\nCreador: #{obtener_enlace_usuario(msj.chat.id, trigger.creador)}"
+        texto << "\nCreador: #{enlace_usuario_id(trigger.creador, msj.chat.id)}"
         texto << "\nTotal de usos: #{trigger.contador}"
         texto << "\nAñadido: <i>#{trigger.fecha.strftime('%d/%m/%Y %T')}</i>"
 
         @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
                          reply_to_message_id: msj.message_id,
                          disable_web_page_preview: true, text: texto)
-
-
     end
 
     def triggered(msj)
@@ -382,7 +382,7 @@ class Dankie
 
         enviar = "triggers que matchean el mensaje respondido:\n"
         emparejó = false
-        Trigger.triggers(msj.chat.id) do |id_grupo, regexp|
+        Trigger.triggers(msj.chat.id) do |_id_grupo, regexp|
             next unless (match = regexp.match texto)
 
             enviar << "\n<pre>#{html_parser Trigger.regexp_a_str(regexp)}</pre>\n"
@@ -396,8 +396,6 @@ class Dankie
 
         @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
                          reply_to_message_id: msj.message_id, text: enviar)
-
-
     end
 
     private
@@ -414,6 +412,7 @@ class Dankie
                                                media => trigger.data[media])
             trigger.aumentar_contador
             return unless resp['ok']
+
             añadir_a_cola_spam(id_grupo, resp.dig('result', 'message_id').to_i)
             @logger.info("Trigger enviado en #{id_grupo}", al_canal: false)
         end
@@ -443,7 +442,7 @@ class Dankie
         end
 
         texto = 'Trigger añadido por '
-        texto << "#{obtener_enlace_usuario(msj.chat.id, id_usuario)} "
+        texto << "#{enlace_usuario_id(id_usuario, msj.chat.id)} "
         texto << "en #{html_parser(msj.chat&.title || msj.chat&.username)} "
         texto << "(#{msj.chat.id})\nTrigger: "
         texto << "<code>#{html_parser Trigger.regexp_a_str(regexp)}</code>"
@@ -460,18 +459,18 @@ class Dankie
 
     # Función para enviar un mensaje de logging y aceptar o rechazar triggers
     def confirmar_trigger_global(regexp, msj, id_grupo, id_usuario, id_regexp)
-        texto = "Usuario #{obtener_enlace_usuario id_grupo, id_usuario} en el chat "
+        texto = "Usuario #{enlace_usuario_id id_usuario, id_grupo} en el chat "
         texto << "#{html_parser(msj.chat&.title || msj.chat&.username)} "
-        texto << "quiere añadir trigger: "
+        texto << 'quiere añadir trigger: '
         texto << "<code>#{html_parser Trigger.regexp_a_str(regexp)}</code>\n"
-        texto << "Mensaje:"
+        texto << 'Mensaje:'
         arr = [[
             Telegram::Bot::Types::InlineKeyboardButton.new(
-                text: "Aceptar",
+                text: 'Aceptar',
                 callback_data: "settrigger:#{id_regexp}:confirmar"
             ),
             Telegram::Bot::Types::InlineKeyboardButton.new(
-                text: "Rechazar",
+                text: 'Rechazar',
                 callback_data: "settrigger:#{id_regexp}:rechazar"
             )
         ]]
@@ -487,9 +486,9 @@ class Dankie
     def confirmar_borrar_trigger_global(regexp, chat, id_usuario)
         id_regexp = Trigger.confirmar_borrar_trigger(chat.id, regexp)
 
-        texto = "Usuario #{obtener_enlace_usuario chat.id, id_usuario} en el chat "
+        texto = "Usuario #{enlace_usuario_id id_usuario, chat.id} en el chat "
         texto << "#{html_parser(chat&.title || chat&.username)} "
-        texto << "quiere borrar trigger: "
+        texto << 'quiere borrar trigger: '
         texto << "<code>#{html_parser Trigger.regexp_a_str(regexp)}</code>\n"
         arr = [[
             Telegram::Bot::Types::InlineKeyboardButton.new(
@@ -512,7 +511,7 @@ class Dankie
         Trigger.borrar_trigger(id_grupo, regexp)
 
         texto = 'Trigger borrado por '
-        texto << "#{obtener_enlace_usuario(msj.chat.id, msj.from.id)} "
+        texto << "#{enlace_usuario_id(msj.from.id, msj.chat.id)} "
         texto << "en #{html_parser(msj.chat&.title || msj.chat&.username)} "
         texto << "(#{msj.chat.id})\nTrigger: "
         texto << "<code>#{html_parser Trigger.regexp_a_str(regexp)}</code>"
@@ -558,7 +557,7 @@ class Dankie
         end
 
         if tipo == :global && Trigger.temporal?(regexp)
-            texto = "Alguien ya está poniendo un trigger con esa expresión "
+            texto = 'Alguien ya está poniendo un trigger con esa expresión '
             texto << "regular, #{TROESMAS.sample}."
             @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
                              reply_to_message_id: msj.message_id, text: texto)
@@ -573,11 +572,10 @@ class Dankie
                                      msj.chat.id, msj.from.id, i)
             @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
                              reply_to_message_id: msj.message_id,
-                             text: "Esperando a que mi senpai acepte el trigger uwu.")
+                             text: 'Esperando a que mi senpai acepte el trigger uwu.')
 
         end
     end
-
 end
 
 class Trigger
@@ -631,7 +629,7 @@ class Trigger
     # Método que toma un trigger y devuleve n id, así es identificable a la hora de
     # aceptarlo
     def self.confirmar_poner_trigger(id_grupo, regexp)
-        i = @redis.incr "triggers:contador"
+        i = @redis.incr 'triggers:contador'
         @redis.mapped_hmset("triggers:settrigger:#{i}", regexp: regexp_a_str(regexp),
                                                         id_grupo: id_grupo)
         i
@@ -642,8 +640,8 @@ class Trigger
         hash = @redis.hgetall "triggers:settrigger:#{i}"
         hash.transform_keys!(&:to_sym)
         @redis.del "triggers:settrigger:#{i}"
-        @redis.srem "triggers:temp:global", hash[:regexp]
-        @redis.sadd "triggers:global", hash[:regexp]
+        @redis.srem 'triggers:temp:global', hash[:regexp]
+        @redis.sadd 'triggers:global', hash[:regexp]
         @redis.rename "trigger:temp:global:#{hash[:regexp]}", "trigger:global:#{hash[:regexp]}"
         @redis.rename("trigger:temp:global:#{hash[:regexp]}:metadata",
                       "trigger:global:#{hash[:regexp]}:metadata")
@@ -656,7 +654,7 @@ class Trigger
         hash = @redis.hgetall "triggers:settrigger:#{i}"
         hash.transform_keys!(&:to_sym)
         @redis.del "triggers:settrigger:#{i}"
-        @redis.srem "triggers:temp:global", hash[:regexp]
+        @redis.srem 'triggers:temp:global', hash[:regexp]
         @redis.del "trigger:temp:global:#{hash[:regexp]}"
         @redis.del "trigger:temp:global:#{hash[:regexp]}:metadata"
         hash[:regexp] = Trigger.str_a_regexp hash[:regexp]
@@ -670,13 +668,14 @@ class Trigger
         @redis.del "trigger:#{id_grupo}:#{regexp_a_str regexp}"
         @redis.del "trigger:#{id_grupo}:#{regexp_a_str regexp}:metadata"
         return unless id_grupo == :global
+
         @redis.del "triggers:deltrigger:#{id_grupo}"
     end
 
-    # Método que toma un trigger y devuelve un id, así es identificable a la hora de 
+    # Método que toma un trigger y devuelve un id, así es identificable a la hora de
     # borrarlo.
     def self.confirmar_borrar_trigger(id_grupo, regexp)
-        i = @redis.incr "triggers:contador"
+        i = @redis.incr 'triggers:contador'
         @redis.mapped_hmset("triggers:deltrigger:#{i}", regexp: regexp_a_str(regexp),
                                                         id_grupo: id_grupo)
         i
@@ -703,7 +702,6 @@ class Trigger
         @redis.smembers('triggers:global').shuffle!.each do |exp|
             yield :global, str_a_regexp(exp)
         end
-
     end
 
     def self.existe_trigger?(id_grupo, regexp)
@@ -730,6 +728,6 @@ class Trigger
     end
 
     def self.regexp_a_str(regexp)
-        return regexp.inspect.gsub(/\/(.*)\/i/m, "\\1")
+        regexp.inspect.gsub(%r{/(.*)/i}m, '\\1')
     end
 end

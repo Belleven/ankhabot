@@ -15,7 +15,7 @@ class Dankie
 
         # valido si existe la clave
 
-        opciones = armar_botonera(índice, 
+        opciones = armar_botonera(índice,
                                   obtener_tamaño_lista(callback.message.chat.id,
                                                        callback.message.message_id),
                                   callback.from.id)
@@ -39,14 +39,13 @@ class Dankie
                               message_id: callback.message.message_id,
                               text: texto,
                               reply_markup: opciones)
-
     rescue Telegram::Bot::Exceptions::ResponseError
         puts 'lol'
     end
 
     def armar_lista(id_chat, id_msj, arreglo)
         @redis.rpush "botonera:#{id_chat}:#{id_msj}", arreglo
-        @redis.expire "botonera:#{id_chat}:#{id_msj}", 60*60*24 # un día
+        @redis.expire "botonera:#{id_chat}:#{id_msj}", 60 * 60 * 24 # un día
     end
 
     def obtener_elemento_lista(id_chat, id_msj, índice)
@@ -59,6 +58,7 @@ class Dankie
 
     def armar_botonera(página_actual, tamaño_máximo, id_usuario)
         return nil if tamaño_máximo == 1
+
         página_actual = [página_actual, tamaño_máximo - 1].min # valido el rango
 
         arr = [[]]
@@ -67,7 +67,8 @@ class Dankie
             tamaño_máximo.times do |i|
                 arr.first << Telegram::Bot::Types::InlineKeyboardButton.new(
                     text: página_actual == i ? "< #{i + 1} >" : (i + 1).to_s,
-                    callback_data: "lista:#{id_usuario}:#{i}")
+                    callback_data: "lista:#{id_usuario}:#{i}"
+                )
             end
             return Telegram::Bot::Types::InlineKeyboardMarkup.new inline_keyboard: arr
         end
@@ -80,8 +81,8 @@ class Dankie
             end
             botones << ["#{tamaño_máximo} >>", tamaño_máximo - 1]
         elsif página_actual > (tamaño_máximo - 4)
-            botones << ["<< 1", 0]
-            ((tamaño_máximo-4)..(tamaño_máximo-1)).each do |i|
+            botones << ['<< 1', 0]
+            ((tamaño_máximo - 4)..(tamaño_máximo - 1)).each do |i|
                 botones << [página_actual == i ? "<#{i + 1}>" : (i + 1).to_s, i]
             end
         else
@@ -95,7 +96,8 @@ class Dankie
         botones.each do |botón|
             arr.first << Telegram::Bot::Types::InlineKeyboardButton.new(
                 text: botón.first,
-                callback_data: "lista:#{id_usuario}:#{botón.last}")
+                callback_data: "lista:#{id_usuario}:#{botón.last}"
+            )
         end
 
         Telegram::Bot::Types::InlineKeyboardMarkup.new(inline_keyboard: arr)
