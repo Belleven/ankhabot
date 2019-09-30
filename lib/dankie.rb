@@ -99,7 +99,8 @@ class Dankie
             # Le paso el mensaje a los handlers correspondientes
             dispatch(msj)
 
-        rescue Faraday::ConnectionFailed, Net::OpenTimeout => e
+        rescue Faraday::ConnectionFailed, Faraday::TimeoutError,
+               HTTPClient::ReceiveTimeoutError, Net::OpenTimeout => e
             begin
                 texto, backtrace = @logger.excepcion_texto(e)
                 @logger.error texto, al_canal: true, backtrace: backtrace
