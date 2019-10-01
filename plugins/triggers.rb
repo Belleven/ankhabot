@@ -164,12 +164,12 @@ class Dankie
         case match[:acción]
         when 'confirmar'
             temp = Trigger.confirmar_trigger match[:id_regexp]
-            texto = "Trigger <code>#{html_parser Trigger.regexp_a_str(temp[:regexp])}"\
-                    "</code> confirmado por #{callback.from.id}."
+            texto = "Trigger <code>#{html_parser Trigger.regexp_a_str(temp[:regexp])}"
+            texto << "</code> confirmado por #{callback.from.id}."
         when 'rechazar'
             temp = Trigger.rechazar_trigger match[:id_regexp]
-            texto = "Trrigger <code>#{html_parser Trigger.regexp_a_str(temp[:regexp])}"\
-                    "</code> rechazado por #{callback.from.id}."
+            texto = "Trrigger <code>#{html_parser Trigger.regexp_a_str(temp[:regexp])}"
+            texto << "</code> rechazado por #{callback.from.id}."
         end
 
         @tg.answer_callback_query(callback_query_id: callback.id)
@@ -192,17 +192,17 @@ class Dankie
         match = callback.data.match(/deltrigger:(?<id_regexp>\d+):(?<acción>.+)/)
 
         Trigger.redis ||= @redis
+        temp = Trigger.obtener_del_trigger_temp match[:id_regexp]
 
         case match[:acción]
         when 'borrar'
-            temp = Trigger.obtener_del_trigger_temp match[:id_regexp]
             Trigger.borrar_trigger :global, temp[:regexp]
-            texto = "Trigger <code>#{html_parser Trigger.regexp_a_str(temp[:regexp])}"\
-                    "</code> borrado por #{callback.from.id}."
-        when 'dejar'
+            texto = "Trigger <code>#{html_parser Trigger.regexp_a_str(temp[:regexp])}"
+            texto << "</code> borrado por #{callback.from.id}."
+        when 'ignorar'
             Trigger.descartar_temporal match[:id_regexp]
-            texto = "Trigger <code>#{html_parser Trigger.regexp_a_str(temp[:regexp])}"\
-                    '</code> no fue borrado.'
+            texto = "Trigger <code>#{html_parser Trigger.regexp_a_str(temp[:regexp])}"
+            texto << '</code> no fue borrado.'
         end
 
         @tg.answer_callback_query(callback_query_id: callback.id)
@@ -227,7 +227,7 @@ class Dankie
             return
         end
 
-        unless regexp_recibida = Trigger.str_a_regexp(params)
+        unless (regexp_recibida = Trigger.str_a_regexp params)
             @tg.send_message(chat_id: msj.chat.id,
                              text: "No sirve tu trigger, #{TROESMAS.sample}.")
             return
@@ -235,8 +235,10 @@ class Dankie
 
         Trigger.redis ||= @redis
 
+        encontrado = false
         Trigger.triggers(msj.chat.id) do |id_grupo, regexp|
             next unless regexp_recibida == regexp
+            encontrado = true
 
             if id_grupo == :global
                 confirmar_borrar_trigger_global(regexp, msj.chat, msj.from.id)
@@ -245,6 +247,12 @@ class Dankie
             end
 
             break
+        end
+
+        unless encontrado
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: "No encontré el trigger, #{TROESMAS.sample}.\n"\
+                             "fijate en /triggers@#{@user.username}.")
         end
     end
 
@@ -324,7 +332,7 @@ class Dankie
             return
         end
 
-        unless regexp_recibida = Trigger.str_a_regexp(params)
+        unless (regexp_recibida = Trigger.str_a_regexp params)
             @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
                              text: "No sirve tu trigger, #{TROESMAS.sample}.")
             return
@@ -411,7 +419,7 @@ class Dankie
                                                caption: trigger.caption,
                                                media => trigger.data[media])
             trigger.aumentar_contador
-            return unless resp['ok']
+            break unless resp['ok']
 
             añadir_a_cola_spam(id_grupo, resp.dig('result', 'message_id').to_i)
             @logger.info("Trigger enviado en #{id_grupo}", al_canal: false)
@@ -540,7 +548,7 @@ class Dankie
             return
         end
 
-        unless regexp = Trigger.str_a_regexp(params)
+        unless (regexp = Trigger.str_a_regexp params)
             @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
                              text: "No sirve tu trigger, #{TROESMAS.sample}.")
             return
@@ -721,7 +729,7 @@ class Trigger
 
     def self.str_a_regexp(str)
         regexp = /#{str}/i
-    rescue RegexpError
+    rescue RegexpError, ArgumentError
         regexp = nil
     ensure
         regexp

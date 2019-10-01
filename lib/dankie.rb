@@ -99,7 +99,8 @@ class Dankie
             # Le paso el mensaje a los handlers correspondientes
             dispatch(msj)
 
-        rescue Faraday::ConnectionFailed, Net::OpenTimeout => e
+        rescue Faraday::ConnectionFailed, Faraday::TimeoutError,
+               HTTPClient::ReceiveTimeoutError, Net::OpenTimeout => e
             begin
                 texto, backtrace = @logger.excepcion_texto(e)
                 @logger.error texto, al_canal: true, backtrace: backtrace
@@ -197,7 +198,7 @@ class Dankie
             arr = text.split(' ', 3) # ["user", "comando", "params"]
             arr.first.downcase!
             if (arr.size > 1) && arr.first.casecmp(@user.username[0..-4]).zero?
-                command = arr[1]&.downcase.to_sym
+                command = arr[1].downcase.to_sym
                 params = arr[2]
             # Responde al bot
             elsif msj.reply_to_message&.from&.id == @user.id
@@ -223,11 +224,11 @@ class Dankie
         error = if e.to_s.include? 'USER_ID_INVALID'
                     "Traté de obtener el nombre de una cuenta eliminada: #{id_usuario}"
                 else
-                    error = e.to_s
+                    e.to_s
                 end
         @logger.error(error, al_canal: true)
     ensure
-        return enlace_usuario || 'ay no c (' + id_usuario.to_s + ')'
+        enlace_usuario || 'ay no c (' + id_usuario.to_s + ')'
     end
 
     def enlace_usuario_objeto(usuario, id_chat)
@@ -548,8 +549,13 @@ class Dankie
             @tg.delete_message(chat_id: id_chat, message_id: id_mensaje)
         end
     rescue Telegram::Bot::Exceptions::ResponseError => e
-        raise unless e.to_s.include? "message can't be deleted"
-
-        @logger.error 'Traté de borrar un mensaje muy viejo', al_canal: true
+        case e.to_s
+        when /message to delete not found/
+            @logger.error 'Traté de borrar un mensaje muy viejo.', al_canal: true
+        when /message can't be deleted/
+            @logger.error 'No pude borrar un mensaje.', al_canal: true
+        else
+            raise e
+        end
     end
 end

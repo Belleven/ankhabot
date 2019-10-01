@@ -66,8 +66,6 @@ class DankieLogger
 
         return unless al_canal
 
-        # Formateo el texto
-        texto = html_parser(texto)
         unless backtrace.nil?
             lineas = '<pre>' + ('-' * 30) + "</pre>\n"
             texto << "\n#{lineas}#{lineas} Rastreo de la excepción:\n#{lineas}"
@@ -111,12 +109,12 @@ class DankieLogger
                                    excepcion
                                else
                                    'ERROR SIN NOMBRE'
-                            end
+                               end
 
             texto_excepcion << "\n#{lineas}#{lineas}#{e.backtrace.join("\n")}\n"\
                                "#{lineas}#{lineas}\n"
             @logger.fatal(texto_excepcion)
-        rescue StandardError => e
+        rescue StandardError
             puts "\nFATAL, múltiples excepciones.\n"
         end
     end

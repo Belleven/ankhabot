@@ -51,9 +51,7 @@ class Dankie
     private
 
     def miembro_válido(msj)
-        miembro = nil
-
-        id_usuario, alias_usuario, otro_texto = id_y_resto(msj)
+        id_usuario, alias_usuario, _ = id_y_resto(msj)
 
         if id_usuario.nil?
             @tg.send_message(chat_id: msj.chat.id,
@@ -88,25 +86,25 @@ class Dankie
                          "\n✅ Puedo editarle sus privilegios de administrador."
                      else
                          "\n❌ No puedo editarle sus privilegios de administrador."
-                        end
+                     end
 
             texto << if miembro.can_delete_messages
                          "\n✅ Puede eliminar mensajes."
                      else
                          "\n❌ No puede eliminar mensajes."
-                        end
+                     end
 
             texto << if miembro.can_restrict_members
                          "\n✅ Puede suspender usuarios."
                      else
                          "\n❌ No puede suspender usuarios."
-                        end
+                     end
 
             texto << if miembro.can_promote_members
                          "\n✅ Puede agregar nuevos admins."
                      else
                          "\n❌ No puede agregar nuevos admins."
-                        end
+                     end
 
         elsif miembro.status == 'restricted'
             texto << "\n\nCon las siguientes restricciones:"
@@ -117,7 +115,7 @@ class Dankie
                          "\n✅ Es miembro actual del grupete."
                      else
                          "\n❌ No es miembro actual del grupete."
-                        end
+                     end
             agr_cualidades_generales(miembro, texto)
 
         elsif miembro.status == 'kicked'
@@ -138,31 +136,31 @@ class Dankie
                      "\n✅ #{inicio_pos} mandar mensajes."
                  else
                      "\n❌ #{inicio_neg} mandar mensajes."
-                    end
+                 end
 
         texto << if entidad.can_send_media_messages
                      "\n✅ #{inicio_pos} mandar multimedia."
                  else
                      "\n❌ #{inicio_neg} mandar multimedia."
-                    end
+                 end
 
         texto << if entidad.can_send_polls
                      "\n✅ #{inicio_pos} mandar encuestas."
                  else
                      "\n❌ #{inicio_neg} mandar encuestas."
-                    end
+                 end
 
         texto << if entidad.can_send_other_messages
                      "\n✅ #{inicio_pos} mandar stickers y GIFS."
                  else
                      "\n❌ #{inicio_neg} mandar stickers y GIFS."
-                    end
+                 end
 
         texto << if entidad.can_add_web_page_previews
                      "\n✅ #{inicio_pos} incrustar enlaces."
                  else
                      "\n❌ #{inicio_neg} incrustar enlaces."
-                     end
+                 end
     end
 
     def agr_cualidades_admin_restr(entidad, texto, miembro_específico: true)

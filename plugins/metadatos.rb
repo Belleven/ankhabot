@@ -453,11 +453,11 @@ class Dankie
         tab = crear_tab(nivel)
 
         # Agrego datos que siempre aparecen
-        texto << "\n\n - Sticker:"\
-                 "#{tab} ID:<code> #{sticker.file_id}</code>"\
-                 "#{tab} Ancho:<code> #{sticker.width} px</code>"\
-                 "#{tab} Alto:<code> #{sticker.height} px</code>"
-        "#{tab} Animado:<code> #{sticker.is_animated ? 'Sí' : 'No'}</code>"
+        texto << "\n\n - Sticker:"
+        texto << "#{tab} ID:<code> #{sticker.file_id}</code>"
+        texto << "#{tab} Ancho:<code> #{sticker.width} px</code>"
+        texto << "#{tab} Alto:<code> #{sticker.height} px</code>"
+        texto << "#{tab} Animado:<code> #{sticker.is_animated ? 'Sí' : 'No'}</code>"
 
         texto << "#{tab} Emoji:<code> #{sticker.emoji}</code>" if sticker.emoji
         texto << "#{tab} Pack:<code> #{sticker.set_name}</code>" if sticker.set_name
