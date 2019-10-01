@@ -101,7 +101,6 @@ class Dankie
             # 1 entonces no hago nada.
             if cantidad > 1 && mismo_tema(ahora_escuchando.first, ahora_escuchando[1])
                 # Tengo que ignorar el segundo elemento y llegar hasta el final
-                puts "SE PERDIÓ UNA \n\n\n\n"
                 inicio += 1
                 fin += 1
             end
