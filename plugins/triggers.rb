@@ -238,6 +238,7 @@ class Dankie
         encontrado = false
         Trigger.triggers(msj.chat.id) do |id_grupo, regexp|
             next unless regexp_recibida == regexp
+
             encontrado = true
 
             if id_grupo == :global
@@ -713,17 +714,17 @@ class Trigger
     end
 
     def self.existe_trigger?(id_grupo, regexp)
-        triggers(id_grupo) do |_id, exp|
-            return true if regexp == exp
-        end
+        regexp = regexp_a_str regexp
+        return true if @redis.sismember "triggers:#{id_grupo}", regexp
+        return true if @redis.sismember 'triggers:global', regexp
+
         false
     end
 
     def self.temporal?(regexp)
         regexp = regexp_a_str regexp
-        @redis.smembers('triggers:temp:global').shuffle!.each do |exp|
-            return true if regexp == exp
-        end
+        return true if @redis.sismember 'triggers:temp:global', regexp
+
         false
     end
 
