@@ -224,13 +224,15 @@ class Dankie
             texto = '<b>Modo de uso:</b>'
             texto << "\nRespondé a un mensaje con /deltrigger trigger"
             texto << "\npodés tirar una expresión regular"
-            @tg.send_message(chat_id: msj.chat.id, parse_mode: :html, text: texto)
+            @tg.send_message(chat_id: msj.chat.id, parse_mode: :html, text: texto,
+                             reply_to_message_id: msj.message_id)
             return
         end
 
         unless (regexp_recibida = Trigger.str_a_regexp params)
             @tg.send_message(chat_id: msj.chat.id,
-                             text: "No sirve tu trigger, #{TROESMAS.sample}.")
+                             text: "No sirve tu trigger, #{TROESMAS.sample}.",
+                             reply_to_message_id: msj.message_id)
             return
         end
 
@@ -254,7 +256,8 @@ class Dankie
         unless encontrado
             @tg.send_message(chat_id: msj.chat.id,
                              text: "No encontré el trigger, #{TROESMAS.sample}.\n"\
-                             "fijate en /triggers@#{@user.username}.")
+                                   "fijate en /triggers@#{@user.username}.",
+                             reply_to_message_id: msj.message_id)
         end
     end
 
@@ -384,7 +387,8 @@ class Dankie
     def triggered(msj)
         unless (texto = msj.reply_to_message&.text || msj.reply_to_message&.caption)
             texto = "Respondele a un mensaje de texto, #{TROESMAS.sample}."
-            @tg.send_message(chat_id: msj.chat.id, text: texto, reply_to_message_id: message_id)
+            @tg.send_message(chat_id: msj.chat.id, text: texto,
+                             reply_to_message_id: msj.message_id)
             return
         end
 
