@@ -716,17 +716,14 @@ class Trigger
 
     def self.existe_trigger?(id_grupo, regexp)
         regexp = regexp_a_str regexp
-        return true if @redis.sismember "triggers:#{id_grupo}", regexp
-        return true if @redis.sismember 'triggers:global', regexp
-
-        false
+        
+        @redis.sismember "triggers:#{id_grupo}", regexp ||
+            @redis.sismember 'triggers:global', regexp
     end
 
     def self.temporal?(regexp)
         regexp = regexp_a_str regexp
-        return true if @redis.sismember 'triggers:temp:global', regexp
-
-        false
+        @redis.sismember 'triggers:temp:global', regexp
     end
 
     def self.str_a_regexp(str)
