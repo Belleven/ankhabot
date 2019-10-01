@@ -135,7 +135,8 @@ class Dankie
         promedio /= arr.size
         diferencia_ahora = Time.now.to_r - promedio
 
-        return true if diferencia_ahora > 20 # POR AHORA 20 SEGUNDOS, DESPUES DE TESTEAR PONER EN 89
+        # POR AHORA 20 SEGUNDOS, DESPUES DE TESTEAR PONER EN 89
+        return true if diferencia_ahora > 20 
 
         false
     end
