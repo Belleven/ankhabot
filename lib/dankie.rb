@@ -549,8 +549,13 @@ class Dankie
             @tg.delete_message(chat_id: id_chat, message_id: id_mensaje)
         end
     rescue Telegram::Bot::Exceptions::ResponseError => e
-        raise unless e.to_s.include? "message can't be deleted"
-
-        @logger.error 'Traté de borrar un mensaje muy viejo', al_canal: true
+        case e.to_s
+        when /message to delete not found/
+            @logger.error 'Traté de borrar un mensaje muy viejo.', al_canal: true
+        when /message can't be deleted/
+            @logger.error 'No pude borrar un mensaje.', al_canal: true
+        else
+            raise e
+        end
     end
 end
