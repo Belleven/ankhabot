@@ -136,7 +136,7 @@ class Dankie
         diferencia_ahora = Time.now.to_r - promedio
 
         # POR AHORA 20 SEGUNDOS, DESPUES DE TESTEAR PONER EN 89
-        return true if diferencia_ahora > 20 
+        return true if diferencia_ahora > 20
 
         false
     end
@@ -720,7 +720,7 @@ class Trigger
 
     def self.existe_trigger?(id_grupo, regexp)
         regexp = regexp_a_str regexp
-        
+
         @redis.sismember("triggers:#{id_grupo}", regexp) ||
             @redis.sismember('triggers:global', regexp)
     end
