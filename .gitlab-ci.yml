@@ -6,5 +6,5 @@ before_script:
 
 rubocop:
   script:
-    - bundle exec rubocop --fail-level error
+    - bundle exec rubocop --fail-level warning
 
