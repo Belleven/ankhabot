@@ -721,8 +721,8 @@ class Trigger
     def self.existe_trigger?(id_grupo, regexp)
         regexp = regexp_a_str regexp
         
-        @redis.sismember "triggers:#{id_grupo}", regexp ||
-            @redis.sismember 'triggers:global', regexp
+        @redis.sismember("triggers:#{id_grupo}", regexp) ||
+            @redis.sismember('triggers:global', regexp)
     end
 
     def self.temporal?(regexp)
