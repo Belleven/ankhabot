@@ -24,7 +24,7 @@ class ImageSearcher
         resultado = JSON.parse(respuesta.body)
 
         if resultado['error']
-            if resultado['error']['errors'].first['reason'] == 'dailyLimitExceeded'
+            if resultado.dig('error', 'errors', 0, 'reason') == 'dailyLimitExceeded'
                 @logger.info('Alcancé el límite diario de imágenes')
                 return :límite_diario
             else

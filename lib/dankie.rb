@@ -14,7 +14,8 @@ require 'ruby_reddit_api'
 
 class Dankie
     attr_reader :tg, :logger, :redis, :reddit, :user
-    TROESMAS = File.readlines('resources/troesmas.txt', encoding: 'UTF-8').map(&:chomp).freeze
+    TROESMAS = File.readlines('resources/troesmas.txt', encoding: 'UTF-8').map(&:chomp)
+    TROESMAS.freeze
     REKT = File.readlines('resources/rekt.txt', encoding: 'UTF-8').map(&:chomp).freeze
     CALLEFUEGOS = File.readlines('resources/callefuegos.txt').map(&:chomp).freeze
     DEUS_VULT = File.readlines('resources/deus.txt').map(&:chomp).freeze
@@ -152,24 +153,22 @@ class Dankie
     end
 
     def chat_inválido(msj, válidos)
-        if msj.chat.type != 'channel'
+        return if msj.chat.type == 'channel'
 
-            traducciones = { 'private' => 'privado', 'group' => 'grupos',
-                             'supergroup' => 'supergrupos', 'channel' => 'canales' }
+        traducciones = { 'private' => 'privado', 'group' => 'grupos',
+                         'supergroup' => 'supergrupos', 'channel' => 'canales' }
 
-            texto = "Este comando es válido solo en #{traducciones[válidos.first]}"
+        texto = "Este comando es válido solo en #{traducciones[válidos.first]}"
 
-            if válidos.length == 2
-                texto << " y #{traducciones[válidos[1]]}"
-            elsif válidos.length == 3
-                texto << ", #{traducciones[válidos[1]]} y #{traducciones[válidos[2]]}"
-            end
-
-            @tg.send_message(chat_id: msj.chat.id,
-                             reply_to_message_id: msj.message_id,
-                             text: texto)
-
+        if válidos.length == 2
+            texto << " y #{traducciones[válidos[1]]}"
+        elsif válidos.length == 3
+            texto << ", #{traducciones[válidos[1]]} y #{traducciones[válidos[2]]}"
         end
+
+        @tg.send_message(chat_id: msj.chat.id,
+                         reply_to_message_id: msj.message_id,
+                         text: texto)
     end
 
     private
@@ -260,7 +259,7 @@ class Dankie
                 return false
             end
 
-            return num if num > 0
+            return num if num.positive?
         end
 
         false
