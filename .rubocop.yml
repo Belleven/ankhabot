@@ -23,7 +23,7 @@ Naming/VariableName:
     Enabled: false
 
 Style/AsciiComments:
-    AllowedChars: [☑️ , á, é, í, ó, ú, Á, É, Í, Ó, Ú]
+    AllowedChars: [☑️ , á, é, í, ó, ú, Á, É, Í, Ó, Ú, ñ]
 
 Style/FrozenStringLiteralComment:
     EnforcedStyle: never
