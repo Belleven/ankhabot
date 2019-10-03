@@ -27,7 +27,7 @@ class Dankie
     #                                  máximo: Integer)
     add_handler Handler::Comando.new(:triggers, :listar_triggers,
                                      permitir_params: true,
-                                     #                                     parámetros: params_triggers,
+                                     # parámetros: params_triggers,
                                      descripción: 'Envía la lista de triggers')
     add_handler Handler::Comando.new(:infotrigger, :enviar_info_trigger,
                                      permitir_params: true,
@@ -56,7 +56,9 @@ class Dankie
         # por las dudas que esto se ejecute antes que el otro bloque
         $hilo_triggers[:hora] ||= Concurrent::AtomicFixnum.new
 
-        if $hilo_triggers[:hora].value > 0 && (Time.now.to_i - $hilo_triggers[:hora].value) > 10
+        if $hilo_triggers[:hora].value.positive? &&
+            (Time.now.to_i - $hilo_triggers[:hora].value) > 10
+
             puts 'por matar el hilo'
             $hilo_triggers.kill
             puts 'hilo matado'
@@ -251,12 +253,11 @@ class Dankie
             break
         end
 
-        unless encontrado
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: "No encontré el trigger, #{TROESMAS.sample}.\n"\
-                                   "fijate en /triggers@#{@user.username}.",
-                             reply_to_message_id: msj.message_id)
-        end
+        return if encontrado
+        @tg.send_message(chat_id: msj.chat.id,
+                         text: "No encontré el trigger, #{TROESMAS.sample}.\n"\
+                               "fijate en /triggers@#{@user.username}.",
+                         reply_to_message_id: msj.message_id)
     end
 
     def listar_triggers(msj, _params)
@@ -432,7 +433,7 @@ class Dankie
     end
 
     # Función para poner triggers de grupo o globales
-    def poner_trigger(regexp, msj, id_grupo, id_usuario, global = false)
+    def poner_trigger(regexp, msj, id_grupo, id_usuario)
         data = {:caption => msj.caption}
 
         if !msj.photo.empty?
@@ -457,7 +458,7 @@ class Dankie
         end
 
         i = nil
-        if global
+        if id_grupo == :global
             Trigger.poner_trigger('global', id_usuario, regexp, data)
             i = Trigger.confirmar_poner_trigger(msj.chat.id, regexp)
         else
@@ -469,9 +470,9 @@ class Dankie
         texto << "en #{html_parser(msj.chat&.title || msj.chat&.username)} "
         texto << "(#{msj.chat.id})"
 
-        @logger.info(texto, al_canal: global)
+        @logger.info(texto, al_canal: id_grupo == :global)
 
-        unless global
+        unless id_grupo == :global
             @tg.send_message(chat_id: msj.chat.id,
                              parse_mode: :html,
                              text: texto,
@@ -587,17 +588,16 @@ class Dankie
             return
         end
 
-        i = poner_trigger(regexp, msj.reply_to_message, msj.chat.id,
-                          msj.from.id, tipo == :global)
+        i = poner_trigger(regexp, msj.reply_to_message,
+                          msj.chat.id, msj.from.id)
 
-        if tipo == :global
-            confirmar_trigger_global(regexp, msj.reply_to_message,
-                                     msj.chat.id, msj.from.id, i)
-            @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
-                             reply_to_message_id: msj.message_id,
-                             text: 'Esperando a que mi senpai acepte el trigger uwu.')
+        return unless tipo == :global
 
-        end
+        confirmar_trigger_global(regexp, msj.reply_to_message,
+                                 msj.chat.id, msj.from.id, i)
+        @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
+                         reply_to_message_id: msj.message_id,
+                         text: 'Esperando a que mi senpai acepte el trigger uwu.')
     end
 end
 
@@ -665,7 +665,8 @@ class Trigger
         @redis.del "triggers:settrigger:#{i}"
         @redis.srem 'triggers:temp:global', hash[:regexp]
         @redis.sadd 'triggers:global', hash[:regexp]
-        @redis.rename "trigger:temp:global:#{hash[:regexp]}", "trigger:global:#{hash[:regexp]}"
+        @redis.rename("trigger:temp:global:#{hash[:regexp]}",
+                      "trigger:global:#{hash[:regexp]}")
         @redis.rename("trigger:temp:global:#{hash[:regexp]}:metadata",
                       "trigger:global:#{hash[:regexp]}:metadata")
         hash[:regexp] = Trigger.str_a_regexp hash[:regexp]
