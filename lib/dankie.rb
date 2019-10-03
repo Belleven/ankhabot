@@ -550,9 +550,13 @@ class Dankie
     rescue Telegram::Bot::Exceptions::ResponseError => e
         case e.to_s
         when /message to delete not found/
-            @logger.error 'Traté de borrar un mensaje muy viejo.', al_canal: true
+            @logger.error("Traté de borrar un mensaje (id mensaje: #{id_mensaje}) "\
+                          "muy viejo (id chat: #{id_chat}).",
+                          al_canal: true)
         when /message can't be deleted/
-            @logger.error 'No pude borrar un mensaje.', al_canal: true
+            @logger.error("No pude borrar un mensaje (id mensaje: #{id_mensaje}) "\
+                          "(id chat: #{id_chat}).",
+                          al_canal: true)
         else
             raise e
         end
