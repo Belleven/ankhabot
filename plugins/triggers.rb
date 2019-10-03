@@ -325,6 +325,7 @@ class Dankie
     end
 
     def enviar_info_trigger(msj, params)
+        # Si no tengo parámetros explico el modo de uso
         unless params
             texto = '<b>Modo de uso:</b>'
             texto << "\n<pre>/infotrigger trigger</pre>"
@@ -335,29 +336,29 @@ class Dankie
             return
         end
 
+        # Si es una expresión regular inválida aviso
         unless (regexp_recibida = Trigger.str_a_regexp params)
             @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
                              text: "No sirve tu trigger, #{TROESMAS.sample}.")
             return
         end
 
+        # Seteo la BBDD
         Trigger.redis ||= @redis
+        # Obtengo el id_grupo si es que existe el trigger
+        id_grupo = Trigger.grupo_trigger(msj.chat.id, regexp_recibida)
 
-        trigger = nil
-        id = nil
-        Trigger.triggers(msj.chat.id) do |id_grupo, regexp|
-            next unless regexp_recibida == regexp
-
-            trigger = Trigger.new(id_grupo, regexp)
-            id = id_grupo
-        end
-
-        unless trigger
+        # Si el trigger no existía, aviso
+        unless id_grupo
             @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
                              text: 'No pude encontrar el trigger úwù')
             return
         end
 
+        # Creo el trigger con todos sus datazos
+        trigger = Trigger.new(id_grupo, regexp_recibida)
+
+        # Relleno el texto a enviar
         texto = '<b>Info del trigger:</b>'
         texto << "\nRegexp: <code>"
         texto << "#{html_parser Trigger.regexp_a_str(trigger.regexp)}</code>"
@@ -372,7 +373,7 @@ class Dankie
         unless trigger.caption.empty?
             texto << "\nCaption: <code>#{html_parser trigger.caption}</code>"
         end
-        texto << "\nTipo: #{id == :global ? 'global' : 'de grupo'}"
+        texto << "\nTipo: #{id_grupo == :global ? 'global' : 'de grupo'}"
         texto << "\nCreador: #{enlace_usuario_id(trigger.creador, msj.chat.id)}"
         texto << "\nTotal de usos: #{trigger.contador}"
         texto << "\nAñadido: <i>#{trigger.fecha.strftime('%d/%m/%Y %T')}</i>"
@@ -453,17 +454,18 @@ class Dankie
             Trigger.poner_trigger(id_grupo, id_usuario, regexp, data)
         end
 
-        texto = 'Trigger añadido por '
-        texto << "#{enlace_usuario_id(id_usuario, msj.chat.id)} "
+        texto = "Trigger <code>#{html_parser Trigger.regexp_a_str(regexp)}</code> "
+        texto << "añadido por #{enlace_usuario_id(id_usuario, msj.chat.id)} "
         texto << "en #{html_parser(msj.chat&.title || msj.chat&.username)} "
-        texto << "(#{msj.chat.id})\nTrigger: "
-        texto << "<code>#{html_parser Trigger.regexp_a_str(regexp)}</code>"
+        texto << "(#{msj.chat.id})"
 
         @logger.info(texto, al_canal: global)
 
         unless global
             @tg.send_message(chat_id: msj.chat.id,
-                             parse_mode: :html, text: texto,
+                             parse_mode: :html,
+                             text: texto,
+                             reply_to_message_id: msj.message_id,
                              disable_web_page_preview: true)
         end
         i
@@ -522,11 +524,10 @@ class Dankie
     def borrar_trigger(regexp, id_grupo, msj)
         Trigger.borrar_trigger(id_grupo, regexp)
 
-        texto = 'Trigger borrado por '
-        texto << "#{enlace_usuario_id(msj.from.id, msj.chat.id)} "
+        texto = "Trigger <code>#{html_parser Trigger.regexp_a_str(regexp)}</code> "
+        texto << "borrado por #{enlace_usuario_id(msj.from.id, msj.chat.id)} "
         texto << "en #{html_parser(msj.chat&.title || msj.chat&.username)} "
-        texto << "(#{msj.chat.id})\nTrigger: "
-        texto << "<code>#{html_parser Trigger.regexp_a_str(regexp)}</code>"
+        texto << "(#{msj.chat.id})"
 
         @logger.info(texto, al_canal: id_grupo == 'global')
 
@@ -721,6 +722,15 @@ class Trigger
 
         @redis.sismember("triggers:#{id_grupo}", regexp) ||
             @redis.sismember('triggers:global', regexp)
+    end
+
+    # Devuelve el grupo del trigger, si es que existe, si no nil
+    def self.grupo_trigger(id_grupo, regexp)
+        regexp = regexp_a_str regexp
+
+        return id_grupo if @redis.sismember("triggers:#{id_grupo}", regexp)
+        return :global if @redis.sismember('triggers:global', regexp)
+        nil
     end
 
     def self.temporal?(regexp)
