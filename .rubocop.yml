@@ -36,7 +36,7 @@ Naming/VariableName:
     Enabled: false
 
 Style/AsciiComments:
-    AllowedChars: [☑️ , á, é, í, ó, ú, Á, É, Í, Ó, Ú, ñ]
+    AllowedChars: [☑️ , á, é, í, ó, ú, ü, Á, É, Í, Ó, Ú, Ü, ñ, Ñ]
 
 Style/FrozenStringLiteralComment:
     EnforcedStyle: never
