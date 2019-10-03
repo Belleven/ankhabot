@@ -57,7 +57,7 @@ class Dankie
         $hilo_triggers[:hora] ||= Concurrent::AtomicFixnum.new
 
         if $hilo_triggers[:hora].value.positive? &&
-            (Time.now.to_i - $hilo_triggers[:hora].value) > 10
+           (Time.now.to_i - $hilo_triggers[:hora].value) > 10
 
             puts 'por matar el hilo'
             $hilo_triggers.kill
@@ -254,6 +254,7 @@ class Dankie
         end
 
         return if encontrado
+
         @tg.send_message(chat_id: msj.chat.id,
                          text: "No encontré el trigger, #{TROESMAS.sample}.\n"\
                                "fijate en /triggers@#{@user.username}.",
@@ -433,8 +434,8 @@ class Dankie
     end
 
     # Función para poner triggers de grupo o globales
-    def poner_trigger(regexp, msj, id_grupo, id_usuario)
-        data = {:caption => msj.caption}
+    def poner_trigger(regexp, msj, id_grupo, id_usuario, id_msj)
+        data = { caption: msj.caption }
 
         if !msj.photo.empty?
             data[:photo] = msj.photo.first.file_id
@@ -443,18 +444,21 @@ class Dankie
         else
             media = nil
             (TIPOS_MMEDIA.keys - %i[photo text]).each do |media|
-                data[media], media = msj.send(media).file_id, media if msj.send(media)
+                if msj.send(media)
+                    data[media] = msj.send(media).file_id
+                    media = media
+                end
             end
-        end
 
-        # Si el mensaje no contenía algo que pueda ser un trigger, aviso
-        if media.nil?
-            texto = "Ese tipo de mensaje no está soportado "
-            texto << "como trigger, #{TROESMAS.sample}."
-            @tg.send_message(chat_id: msj.chat.id,
-                             reply_to_message_id: msj.message_id,
-                             text: texto)
-            return nil
+            # Si el mensaje no contenía algo que pueda ser un trigger, aviso
+            if media.nil?
+                texto = 'Ese tipo de mensaje no está soportado '
+                texto << "como trigger, #{TROESMAS.sample}."
+                @tg.send_message(chat_id: msj.chat.id,
+                                 reply_to_message_id: id_msj,
+                                 text: texto)
+                return nil
+            end
         end
 
         i = nil
@@ -476,7 +480,7 @@ class Dankie
             @tg.send_message(chat_id: msj.chat.id,
                              parse_mode: :html,
                              text: texto,
-                             reply_to_message_id: msj.message_id,
+                             reply_to_message_id: id_msj,
                              disable_web_page_preview: true)
         end
         i
@@ -588,10 +592,10 @@ class Dankie
             return
         end
 
-        i = poner_trigger(regexp, msj.reply_to_message,
-                          msj.chat.id, msj.from.id)
+        i = poner_trigger(regexp, msj.reply_to_message, msj.chat.id,
+                          msj.from.id, msj.message_id)
 
-        return unless tipo == :global
+        return if i.nil?
 
         confirmar_trigger_global(regexp, msj.reply_to_message,
                                  msj.chat.id, msj.from.id, i)
@@ -741,6 +745,7 @@ class Trigger
 
         return id_grupo if @redis.sismember("triggers:#{id_grupo}", regexp)
         return :global if @redis.sismember('triggers:global', regexp)
+
         nil
     end
 
