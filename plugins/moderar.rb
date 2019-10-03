@@ -133,7 +133,8 @@ class Dankie
 
             # Chequeo que el usuario que llamó al comando sea admin y que quién se vea afectado no
             # Además devuelve el chat_member del usuario afectado.
-            cumple, miembro = chequear_usuarios(msj, id_afectada, alias_id, para_aplicar_restricción)
+            cumple, miembro = chequear_usuarios(msj, id_afectada, alias_id,
+                                                para_aplicar_restricción)
         end
         [cumple, miembro, razón]
     end

@@ -43,11 +43,12 @@ class DankieLogger
                 end
 
         return texto, nil if excepcion.backtrace.nil?
+
         # La regex turbina esa es para no doxxearnos a los que usamos linux
         # / es para "/" => /home/ es para "/home/"
         # [^/]+ es para que detecte todos los caracteres que no sean "/" =>
         # /home/user/dankie/... queda como /dankie/...
-        return texto, excepcion.backtrace.join("\n").gsub(%r{/home/[^/]+}, '~')
+        [texto, excepcion.backtrace.join("\n").gsub(%r{/home/[^/]+}, '~')]
     end
 
     private

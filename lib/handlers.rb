@@ -16,7 +16,7 @@ module Handler
         def verificar(bot, msj)
             return unless msj.is_a? Telegram::Bot::Types::Message
             return if !@permitir_editados && msj.edit_date
-            return if @ignorar_comandos && Dankie.comandos.include?(bot.get_command msj)
+            return if @ignorar_comandos && Dankie.comandos.include?(bot.get_command(msj))
             return unless @chats_permitidos.include?(msj.chat.type)
 
             tipo_msj = nil
@@ -117,7 +117,7 @@ module Handler
             end
 
             @chats_permitidos = args[:chats_permitidos]&.map(&:to_s) ||
-                %w[private group supergroup] # 'channel' es otra opción
+                                %w[private group supergroup] # 'channel' es otra opción
             @callback = callback
         end
 
