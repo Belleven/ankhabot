@@ -18,32 +18,31 @@ class Dankie
     def registrar_tiempo(msj)
         # Eso de is_bot es porque los eventos de
         # chat que son de bots SÍ los recibe
-        unless msj.from.is_bot
+        return if msj.from.is_bot
 
-            # Primero reviso si se está yendo alguien
-            if msj.left_chat_member
-                @redis.hdel("último_mensaje:#{msj.chat.id}",
-                            msj.left_chat_member.id.to_s)
-                return if msj.from.id == msj.left_chat_member.id
-            end
+        # Primero reviso si se está yendo alguien
+        if msj.left_chat_member
+            @redis.hdel("último_mensaje:#{msj.chat.id}",
+                        msj.left_chat_member.id.to_s)
+            return if msj.from.id == msj.left_chat_member.id
+        end
 
-            # Después registro a los nuevos miembros (si hay)
-            msj.new_chat_members.each do |usuario|
-                next if usuario.is_bot
+        # Después registro a los nuevos miembros (si hay)
+        msj.new_chat_members.each do |usuario|
+            next if usuario.is_bot
 
-                @redis.hset("último_mensaje:#{msj.chat.id}",
-                            usuario.id.to_s,
-                            msj.date.to_s)
-            end
-
-            # Por último registro a quien mandó el mensaje
-            # podría ser que alguien se una al grupete solo
-            # y ahí ya se registra dos veces (una acá y otra en el
-            # bucle anterior) pero no importa, no es demasiado.
             @redis.hset("último_mensaje:#{msj.chat.id}",
-                        msj.from.id.to_s,
+                        usuario.id.to_s,
                         msj.date.to_s)
         end
+
+        # Por último registro a quien mandó el mensaje
+        # podría ser que alguien se una al grupete solo
+        # y ahí ya se registra dos veces (una acá y otra en el
+        # bucle anterior) pero no importa, no es demasiado.
+        @redis.hset("último_mensaje:#{msj.chat.id}",
+                    msj.from.id.to_s,
+                    msj.date.to_s)
     end
 
     # Cuando un grupo cambia a supergrupo

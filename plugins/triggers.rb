@@ -136,9 +136,7 @@ class Dankie
         diferencia_ahora = Time.now.to_r - promedio
 
         # POR AHORA 20 SEGUNDOS, DESPUES DE TESTEAR PONER EN 89
-        return true if diferencia_ahora > 20
-
-        false
+        return diferencia_ahora > 20
     end
 
     def incremetar_arr_flood(arr, tiempo)
