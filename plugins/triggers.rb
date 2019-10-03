@@ -433,8 +433,7 @@ class Dankie
 
     # Función para poner triggers de grupo o globales
     def poner_trigger(regexp, msj, id_grupo, id_usuario, global = false)
-        data = {}
-        data[:caption] = msj.caption
+        data = {:caption => msj.caption}
 
         if !msj.photo.empty?
             data[:photo] = msj.photo.first.file_id
