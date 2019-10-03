@@ -436,7 +436,7 @@ class Dankie
         data = {:caption => msj.caption}
 
         if !msj.photo.empty?
-            data[:photo] = msj.photo.first.file_id
+            data[:photo] = msj.photo.last.file_id
         else
             (TIPOS_MMEDIA.keys - %i[photo text]).each do |media|
                 data[media] = msj.send(media).file_id if msj.send(media)
