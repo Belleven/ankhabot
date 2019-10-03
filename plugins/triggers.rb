@@ -442,16 +442,17 @@ class Dankie
         elsif msj.text
             data[:text] = msj.text
         else
-            media = nil
+            trigger_media = nil
             (TIPOS_MMEDIA.keys - %i[photo text]).each do |media|
-                if msj.send(media)
-                    data[media] = msj.send(media).file_id
-                    media = media
-                end
+                next unless msj.send(media)
+
+                data[media] = msj.send(media).file_id
+                trigger_media = media
+                break
             end
 
             # Si el mensaje no contenía algo que pueda ser un trigger, aviso
-            if media.nil?
+            if trigger_media.nil?
                 texto = 'Ese tipo de mensaje no está soportado '
                 texto << "como trigger, #{TROESMAS.sample}."
                 @tg.send_message(chat_id: msj.chat.id,
