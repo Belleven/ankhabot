@@ -278,7 +278,7 @@ class Dankie
         título = "<b>Lista de triggers</b> <i>(#{Time.now.strftime('%d/%m/%Y %T')})</i>:"
         hay_elementos = false
         contador = 0
-        arr = [título.to_s]
+        arr = [título.to_s] # Duplico el String y lo guardo en un arreglo
 
         unless triggers_locales.empty?
             hay_elementos = true
