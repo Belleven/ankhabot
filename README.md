@@ -13,7 +13,12 @@ And then execute:
 
 ## Usage
 
-put your API token in a file called token and just run
+Copy config-sample.yml to config.yml and put your API token in there
+It's required to have a Redis installation running in the port 42069, or if in
+other port, set the corresponding port in config.yml
+
+the bot runs with the following command
+
     $ ruby bot.rb
 
 

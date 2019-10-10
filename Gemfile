@@ -1,7 +1,14 @@
 source 'https://rubygems.org'
-
-gemspec
+# Instalar: gem install bundler 'nombre_gema (sin comillas)'
+gem 'concurrent-ruby'
+gem 'filesize'
+gem 'httpclient'
 gem 'rake'
-gem 'telegram-bot-ruby', '~>0.8.6'
 gem 'redis'
 gem 'ruby_reddit_api'
+gem 'telegram-bot-ruby'
+gem 'tzinfo'
+
+group :test do
+    gem 'rubocop'
+end

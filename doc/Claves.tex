@@ -1,0 +1,15 @@
+\section{Claves de la base de datos}
+
+Una bella lista con los nombres que se usan como claves en redis, así en el futuro no tenemos problemas pisándolos. Todo lo que está en rojo es la parte variable de la clave, y lo que está en negro es la parte fija. Solo las claves que contengan como parte variable un id\_chat son las que hay que modificar cuando un grupo se convierte en supergrupo.
+
+\begin{itemize}
+	\item ``\textbf{id:}{\color{red} alias}'' $\rightarrow$ Una clave formada un alias que contiene el id del usuario cuyo alias forma parte de la clave.
+	\item ``\textbf{alias:}{\color{red} id\_usuario}'' $\rightarrow$ Una clave formada por un id de usuario que contiene el alias del usuario cuyo id forma parte de la clave.
+	\item ``\textbf{apodo:}{\color{red} id\_chat}'' $\rightarrow$ Un hash formada por el id del chat cuyos campos son el id del usuario con el apodo del usuario como valor.
+	\item ``\textbf{lastfm:}{\color{red} id\_usuario}'' $\rightarrow$ Una clave formada por el id del usuario cuyo valor es su usuario de Last.fm.
+	\item ``\textbf{pole:}{\color{red} id\_chat}'' $\rightarrow$ Un conjunto ordenado que contiene pares (id\_usuario, cantidad\_poles) reflejando la tabla de posiciones de las poles en ese chat\_id.
+	\item ``\textbf{pole:}{\color{red} id\_chat}\textbf{:próxima}'' $\rightarrow$ Una clave que contiene el tiempo unix de la próxima pole en ese chat\_id.
+	\item ``\textbf{último\_mensaje:}{\color{red} id\_chat}'' $\rightarrow$ Un hash cuyos campos son ids de usuarios con un tiempo unix como valor (qué indica el momento en que fue mandado su último mensaje).
+\end{itemize}
+
+

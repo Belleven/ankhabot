@@ -1,0 +1,43 @@
+AllCops:
+    TargetRubyVersion: 2.6
+
+Layout/IndentationWidth:
+    Width: 4
+
+Metrics/AbcSize:
+    Max: 30
+
+Metrics/ClassLength:
+    Enabled: false
+
+Metrics/CyclomaticComplexity:
+    Max: 10
+
+Metrics/LineLength:
+    Max: 89
+    AutoCorrect: true
+
+Metrics/MethodLength:
+    Max: 50
+
+Metrics/PerceivedComplexity:
+    Max: 10
+
+Naming/AsciiIdentifiers:
+    Enabled: false
+
+Naming/FileName:
+    Enabled: false
+
+Naming/MethodName:
+    Enabled: false
+
+Naming/VariableName: 
+    Enabled: false
+
+Style/AsciiComments:
+    AllowedChars: [☑️ , á, é, í, ó, ú, ü, ñ, Á, É, Í, Ó, Ú, Ü, Ñ]
+
+
+Style/FrozenStringLiteralComment:
+    EnforcedStyle: never
