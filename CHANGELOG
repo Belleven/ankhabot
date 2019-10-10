@@ -1,13 +1,28 @@
 1.0.0
-    -changelog
     -reestructuración del código
-    -parseo de comandos rediseñado
+        -usa handlers y un dispatcher
+        -parseo de comandos rediseñado
+        -logging a un canal de telegram
+        -se pueden armar botoneras de páginas de texto
+        -lista de flood para comandos flooderos
     -pole
+    -triggers
     -blacklist de usuarios
     -comando /trinsfirmir
     -comando /rekt
+    -comando /help
+    -comando /img
+    -comando /sub
+    -comando /escuchando y otras cosas de last.fm
+    -comandos /callefuegos y /deusvult
+    -comando /cp
+    -comandos /di y /grita
+    -comandos /apodos y /apodar
+    -varios comandos de moderación
+    -comando /ultimavista
     -función x2
     -ruleta nisman
+    -saluda a miembros nuevos
     -corrección de errores
     -mensajes de cualquier longitud
     -estilo de código agregado
