@@ -543,7 +543,7 @@ class Dankie
     # son borrados despues de cierto límite, para evitar el spam.
     def añadir_a_cola_spam(id_chat, id_mensaje)
         @redis.rpush "spam:#{id_chat}", id_mensaje
-        if @redis.llen("spam:#{id_chat}") > 4 # está en 4 por propósitos de test, cambiar a 50 antes de terminar
+        if @redis.llen("spam:#{id_chat}") > 24
             id_mensaje = @redis.lpop("spam:#{id_chat}").to_i
             @tg.delete_message(chat_id: id_chat, message_id: id_mensaje)
         end
@@ -557,8 +557,8 @@ class Dankie
             @logger.error("No pude borrar un mensaje (id mensaje: #{id_mensaje}) "\
                           "(id chat: #{id_chat}).",
                           al_canal: true)
-        else
-            raise e
+#        else
+#            raise e 
         end
     end
 end
