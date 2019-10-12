@@ -147,7 +147,7 @@ class Dankie
     end
 
     def validar_poner_trigger_local(msj, params)
-        validar_set_trigger(msj, params, :local)
+        validar_set_trigger(msj, params, msj.chat.id)
     end
 
     def validar_poner_trigger_global(msj, params)
@@ -552,7 +552,7 @@ class Dankie
                          disable_web_page_preview: true, text: texto)
     end
 
-    def validar_set_trigger(msj, params, tipo)
+    def validar_set_trigger(msj, params, grupo)
         if !params || !msj.reply_to_message
             texto = '<b>Modo de uso:</b>'
             texto << "\nRespondé a un mensaje con /settrigger trigger"
@@ -585,7 +585,7 @@ class Dankie
             return
         end
 
-        if tipo == :global && Trigger.temporal?(regexp)
+        if grupo == :global && Trigger.temporal?(regexp)
             texto = 'Alguien ya está poniendo un trigger con esa expresión '
             texto << "regular, #{TROESMAS.sample}."
             @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
@@ -593,7 +593,7 @@ class Dankie
             return
         end
 
-        i = poner_trigger(regexp, msj.reply_to_message, msj.chat.id,
+        i = poner_trigger(regexp, msj.reply_to_message, grupo,
                           msj.from.id, msj.message_id)
 
         return if i.nil?
