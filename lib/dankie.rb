@@ -218,7 +218,7 @@ class Dankie
             usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
             enlace_usuario = crear_enlace(usuario, id_chat)
         end
-    rescue StandardError => e
+    rescue StandardError, Telegram::Bot::Exceptions::ResponseError => e
         enlace_usuario = nil
         error = if e.to_s.include? 'USER_ID_INVALID'
                     "Traté de obtener el nombre de una cuenta eliminada: #{id_usuario}"
