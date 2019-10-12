@@ -225,9 +225,9 @@ class Dankie
                 else
                     e.to_s
                 end
-        @logger.error(error, al_canal: true)
+        @logger.error(error, al_canal: false)
     ensure
-        enlace_usuario || 'ay no c (' + id_usuario.to_s + ')'
+        return enlace_usuario || "ay no c (#{id_usuario})"
     end
 
     def enlace_usuario_objeto(usuario, id_chat)
