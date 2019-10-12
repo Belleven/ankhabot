@@ -1,3 +1,10 @@
+1.0.2
+    -removido raise de prueba
+    -hotfix mal hecho para que ande el !img
+
+1.0.1
+    -cambiados valores de prueba
+
 1.0.0
     -reestructuración del código
         -usa handlers y un dispatcher
