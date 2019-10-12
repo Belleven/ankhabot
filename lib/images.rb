@@ -20,7 +20,7 @@ class ImageSearcher
 
         # Obtengo el resultado
 #        dirección_codificada = URI.encode_www_form_component(dirección)
-        dirección_codigicada = dirección # TODO: BORRAR ESTA LÍNEA Y USAR LA DE ARRIBA.
+        dirección_codificada = dirección # TODO: BORRAR ESTA LÍNEA Y USAR LA DE ARRIBA.
                                          # VER COMO HACER PARA SOLO HACER ENCODE AL q= Y NO A TODA LA DIRECCIÓN
         respuesta = Net::HTTP.get_response URI.parse(dirección_codificada)
         resultado = JSON.parse(respuesta.body)
