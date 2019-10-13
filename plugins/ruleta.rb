@@ -30,8 +30,11 @@ class Dankie
         balas_arr.shuffle!
         @@juegos[msj.chat.id] = [cant_balas, balas_arr]
 
-        texto = "Recargado y girado. Hay #{cant_balas} balas "\
-                'de 6 cargadas en la bersa.'
+        # Armo texto para indicar cantidad de balas cargadas,
+        # separo casos singular y plural
+        balas_cargadas = cant_balas == 1 ? 'bala cargada' : 'balas cargadas'
+        texto = "Recargado y girado. Hay #{cant_balas} #{balas_cargadas} "\
+                'de 6 en la bersa.'
 
         @tg.send_message(chat_id: msj.chat.id, text: texto)
     end

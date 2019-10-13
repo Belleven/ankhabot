@@ -17,7 +17,7 @@ module Handler
             return unless msj.is_a? Telegram::Bot::Types::Message
             return if !@permitir_editados && msj.edit_date
             return if @ignorar_comandos &&
-                        Dankie.comandos.include?(bot.get_command(msj))
+                      Dankie.comandos.include?(bot.get_command(msj))
             return unless @chats_permitidos.include?(msj.chat.type)
 
             tipo_msj = nil
@@ -59,6 +59,7 @@ module Handler
             end
 
             return if @cmd != bot.get_command(msj)
+
             bot.logger.info "CommandHandler: comando \"#{@cmd}\" en #{msj.chat.id}"
 
             if @permitir_params
