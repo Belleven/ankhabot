@@ -16,13 +16,15 @@ class Dankie
                                      chats_permitidos: %i[group supergroup])
     add_handler Handler::Comando.new(:settrigger, :validar_poner_trigger_local,
                                      permitir_params: true,
-                                     descripción: 'Agrega un trigger al bot')
+                                     descripción: 'Agrega un trigger al bot',
+                                     chats_permitidos: %i[group supergroup])
     add_handler Handler::Comando.new(:setglobal, :validar_poner_trigger_global,
                                      permitir_params: true,
                                      descripción: 'Agrega un trigger global al bot')
     add_handler Handler::Comando.new(:deltrigger, :validar_borrar_trigger,
                                      permitir_params: true,
-                                     descripción: 'Borra un trigger')
+                                     descripción: 'Borra un trigger',
+                                     chats_permitidos: %i[group supergroup])
     # params_triggers = Parámetros.new(órden: [:fecha, :uso, :nombre],
     #                                  máximo: Integer)
     add_handler Handler::Comando.new(:triggers, :listar_triggers,

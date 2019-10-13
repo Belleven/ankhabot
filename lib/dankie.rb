@@ -59,7 +59,6 @@ class Dankie
 
         # Handlers de comando
         return unless msj.is_a? Telegram::Bot::Types::Message
-
         self.class.comandos[get_command(msj)]&.ejecutar(self, msj)
     end
 
