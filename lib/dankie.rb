@@ -121,7 +121,7 @@ class Dankie
             # Sacar este raise cuando el bot deje de ser testeadísimo
             # lo puse porque luke dice que es pesado cuando se pone a mandar
             # errores en el grupete.
-            raise
+#            raise
         end
     end
 
@@ -217,16 +217,16 @@ class Dankie
             usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
             enlace_usuario = crear_enlace(usuario, id_chat)
         end
-    rescue StandardError => e
+    rescue StandardError, Telegram::Bot::Exceptions::ResponseError => e
         enlace_usuario = nil
         error = if e.to_s.include? 'USER_ID_INVALID'
                     "Traté de obtener el nombre de una cuenta eliminada: #{id_usuario}"
                 else
                     e.to_s
                 end
-        @logger.error(error, al_canal: true)
+        @logger.error(error, al_canal: false)
     ensure
-        enlace_usuario || 'ay no c (' + id_usuario.to_s + ')'
+        return enlace_usuario || "ay no c (#{id_usuario})"
     end
 
     def enlace_usuario_objeto(usuario, id_chat)
@@ -542,7 +542,7 @@ class Dankie
     # son borrados despues de cierto límite, para evitar el spam.
     def añadir_a_cola_spam(id_chat, id_mensaje)
         @redis.rpush "spam:#{id_chat}", id_mensaje
-        if @redis.llen("spam:#{id_chat}") > 4 # está en 4 por propósitos de test, cambiar a 50 antes de terminar
+        if @redis.llen("spam:#{id_chat}") > 24
             id_mensaje = @redis.lpop("spam:#{id_chat}").to_i
             @tg.delete_message(chat_id: id_chat, message_id: id_mensaje)
         end
@@ -556,8 +556,8 @@ class Dankie
             @logger.error("No pude borrar un mensaje (id mensaje: #{id_mensaje}) "\
                           "(id chat: #{id_chat}).",
                           al_canal: true)
-        else
-            raise e
+#        else
+#            raise e 
         end
     end
 end
