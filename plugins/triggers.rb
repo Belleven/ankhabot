@@ -266,16 +266,8 @@ class Dankie
     def listar_triggers(msj, _params)
         Trigger.redis ||= @redis
 
-        triggers_globales = []
-        triggers_locales = []
-
-        Trigger.triggers(msj.chat.id) do |id_grupo, regexp|
-            if id_grupo == msj.chat.id
-                triggers_locales << Trigger.regexp_a_str(regexp)
-            else
-                triggers_globales << Trigger.regexp_a_str(regexp)
-            end
-        end
+        triggers_globales = Trigger.triggers_ord_grupo(:global)
+        triggers_locales = Trigger.triggers_ord_grupo(msj.chat.id)
 
         título = "<b>Lista de triggers</b> <i>(#{Time.now.strftime('%d/%m/%Y %T')})</i>:"
         hay_elementos = false
@@ -750,6 +742,14 @@ class Trigger
         return :global if @redis.sismember('triggers:global', regexp)
 
         nil
+    end
+
+    # Devuelve los triggers de un grupo
+    def self.triggers_ord_grupo(id_grupo)
+        elementos = @redis.smembers("triggers:#{id_grupo}")
+        return nil if elementos.nil?
+
+        elementos.sort
     end
 
     def self.temporal?(regexp)

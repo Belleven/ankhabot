@@ -39,13 +39,14 @@ class Dankie
                               message_id: callback.message.message_id,
                               text: texto,
                               reply_markup: opciones)
-    rescue Telegram::Bot::Exceptions::ResponseError
-        puts 'lol'
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        @logger.error e.to_s, al_canal: false
     end
 
     def armar_lista(id_chat, id_msj, arreglo)
         @redis.rpush "botonera:#{id_chat}:#{id_msj}", arreglo
-        @redis.expire "botonera:#{id_chat}:#{id_msj}", 60 * 60 * 24 # un día
+        # 86400 = 24*60*60 -> un día en segundos
+        @redis.expire "botonera:#{id_chat}:#{id_msj}", 86_400
     end
 
     def obtener_elemento_lista(id_chat, id_msj, índice)
