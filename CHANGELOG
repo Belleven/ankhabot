@@ -1,3 +1,6 @@
+1.0.6
+    -/triggers ahora hace páginas correctamente
+
 1.0.5
     -metadatos ahora toma correctamente el argumento "-entidades" por un dev
     -recarga ahora responde "1 bala cargada" en vez de "1 balas cargadas"
