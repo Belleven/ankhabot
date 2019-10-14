@@ -29,7 +29,7 @@ class Dankie
 
             # De ser así reviso que haya sido un dev pues puede floodear violentamente
             # mostras las entidades de un mensaje
-            if pasar_entidades && !DEVS.include?(msj.chat.id)
+            if pasar_entidades && !DEVS.include?(msj.from.id)
                 @tg.send_message(chat_id: msj.chat.id,
                                  reply_to_message_id: msj.message_id,
                                  text: 'Tenés que ser desarrollador '\

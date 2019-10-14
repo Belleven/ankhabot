@@ -122,7 +122,7 @@ class Dankie
             # Sacar este raise cuando el bot deje de ser testeadísimo
             # lo puse porque luke dice que es pesado cuando se pone a mandar
             # errores en el grupete.
-#            raise
+            #            raise
         end
     end
 
@@ -557,8 +557,8 @@ class Dankie
             @logger.error("No pude borrar un mensaje (id mensaje: #{id_mensaje}) "\
                           "(id chat: #{id_chat}).",
                           al_canal: true)
-#        else
-#            raise e 
+            #        else
+            #            raise e
         end
     end
 end
