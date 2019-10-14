@@ -289,6 +289,7 @@ class Dankie
         # Caso en el que no hay triggers
         if triggers_globales.nil? && triggers_locales.nil?
             @tg.send_message(chat_id: msj.chat.id,
+                             reply_to_message_id: msj.message_id,
                              text: 'No hay triggers en este grupo u.u')
             return
         end
