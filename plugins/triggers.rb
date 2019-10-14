@@ -283,8 +283,8 @@ class Dankie
     def listar_triggers(msj, _params)
         Trigger.redis ||= @redis
 
-        triggers_globales = Trigger.triggers_grupo(:global)
-        triggers_locales = Trigger.triggers_grupo(msj.chat.id)
+        triggers_globales = Trigger.triggers_grupo_ordenados(:global)
+        triggers_locales = Trigger.triggers_grupo_ordenados(msj.chat.id)
 
         # Caso en el que no hay triggers
         if triggers_globales.nil? && triggers_locales.nil?
@@ -761,7 +761,7 @@ class Trigger
     end
 
     # Devuelve los triggers de un grupo
-    def self.triggers_grupo(id_grupo)
+    def self.triggers_grupo_ordenados(id_grupo)
         elementos = @redis.smembers("triggers:#{id_grupo}")
         return nil if elementos.nil?
 
