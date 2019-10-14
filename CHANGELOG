@@ -2,6 +2,7 @@
     -metadatos ahora toma correctamente el argumento "-entidades" por un dev
     -recarga ahora responde "1 bala cargada" en vez de "1 balas cargadas"
     -comando triggers los devuelve en orden lexicográfico
+    -callback de set/del trigger valida que no sea presionada muchas veces
 
 1.0.4
     -enlace_usuario_id toma cuentas eliminadas
