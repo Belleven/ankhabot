@@ -16,7 +16,8 @@ class Dankie
                                      chats_permitidos: %i[group supergroup])
     add_handler Handler::Comando.new(:settrigger, :validar_poner_trigger_local,
                                      permitir_params: true,
-                                     descripción: 'Agrega un trigger al bot')
+                                     descripción: 'Agrega un trigger al bot',
+                                     chats_permitidos: %i[group supergroup])
     add_handler Handler::Comando.new(:setglobal, :validar_poner_trigger_global,
                                      permitir_params: true,
                                      descripción: 'Agrega un trigger global al bot')
@@ -162,6 +163,12 @@ class Dankie
 
         Trigger.redis ||= @redis
 
+        unless Trigger.existe_temporal? match[:id_regexp]
+            @tg.answer_callback_query(callback_query_id: callback.id,
+                                      text: 'procesando otra respuesta')
+            return
+        end
+
         case match[:acción]
         when 'confirmar'
             temp = Trigger.confirmar_trigger match[:id_regexp]
@@ -193,6 +200,13 @@ class Dankie
         match = callback.data.match(/deltrigger:(?<id_regexp>\d+):(?<acción>.+)/)
 
         Trigger.redis ||= @redis
+
+        unless Trigger.existe_temporal? match[:id_regexp]
+            @tg.answer_callback_query(callback_query_id: callback.id,
+                                      text: 'procesando otra respuesta')
+            return
+        end
+
         temp = Trigger.obtener_del_trigger_temp match[:id_regexp]
 
         case match[:acción]
@@ -264,16 +278,8 @@ class Dankie
     def listar_triggers(msj, _params)
         Trigger.redis ||= @redis
 
-        triggers_globales = []
-        triggers_locales = []
-
-        Trigger.triggers(msj.chat.id) do |id_grupo, regexp|
-            if id_grupo == msj.chat.id
-                triggers_locales << Trigger.regexp_a_str(regexp)
-            else
-                triggers_globales << Trigger.regexp_a_str(regexp)
-            end
-        end
+        triggers_globales = Trigger.triggers_grupo(:global)
+        triggers_locales = Trigger.triggers_grupo(msj.chat.id)
 
         título = "<b>Lista de triggers</b> <i>(#{Time.now.strftime('%d/%m/%Y %T')})</i>:"
         hay_elementos = false
@@ -663,6 +669,12 @@ class Trigger
         i
     end
 
+    # Ver si existe un temporal
+    def self.existe_temporal?(i)
+        return @redis.exists("triggers:settrigger:#{i}") ||
+            @redis.exists("triggers_deltrigger:#{i}")
+    end
+
     # Método que mueve las claves de un trigger temporal a la lista de trigger globales.
     def self.confirmar_trigger(i)
         hash = @redis.hgetall "triggers:settrigger:#{i}"
@@ -748,6 +760,14 @@ class Trigger
         return :global if @redis.sismember('triggers:global', regexp)
 
         nil
+    end
+
+    # Devuelve los triggers de un grupo
+    def self.triggers_grupo(id_grupo)
+        elementos = @redis.smembers("triggers:#{id_grupo}")
+        return nil if elementos.nil?
+
+        elementos.sort
     end
 
     def self.temporal?(regexp)
