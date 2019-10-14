@@ -278,13 +278,13 @@ class Dankie
     def listar_triggers(msj, _params)
         Trigger.redis ||= @redis
 
-        triggers_globales = Trigger.triggers_grupo(:global)
-        triggers_locales = Trigger.triggers_grupo(msj.chat.id)
+        triggers_globales = Trigger.triggers_grupo_ordenados(:global)
+        triggers_locales = Trigger.triggers_grupo_ordenados(msj.chat.id)
 
         título = "<b>Lista de triggers</b> <i>(#{Time.now.strftime('%d/%m/%Y %T')})</i>:"
         hay_elementos = false
         contador = 0
-        arr = [título.to_s] # Duplico el String y lo guardo en un arreglo
+        arr = [título.dup] # Duplico el String y lo guardo en un arreglo
 
         unless triggers_locales.empty?
             hay_elementos = true
@@ -292,7 +292,7 @@ class Dankie
         end
         triggers_locales.each do |trig|
             if contador == 30 || arr.last.size >= 1000
-                arr << título.to_s
+                arr << título.dup
                 arr.last << "\n<b>Locales:</b>"
                 contador = 0
             end
@@ -308,7 +308,7 @@ class Dankie
         end
         triggers_globales.each do |trig|
             if contador == 30 || arr.last.size >= 1000
-                arr << título.to_s
+                arr << título.dup
                 arr.last << "\n<b>Globales:</b>"
                 contador = 0
             end
@@ -763,7 +763,7 @@ class Trigger
     end
 
     # Devuelve los triggers de un grupo
-    def self.triggers_grupo(id_grupo)
+    def self.triggers_grupo_ordenados(id_grupo)
         elementos = @redis.smembers("triggers:#{id_grupo}")
         return nil if elementos.nil?
 
