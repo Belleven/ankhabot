@@ -10,28 +10,34 @@ class DankieLogger
         @client = cliente
     end
 
-    def debug(texto, al_canal: false, backtrace: nil)
-        log(Logger::DEBUG, texto, al_canal: al_canal, backtrace: backtrace)
+    def debug(texto, al_canal: false, backtrace: nil, parsear_html: true)
+        log(Logger::DEBUG, texto, al_canal: al_canal,
+                                  backtrace: backtrace, parsear_html: parsear_html)
     end
 
-    def warn(texto, al_canal: false, backtrace: nil)
-        log(Logger::WARN, texto, al_canal: al_canal, backtrace: backtrace)
+    def warn(texto, al_canal: false, backtrace: nil, parsear_html: true)
+        log(Logger::WARN, texto, al_canal: al_canal,
+                                 backtrace: backtrace, parsear_html: parsear_html)
     end
 
-    def info(texto, al_canal: false, backtrace: nil)
-        log(Logger::INFO, texto, al_canal: al_canal, backtrace: backtrace)
+    def info(texto, al_canal: false, backtrace: nil, parsear_html: true)
+        log(Logger::INFO, texto, al_canal: al_canal,
+                                 backtrace: backtrace, parsear_html: parsear_html)
     end
 
-    def error(texto, al_canal: false, backtrace: nil)
-        log(Logger::ERROR, texto, al_canal: al_canal, backtrace: backtrace)
+    def error(texto, al_canal: false, backtrace: nil, parsear_html: true)
+        log(Logger::ERROR, texto, al_canal: al_canal,
+                                  backtrace: backtrace, parsear_html: parsear_html)
     end
 
-    def fatal(texto, al_canal: false, backtrace: nil)
-        log(Logger::FATAL, texto, al_canal: al_canal, backtrace: backtrace)
+    def fatal(texto, al_canal: false, backtrace: nil, parsear_html: true)
+        log(Logger::FATAL, texto, al_canal: al_canal,
+                                  backtrace: backtrace, parsear_html: parsear_html)
     end
 
-    def unknown(texto, al_canal: false, backtrace: nil)
-        log(Logger::UNKNOWN, texto, al_canal: al_canal, backtrace: backtrace)
+    def unknown(texto, al_canal: false, backtrace: nil, parsear_html: true)
+        log(Logger::UNKNOWN, texto, al_canal: al_canal,
+                                    backtrace: backtrace, parsear_html: parsear_html)
     end
 
     def excepcion_texto(excepcion)
@@ -53,7 +59,7 @@ class DankieLogger
 
     private
 
-    def log(nivel, texto, al_canal: false, backtrace: nil)
+    def log(nivel, texto, al_canal: false, backtrace: nil, parsear_html: true)
         texto = 'LOG SIN NOMBRE' if texto.nil? || texto.empty?
 
         if backtrace.nil?
@@ -64,6 +70,7 @@ class DankieLogger
 
         return unless al_canal
 
+        texto = html_parser(texto) if parsear_html
         unless backtrace.nil?
             lineas = '<pre>' + ('-' * 30) + "</pre>\n"
             texto << "\n#{lineas}#{lineas} Rastreo de la excepción:\n#{lineas}"
