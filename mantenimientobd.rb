@@ -46,7 +46,7 @@ def imprimir_todas_las_claves(patron = '')
 
             elsif $redis.type(clave) == 'stream'
 
-                puts 'STREAM: ' + clave + "\NVALOR: ¿QUÉ MIERDA ES ESTO FLACO? USÁ CLAVES NORMALES\n\n"
+                puts 'STREAM: ' + clave + "\nVALOR: ¿QUÉ MIERDA ES ESTO FLACO? USÁ CLAVES NORMALES\n\n"
 
             end
 
