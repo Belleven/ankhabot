@@ -21,14 +21,10 @@ class Dankie
         else
             # Busco en google
             resultados = @img.buscar_imagen args
-
-            # Separo en casos
             case resultados
-
             # Caso bueno
             when Array
                 enlace = resultados.shuffle!.find { |resultado| resultado.type == :image }
-
                 if enlace
                     @logger.info("Enviando imagen: #{enlace.link}", al_canal: true)
                     @tg.send_photo(chat_id: msj.chat.id, photo: enlace.link)

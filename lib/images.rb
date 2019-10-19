@@ -11,18 +11,14 @@ class ImageSearcher
     end
 
     def buscar_imagen(búsqueda, params_búsqueda: nil)
+        params_uri = [['q', búsqueda], ['key', @key], ['cx', @cx],
+                      ['gl', @gl], %w[searchType image]]
+        uri_codificado = URI.encode_www_form(params_uri)
+
         # Armo la dirección
-        dirección = 'https://www.googleapis.com/customsearch/v1?'\
-                    "q=#{búsqueda}&key=#{@key}&cx=#{@cx}&gl=#{@gl}"\
-                    '&searchType=image'
-
-        agregar_params_búsqueda(consulta, params_búsqueda) if params_búsqueda
-
-        # Obtengo el resultado
-        #        dirección_codificada = URI.encode_www_form_component(dirección)
-        dirección_codificada = dirección # TODO: BORRAR ESTA LÍNEA Y USAR LA DE ARRIBA.
-        # VER COMO HACER PARA SOLO HACER ENCODE AL q= Y NO A TODA LA DIRECCIÓN
-        respuesta = Net::HTTP.get_response URI.parse(dirección_codificada)
+        dirección = "https://www.googleapis.com/customsearch/v1?#{uri_codificado}"
+        # Busco la imagen
+        respuesta = Net::HTTP.get_response URI.parse(dirección)
         resultado = JSON.parse(respuesta.body)
 
         if resultado['error']
@@ -48,11 +44,5 @@ class ImageSearcher
     rescue JSON::ParserError => e
         @logger.error(e)
         :error
-    end
-
-    private
-
-    def agregar_params_búsqueda(consulta, params_búsqueda)
-        # TODO
     end
 end

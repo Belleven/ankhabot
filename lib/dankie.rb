@@ -11,6 +11,7 @@ require 'tzinfo'
 require 'set'
 require 'securerandom'
 require 'ruby_reddit_api'
+require 'cgi'
 
 class Dankie
     attr_reader :tg, :logger, :redis, :reddit, :user
@@ -134,8 +135,7 @@ class Dankie
     end
 
     def html_parser(texto)
-        html_dicc = { '&' => '&amp;', '<' => '&lt;', '>' => '&gt;', '"' => '&quot;' }
-        texto.gsub(/&|<|>|\"/, html_dicc)
+        CGI.escapeHTML(texto)
     end
 
     def get_command(msj)
