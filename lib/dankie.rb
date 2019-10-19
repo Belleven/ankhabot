@@ -11,6 +11,7 @@ require 'tzinfo'
 require 'set'
 require 'securerandom'
 require 'ruby_reddit_api'
+require 'cgi'
 
 class Dankie
     attr_reader :tg, :logger, :redis, :reddit, :user
@@ -134,8 +135,7 @@ class Dankie
     end
 
     def html_parser(texto)
-        html_dicc = { '&' => '&amp;', '<' => '&lt;', '>' => '&gt;', '"' => '&quot;' }
-        texto.gsub(/&|<|>|\"/, html_dicc)
+        CGI.escapeHTML(texto)
     end
 
     def get_command(msj)
@@ -216,7 +216,7 @@ class Dankie
         else
             usuario = @tg.get_chat_member(chat_id: id_chat, user_id: id_usuario)
             usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
-            enlace_usuario = crear_enlace(usuario, id_chat)
+            enlace_usuario = crear_enlace(usuario)
         end
     rescue StandardError, Telegram::Bot::Exceptions::ResponseError => e
         enlace_usuario = nil
@@ -235,11 +235,11 @@ class Dankie
             "<a href='tg://user?id=#{usuario.id}'>" \
                    "#{html_parser(apodo)}</a>"
         else
-            crear_enlace(usuario, id_chat)
+            crear_enlace(usuario)
         end
     end
 
-    def crear_enlace(usuario, _id_chat)
+    def crear_enlace(usuario)
         if usuario.username
             "<a href='https://telegram.me/#{usuario.username}'>" \
                 "#{usuario.username}</a>"
@@ -557,8 +557,33 @@ class Dankie
             @logger.error("No pude borrar un mensaje (id mensaje: #{id_mensaje}) "\
                           "(id chat: #{id_chat}).",
                           al_canal: true)
-            #        else
-            #            raise e
         end
+    end
+
+    def arreglo_tablero(conjunto_iterable, arr, título,
+                        subtítulo, contador, max_cant, max_tam,
+                        agr_elemento, inicio_en_subtítulo = false)
+        # .dup crea una copia del objeto original
+        if inicio_en_subtítulo && !arr.empty? &&
+           contador < max_cant && arr.last.size < max_tam
+            # Meto subtítulo si queda bien ponerlo en este caso
+            arr.last << subtítulo.dup
+        end
+        # Itero sobre los elementos
+        conjunto_iterable.each do |elemento|
+            # Si es una página nueva agrego título y subtítulo
+            if arr.empty? || contador >= max_cant || arr.last.size >= max_tam
+                arr << título.dup
+                arr.last << subtítulo.dup
+                contador = 0
+            end
+            # Agrego el elemento juju
+            arr.last << agr_elemento.call(elemento)
+            contador += 1
+        end
+        # Devuelvo el contador para que pueda ser usado luego en futuras
+        # llamadas a esta función, recordar que los integers se pasan por
+        # copia
+        contador
     end
 end

@@ -141,13 +141,12 @@ class Dankie
                 end
 
         agregar_datos_pista(texto, temazo.first,
-                            t1_antes: '👤: ', t1_dsp: "\n",
-                            t2_antes: '🎵: ', t2_dsp: "\n",
-                            t3_antes: '💿: ', imagen: true)
+                            t1_antes: '👤 ', t1_dsp: "\n",
+                            t2_antes: '🎵 ', t2_dsp: "\n",
+                            t3_antes: '💿 ', imagen: true)
 
         @tg.send_message(chat_id: msj.chat.id,
                          parse_mode: :html,
-                         reply_to_message_id: msj.message_id,
                          text: texto)
     end
 
