@@ -66,10 +66,14 @@ class Dankie
 
     # Recibe un Hash con los datos de config.yml
     def initialize(args)
-        logger = Logger.new $stderr
-        @tg = TelegramAPI.new args[:tg_token], logger
         @canal = args[:canal_logging]
-        @logger = DankieLogger.new logger, @canal, @tg.client
+        # Tanto tg como dankielogger usan un cliente para mandar mensajes
+        # Y además tg usa un logger
+        logger = Logger.new $stderr
+        @logger = DankieLogger.new logger, @canal
+        @tg = TelegramAPI.new args[:tg_token], @logger
+        @logger.inicializar_cliente @tg.client
+
         @redis = Redis.new port: args[:redis_port], host: args[:redis_host],
                            password: args[:redis_pass]
         @img = ImageSearcher.new args[:google_image_key], args[:google_image_cx],
@@ -123,7 +127,7 @@ class Dankie
             # Sacar este raise cuando el bot deje de ser testeadísimo
             # lo puse porque luke dice que es pesado cuando se pone a mandar
             # errores en el grupete.
-            #            raise
+            #       raise
         end
     end
 

@@ -1,9 +1,13 @@
+1.0.8
+    -ahora el módulo de telegram puede usar el a DankieLogger
+
 1.0.7
     -setglobal responde al mensaje que llamo al comando al ser aceptado o rechazado
     -arreglado bug al apretar botón para borrar un trigger global
     -función para listar elementos que serán mostrados en un arreglo terminada
     -cambio del parser en html para que use función de la stdlib
     -arreglado bug en /img que no permitía búsquedas con caracteres que no fueran ascii
+    -/escuchando ya no tiene ":" ni responde al mensaje del comando
 
 1.0.6
     -/triggers ahora hace páginas correctamente

@@ -4,40 +4,37 @@ class DankieLogger
     attr_reader :client
     attr_accessor :logger
 
-    def initialize(logger, canal_logging, cliente)
+    def initialize(logger, canal_logging)
         @logger = logger
         @canal_logging = canal_logging
+    end
+
+    def inicializar_cliente(cliente)
         @client = cliente
     end
 
-    def debug(texto, al_canal: false, backtrace: nil, parsear_html: true)
-        log(Logger::DEBUG, texto, al_canal: al_canal,
-                                  backtrace: backtrace, parsear_html: parsear_html)
+    def debug(texto, al_canal: false, backtrace: nil, parsear_html: true, resp_a: nil)
+        log(Logger::DEBUG, texto, al_canal, backtrace, parsear_html, resp_a)
     end
 
-    def warn(texto, al_canal: false, backtrace: nil, parsear_html: true)
-        log(Logger::WARN, texto, al_canal: al_canal,
-                                 backtrace: backtrace, parsear_html: parsear_html)
+    def warn(texto, al_canal: false, backtrace: nil, parsear_html: true, resp_a: nil)
+        log(Logger::WARN, texto, al_canal, backtrace,  parsear_html, resp_a)
     end
 
-    def info(texto, al_canal: false, backtrace: nil, parsear_html: true)
-        log(Logger::INFO, texto, al_canal: al_canal,
-                                 backtrace: backtrace, parsear_html: parsear_html)
+    def info(texto, al_canal: false, backtrace: nil, parsear_html: true, resp_a: nil)
+        log(Logger::INFO, texto, al_canal, backtrace,  parsear_html, resp_a)
     end
 
-    def error(texto, al_canal: false, backtrace: nil, parsear_html: true)
-        log(Logger::ERROR, texto, al_canal: al_canal,
-                                  backtrace: backtrace, parsear_html: parsear_html)
+    def error(texto, al_canal: false, backtrace: nil, parsear_html: true, resp_a: nil)
+        log(Logger::ERROR, texto, al_canal, backtrace, parsear_html, resp_a)
     end
 
-    def fatal(texto, al_canal: false, backtrace: nil, parsear_html: true)
-        log(Logger::FATAL, texto, al_canal: al_canal,
-                                  backtrace: backtrace, parsear_html: parsear_html)
+    def fatal(texto, al_canal: false, backtrace: nil, parsear_html: true, resp_a: nil)
+        log(Logger::FATAL, texto, al_canal, backtrace, parsear_html, resp_a)
     end
 
-    def unknown(texto, al_canal: false, backtrace: nil, parsear_html: true)
-        log(Logger::UNKNOWN, texto, al_canal: al_canal,
-                                    backtrace: backtrace, parsear_html: parsear_html)
+    def unknown(texto, al_canal: false, backtrace: nil, parsear_html: true, resp_a: nil)
+        log(Logger::UNKNOWN, texto, al_canal, backtrace, parsear_html, resp_a)
     end
 
     def excepcion_texto(excepcion)
@@ -59,20 +56,21 @@ class DankieLogger
 
     private
 
-    def log(nivel, texto, al_canal: false, backtrace: nil, parsear_html: true)
+    def log(nivel, texto, al_canal, backtrace, parsear_html, resp_a)
         texto = 'LOG SIN NOMBRE' if texto.nil? || texto.empty?
 
         if backtrace.nil?
             @logger.log(nivel, texto)
         else
-            @logger.log(nivel, texto + "\n" + backtrace)
+            @logger.log(nivel, "#{texto}\n#{backtrace}")
         end
 
         return unless al_canal
 
+        # Creo el texto del logging
         texto = html_parser(texto) if parsear_html
         unless backtrace.nil?
-            lineas = '<pre>' + ('-' * 30) + "</pre>\n"
+            lineas = "<pre>#{'-' * 30}</pre>\n"
             texto << "\n#{lineas}#{lineas} Rastreo de la excepción:\n#{lineas}"
             texto << "<pre>#{html_parser(backtrace)}</pre>"
         end
@@ -93,11 +91,12 @@ class DankieLogger
                 end
 
         horario = Time.now.strftime('%FT%T.%6N')
-        lineas = '<pre>' + '-' * (8 + horario.length + nivel.length) + "</pre>\n"
+        lineas = "<pre>#{'-' * (8 + horario.length + nivel.length)}</pre>\n"
 
-        enviar = "<pre>[#{horario}] -- #{nivel} :</pre>\n" + lineas + texto
+        enviar = "<pre>[#{horario}] -- #{nivel} :</pre>\n#{lineas}#{texto}"
         @client.api.send_message(chat_id: @canal_logging, text: enviar,
-                                 parse_mode: :html, disable_web_page_preview: true)
+                                 parse_mode: :html, disable_web_page_preview: true,
+                                 reply_to_message_id: resp_a)
     rescue StandardError => e
         begin
             mensaje = if backtrace.nil? || backtrace.empty?
@@ -106,7 +105,7 @@ class DankieLogger
                            " surgió otra:\n"
                       end
 
-            lineas = ('-' * 30) + "\n"
+            lineas = "#{'-' * 30}\n"
             texto_excepcion = lineas + mensaje
 
             excepcion = e.to_s

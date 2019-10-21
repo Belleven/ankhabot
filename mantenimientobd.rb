@@ -7,7 +7,7 @@ datazos.transform_keys!(&:to_sym)
 
 $redis = Redis.new port: datazos[:redis_port], host: datazos[:redis_host], password: datazos[:redis_pass]
 
-def imprimir_todas_las_claves(patron = '')
+def imprimir_todas_las_claves(patron = 'trigger')
     $redis.keys.each do |clave|
         if clave.include? patron
 
