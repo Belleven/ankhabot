@@ -567,8 +567,10 @@ class Dankie
     def arreglo_tablero(conjunto_iterable, arr, título,
                         subtítulo, contador, max_cant, max_tam,
                         agr_elemento, inicio_en_subtítulo = false)
+        return if conjunto_iterable.nil? || conjunto_iterable.empty?
+
         # .dup crea una copia del objeto original
-        if inicio_en_subtítulo && !arr.empty? &&
+        if inicio_en_subtítulo && !arr.empty? && subtítulo &&
            contador < max_cant && arr.last.size < max_tam
             # Meto subtítulo si queda bien ponerlo en este caso
             arr.last << subtítulo.dup
@@ -578,7 +580,7 @@ class Dankie
             # Si es una página nueva agrego título y subtítulo
             if arr.empty? || contador >= max_cant || arr.last.size >= max_tam
                 arr << título.dup
-                arr.last << subtítulo.dup
+                arr.last << subtítulo.dup if subtítulo
                 contador = 0
             end
             # Agrego el elemento juju

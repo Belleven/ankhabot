@@ -25,7 +25,7 @@ class Dankie
         @juegos[msj.chat.id].cargar_una
         @juegos[msj.chat.id].girar_tambor
 
-        @tg.send_message(chat_id: msj.chat.id, text: "Bala cargada, ¿sale chumbazo?")
+        @tg.send_message(chat_id: msj.chat.id, text: 'Bala cargada, ¿sale chumbazo?')
     end
 
     def dispara(msj)
@@ -67,7 +67,7 @@ class Tambor
 
     # Devuelve la cantidad de balas cargadas.
     def cargadas
-        @tambor.filter { |recámara| recámara.bala? }.size
+        @tambor.filter(&:bala?).size
     end
 
     # Gira el tambor a una posición aleatoria.
@@ -79,6 +79,7 @@ class Tambor
     # Devuelve true si se cargó una bala, false si la recámara ya tenía una bala.
     def cargar_una
         return false if @tambor[@iterador].bala?
+
         @tambor[@iterador].cargar
         true
     end
@@ -109,6 +110,6 @@ class Recámara
     end
 
     def bala?
-        return @bala
+        @bala
     end
 end

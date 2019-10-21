@@ -192,10 +192,12 @@ class TelegramAPI
         @client.api.send(method_name, *args)
     rescue Faraday::ConnectionFailed, Faraday::TimeoutError,
            HTTPClient::ReceiveTimeoutError, Net::OpenTimeout => e
-        @client.logger.error(e)
+        texto, backtrace = @client.logger.excepcion_texto(e)
+        @client.logger.error texto, backtrace: backtrace
         retry
     rescue Telegram::Bot::Exceptions::ResponseError => e
-        @client.logger.error(e)
+        texto, backtrace = @client.logger.excepcion_texto(e)
+        @client.logger.error texto, backtrace: backtrace
         raise e
     end
 

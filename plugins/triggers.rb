@@ -286,7 +286,9 @@ class Dankie
         triggers_locales = Trigger.triggers_grupo_ordenados(msj.chat.id)
 
         # Caso en el que no hay triggers
-        if triggers_globales.nil? && triggers_locales.nil?
+        if (triggers_globales.nil? || triggers_globales.empty?) &&
+           (triggers_locales.nil? || triggers_locales.empty?)
+
             @tg.send_message(chat_id: msj.chat.id,
                              reply_to_message_id: msj.message_id,
                              text: 'No hay triggers en este grupo u.u')
@@ -661,7 +663,7 @@ class Trigger
     def initialize(id_grupo, regexp, temp = false)
         @clave = "trigger:#{temp ? 'temp:' : ''}"
         @clave << "#{id_grupo}:#{self.class.regexp_a_str regexp}"
-
+        puts "Clave: #{@clave}"
         trigger = self.class.redis.hgetall @clave
         @data = {}
         TIPOS_MMEDIA.each_key { |k| @data[k] = trigger[k.to_s] }
@@ -692,12 +694,16 @@ class Trigger
     # mover a las claves correspondientes, y devuelve un id para confirmarlo.
     def self.poner_trigger(id_grupo, id_usuario, regexp, data)
         temp = id_grupo == 'global' ? ':temp' : ''
-        @redis.sadd "triggers#{temp}:#{id_grupo}", regexp_a_str(regexp)
-        @redis.hmset("trigger#{temp}:#{id_grupo}:#{regexp_a_str regexp}", *data)
-        @redis.mapped_hmset("trigger#{temp}:#{id_grupo}:#{regexp_a_str regexp}:metadata",
-                            creador: id_usuario, contador: 0,
-                            chat_origen: id_grupo,
-                            fecha: Time.now.to_i)
+        regexp_str = regexp_a_str(regexp)
+        @redis.sadd "triggers#{temp}:#{id_grupo}", regexp_str
+
+        # Nótese que acá es trigger sin s al final
+        clave = "trigger#{temp}:#{id_grupo}:#{regexp_str}"
+        @redis.hmset(clave, *data)
+
+        clave << ':metadata'
+        @redis.mapped_hmset(clave, creador: id_usuario, contador: 0,
+                                   chat_origen: id_grupo, fecha: Time.now.to_i)
     end
 
     # Método que toma un trigger y devuleve un id, así es identificable a la hora de
@@ -748,11 +754,17 @@ class Trigger
 
     # Método que borra un trigger, sus metadatos y su clave en el conjunto de triggers.
     # id_grupo puede ser 'global'
-    def self.borrar_trigger(id_grupo, regexp, id_trigger)
-        @redis.srem "triggers:#{id_grupo}", regexp_a_str(regexp)
-        @redis.del "trigger:#{id_grupo}:#{regexp_a_str regexp}"
-        @redis.del "trigger:#{id_grupo}:#{regexp_a_str regexp}:metadata"
-        return unless id_grupo == :global
+    def self.borrar_trigger(id_grupo, regexp, id_trigger = nil)
+        regexp_str = regexp_a_str(regexp)
+        @redis.srem "triggers:#{id_grupo}", regexp_str
+
+        # Nótese que acá es trigger sin s al final
+        clave = "trigger:#{id_grupo}:#{regexp_str}"
+        @redis.del clave
+
+        clave << ':metadata'
+        @redis.del clave
+        return unless id_trigger
 
         @redis.del "triggers:deltrigger:#{id_trigger}"
     end
