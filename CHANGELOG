@@ -1,6 +1,7 @@
 1.0.8
     -ahora el módulo de telegram puede usar el a DankieLogger
-
+    -setglobal y delglobal ahora mandan los mensajes para aceptar/rechazar
+     de forma más bonita
 1.0.7
     -setglobal responde al mensaje que llamo al comando al ser aceptado o rechazado
     -arreglado bug al apretar botón para borrar un trigger global
