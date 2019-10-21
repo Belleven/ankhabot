@@ -190,6 +190,7 @@ class Dankie
         texto << "</code> #{match[:acción] == 'confirmar' ? 'aceptado' : 'rechazado'}."
         @tg.send_message(chat_id: temp[:id_grupo], parse_mode: :html,
                          text: texto, reply_to_message_id: temp[:id_msj])
+    end
 
     def callback_del_trigger_global(callback)
         # valido usuario
@@ -231,6 +232,7 @@ class Dankie
                          text: texto, reply_to_message_id: temp[:id_msj],
                          disable_web_page_preview: true,
                          disable_notification: true)
+    end
 
     def validar_borrar_trigger(msj, params)
         unless params
