@@ -195,7 +195,8 @@ class Dankie
             command.gsub!(%r{^/([a-z]+)(@#{@user.username.downcase})?}, '\\1')
 
         elsif ['!', '>', '$', '.'].include? text[0] # "!cmd params" o ">cmd params"
-            command, params = text[1..-1].split ' ', 2
+            command, params = text.split ' ', 2
+            command = command[1..-1]
             command.downcase!
         else
             arr = text.split(' ', 3) # ["user", "comando", "params"]
@@ -303,7 +304,7 @@ class Dankie
         if msj.chat.title.nil?
             msj.chat.id.to_s
         else
-            msj.chat.title + ' (' + msj.chat.id.to_s + ')'
+            "#{msj.chat.title} (#{msj.chat.id})"
         end
     end
 

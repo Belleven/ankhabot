@@ -51,7 +51,7 @@ class Dankie
     end
 
     def ruleta_supergrupo(msj)
-        return if @juegos[msj.migrate_from_chat_id].nil?
+        return if @juegos.nil? || @juegos[msj.migrate_from_chat_id].nil?
 
         @juegos[msj.chat.id] = @juegos[msj.migrate_from_chat_id]
         @juegos.delete(msj.migrate_from_chat_id)

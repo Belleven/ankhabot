@@ -2,7 +2,7 @@
 require 'yaml'
 require 'redis'
 
-def imprimir_todas_las_claves(redis, patron = 'test3')
+def imprimir_todas_las_claves(redis, patron = 'trigger')
     redis.keys.each do |clave|
         next unless clave.include? patron
 

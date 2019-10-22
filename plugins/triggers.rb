@@ -40,6 +40,10 @@ class Dankie
     add_handler Handler::CallbackQuery.new(:callback_set_trigger_global, 'settrigger')
     add_handler Handler::CallbackQuery.new(:callback_del_trigger_global, 'deltrigger')
 
+    add_handler Handler::EventoDeChat.new(:triggers_supergrupo,
+                                          tipos: [:migrate_from_chat_id],
+                                          chats_permitidos: %i[supergroup])
+
     # Método que mete un mensaje en la cola de mensajes a procesar por los triggers.
     def despachar_mensaje_a_trigger(msj)
         puts 'entra a función'
@@ -416,6 +420,35 @@ class Dankie
                          reply_to_message_id: msj.message_id, text: enviar)
     end
 
+    def triggers_supergrupo(msj)
+        # Para cada trigger en el grupete tengo que cambiar su clave y la clave
+        # de la metada
+        @redis.smembers("triggers:#{msj.migrate_from_chat_id}").each do |trigger|
+            cambiar_claves_supergrupo(msj.migrate_from_chat_id,
+                                      msj.chat.id, 'trigger:', ":#{trigger}")
+            cambiar_claves_supergrupo(msj.migrate_from_chat_id,
+                                      msj.chat.id, 'trigger:', ":#{trigger}:metadata")
+            # Acá la clave ya fue cambiada
+            @redis.hset("trigger:#{msj.chat.id}:#{trigger}:metadata",
+                        'chat_origen', msj.chat.id.to_s)
+        end
+
+        # Hay que cambiar la clave del conjunto de triggers del grupete
+        cambiar_claves_supergrupo(msj.migrate_from_chat_id, msj.chat.id, 'triggers:')
+
+        # Hay que cambiar los datos de las claves de triggers temporales
+        # Tremenda virgueada esto, pero no queda otra papá, por lo menos
+        # no con como tenemos las claves ahora y no pienso cambiar el diseño
+        # de la bbdd porque me da paja pelearme con el luke soladri por eso
+        @redis.keys.each do |clave|
+            next unless clave.start_with?('triggers:settrigger:') ||
+                        clave.start_with?('triggers:deltrigger:')
+            next unless @redis.hget(clave, 'id_grupo') == msj.migrate_from_chat_id.to_s
+
+            @redis.hset(clave, 'id_grupo', msj.chat.id.to_s)
+        end
+    end
+
     private
 
     # Función que envía un trigger al grupo
@@ -663,7 +696,7 @@ class Trigger
     def initialize(id_grupo, regexp, temp = false)
         @clave = "trigger:#{temp ? 'temp:' : ''}"
         @clave << "#{id_grupo}:#{self.class.regexp_a_str regexp}"
-        puts "Clave: #{@clave}"
+
         trigger = self.class.redis.hgetall @clave
         @data = {}
         TIPOS_MMEDIA.each_key { |k| @data[k] = trigger[k.to_s] }
