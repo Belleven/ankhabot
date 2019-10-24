@@ -1,3 +1,6 @@
+1.0.8
+    -bug en ruleta
+
 1.0.7
     -setglobal responde al mensaje que llamo al comando al ser aceptado o rechazado
     -arreglado bug al apretar botón para borrar un trigger global

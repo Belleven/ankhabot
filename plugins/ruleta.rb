@@ -29,6 +29,8 @@ class Dankie
     end
 
     def dispara(msj)
+        @juegos ||= {}
+
         unless @juegos[msj.chat.id]
             texto = "Si no recargas no te podés nismanear, #{TROESMAS.sample}."
             @tg.send_message(chat_id: msj.chat.id, text: texto)
