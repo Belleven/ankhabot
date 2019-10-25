@@ -397,11 +397,11 @@ class Dankie
             end
             # Si no conseguí ninguna id, entonces todo el argumento es "otro_texto"
             otro_texto = args_mensaje if id_afectada.nil?
-
+        end
         # Si está respondiendo a un mensaje y no se obtuvo un id de los argumentos
         # toma el id de ese miembro para ser afectado. Notar que el otro texto
         # es obtenido en el if anterior (si existe)
-        elsif msj.reply_to_message && id_afectada.nil?
+        if msj.reply_to_message && id_afectada.nil?
             id_afectada = msj.reply_to_message.from.id
         end
 

@@ -126,13 +126,13 @@ class Dankie
                                 'Razón: la razón es muy larga.',
                              reply_to_message_id: msj.message_id)
         elsif !id_afectada.nil? &&
-              # Chequeo que el bot sea admin en ese grupo y tenga los permisos correspondientes
-              # 'Necesito' y 'No tengo' son para los mensajes de error
+              # Chequeo que el bot sea admin en ese grupo y tenga los permisos
+              # correspondientes 'Necesito' y 'No tengo' son para los mensajes de error
               tiene_permisos(msj, @user.id, :can_restrict_members, 'Necesito',
                              'No tengo permisos para restringir/suspender usuarios')
 
-            # Chequeo que el usuario que llamó al comando sea admin y que quién se vea afectado no
-            # Además devuelve el chat_member del usuario afectado.
+            # Chequeo que el usuario que llamó al comando sea admin y que quién se vea
+            # afectado no. Además devuelve el chat_member del usuario afectado.
             cumple, miembro = chequear_usuarios(msj, id_afectada, alias_id,
                                                 para_aplicar_restricción)
         end
@@ -153,18 +153,12 @@ class Dankie
                                  reply_to_message_id: msj.message_id)
             else
                 @tg.send_message(chat_id: msj.chat.id,
-                                 text: 'Si no me decís contra quién usar esto '\
-                                    'no puedo hacer nada papurri. Tenés que pasarme '\
-                                    'SOLO UN miembro al que quieras que afecte: dame '\
-                                    'su id, alias (mención si no tiene alias) '\
-                                    'o respondé un mensaje suyo. También podés acompañar '\
-                                    'el comando con una razón (de hasta 233 caracteres) de '\
-                                    'por qué estás usando esto, '\
-                                    "con el siguiente formato ''/comando usuario razón'', "\
-                                    "o ''/comando razón'' si estás respondiendo a un mensaje "\
-                                    '(notar que si en este caso la razón empieza con un usuario, '\
-                                    'entonces el comando lo va a afectar a él). Si ponés varios '\
-                                    'usuarios, solo va a afectar al primero.',
+                                 text: 'Tenés que pasarme un id, alias, mención si no '\
+                                       'tiene alias, o responder un mensaje. Podés '\
+                                       'acompañar el comando con una razón con el '\
+                                       "siguiente formato ''/comando usuario razón'', "\
+                                       "o ''/comando razón'' si estás respondiendo a "\
+                                       'un mensaje.',
                                  reply_to_message_id: msj.message_id)
             end
         # Al botazo no le pueden afectar los comandos

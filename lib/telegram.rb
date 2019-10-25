@@ -118,8 +118,6 @@ class TelegramAPI
         retry
     # Si hay un error de telegram, loggeo si es conocido,
     # si no lo vuelvo a lanzar
-    # TODO: cuando estén los triggers, rellenar con los errores que falten
-    # Ej: restricciones de audio, video, etc
     rescue Telegram::Bot::Exceptions::ResponseError => e
         case e.to_s
 
@@ -177,11 +175,17 @@ class TelegramAPI
             @client.logger.error('Error al mandar archivo al '\
                                  "chat (ID: #{args[:chat_id]})")
 
-        when /not enough rights to send (photo|document|video|audio|v(oice|ideo) note)s to the chat/
+        when /(?-x:not enough rights to send )
+                (?-x:(photo|document|video|audio|v(oice|ideo) note)s to the chat)/x
             @client.logger.error("Me restringieron la multimedia en #{args[:chat_id]}")
 
         when /not enough rights to send (sticker|animation)s to the chat/
             @client.logger.error("Me restringieron stickers/gifs en #{args[:chat_id]}")
+
+        when /group chat was upgraded to a supergroup chat/
+            @client.logger.error("#{args[:chat_id]} migró a otra id, pronto va a "\
+                                 'llegar el update sobre eso y ahí actualizo las '\
+                                 'claves de la base de datos')
 
         else
             raise

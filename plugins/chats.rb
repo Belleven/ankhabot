@@ -19,6 +19,8 @@ class Dankie
     def testid(_msj, params)
         @tg.send_message(chat_id: params.to_i,
                          text: 'test id')
+
+        añadir_a_cola_spam(id_chat, resp.dig('result', 'message_id').to_i)
     end
 
     def registrar_chat(msj)
