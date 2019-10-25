@@ -4,9 +4,11 @@
      de forma más bonita
     -/grita -perocontodo corregido
     -corregidos errores menores
+    -corregido bugazo en /ban
+    -agregados varios manejos de excepciones de telegram
      
 1.0.8
-    -bug en ruleta
+    -corregido bug en ruleta
 
 1.0.7
     -setglobal responde al mensaje que llamo al comando al ser aceptado o rechazado
