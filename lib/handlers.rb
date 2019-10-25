@@ -1,8 +1,4 @@
 module Handler
-    def migración?
-        false
-    end
-
     class Mensaje
         MSJ_TYPES = %i[text audio document game photo
                        sticker video voice video_note contact
@@ -130,10 +126,6 @@ module Handler
 
         def ejecutar(bot, msj)
             bot.public_send(@callback, msj)
-        end
-
-        def migración?
-            @tipos.include? :migrate_from_chat_id
         end
     end
 end
