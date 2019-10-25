@@ -183,7 +183,7 @@ class Dankie
         if (hay = sub.nil? || sub.empty?)
             @tg.send_message(chat_id: msj.chat.id,
                              reply_to_message_id: msj.message_id,
-                             text: 'Si no me pasás un subreddit,'\
+                             text: 'Si no me pasás un subreddit, '\
                                     "está jodida la cosa #{TROESMAS.sample}.")
         end
         hay

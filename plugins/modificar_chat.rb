@@ -34,17 +34,13 @@ class Dankie
     def anclar(msj, params)
         notificar = false
 
-        if params
-            if params.length == 6 && params.downcase == 'tranca'
-                notificar = true
-            else
-                @tg.send_message(chat_id: msj.chat.id,
-                                 text: 'Si querés que nadie sea notificado '\
-                                 "entonces acompañá el comando con ''tranca'', "\
-                                 'si no, no acompañes el comando con nada',
-                                 reply_to_message_id: msj.message_id)
-                return
-            end
+        if params && !(notificar = params.length == 6 && params.downcase == 'tranca')
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: 'Si querés que nadie sea notificado '\
+                                   "entonces acompañá el comando con ''tranca'', "\
+                                   'si no, no acompañes el comando con nada',
+                             reply_to_message_id: msj.message_id)
+            return
         end
 
         if cumple_req_modificar_chat(msj, true, :can_pin_messages,

@@ -7,6 +7,7 @@ TIPOS_MMEDIA = { text: :send_message,
                  voice: :send_voice,
                  video: :send_video,
                  video_note: :send_video_note,
+                 animation: :send_animation,
                  document: :send_document }.freeze
 
 class Dankie
@@ -468,7 +469,7 @@ class Dankie
 
             # Si no aumento el contador y añado el msj a la cola de spam
             trigger.aumentar_contador
-            break unless resp['ok']
+            break unless resp && resp['ok']
 
             añadir_a_cola_spam(id_chat, resp.dig('result', 'message_id').to_i)
             @logger.info("Trigger enviado en #{id_chat}", al_canal: false)

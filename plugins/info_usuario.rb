@@ -103,7 +103,10 @@ class Dankie
             @tg.send_message(chat_id: chat_id,
                              reply_to_message_id: msj.message_id,
                              text: 'Apodo recontra borradísimo')
-            nombre = dame_nombre_completo(nombre, apellido, 'Cuenta eliminada')
+
+            nombre = dame_nombre_completo(msj.from.first_name,
+                                          msj.from.last_name,
+                                          'Cuenta eliminada')
             @logger.info("Se borró el apodo de #{nombre} (#{id_usuario}) "\
                                   "en #{grupo_del_msj(msj)} (#{chat_id})")
         end

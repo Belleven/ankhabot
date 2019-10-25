@@ -1,4 +1,8 @@
 module Handler
+    def migración?
+        false
+    end
+
     class Mensaje
         MSJ_TYPES = %i[text audio document game photo
                        sticker video voice video_note contact
@@ -20,15 +24,11 @@ module Handler
                       Dankie.comandos.include?(bot.get_command(msj))
             return unless @chats_permitidos.include?(msj.chat.type)
 
-            tipo_msj = nil
             @tipos.each do |tipo|
                 tipo_msj = msj.send tipo
-                break if tipo_msj && (tipo_msj.is_a?(Array) ? !tipo_msj.empty? : true)
+                return true if tipo_msj && !(tipo_msj.is_a?(Array) && tipo_msj.empty?)
             end
-
-            return unless tipo_msj && (tipo_msj.is_a?(Array) ? !tipo_msj.empty? : true)
-
-            true
+            false
         end
 
         def ejecutar(bot, msj)
@@ -78,11 +78,8 @@ module Handler
         end
 
         def verificar(_bot, callback)
-            return unless callback.is_a? Telegram::Bot::Types::CallbackQuery
-
-            return unless callback.data.start_with? @clave
-
-            true
+            callback.is_a?(Telegram::Bot::Types::CallbackQuery) &&
+                callback.data.start_with?(@clave)
         end
 
         def ejecutar(bot, callback)
@@ -124,19 +121,19 @@ module Handler
         def verificar(_bot, msj)
             return unless msj.is_a? Telegram::Bot::Types::Message
 
-            atributo = nil
             @tipos.each do |tipo|
                 atributo = msj.send tipo
-                break if atributo && (atributo.is_a?(Array) ? !atributo.empty? : true)
+                return true if atributo && !(atributo.is_a?(Array) && atributo.empty?)
             end
-
-            return unless atributo && (atributo.is_a?(Array) ? !atributo.empty? : true)
-
-            true
+            false
         end
 
         def ejecutar(bot, msj)
             bot.public_send(@callback, msj)
+        end
+
+        def migración?
+            @tipos.include? :migrate_from_chat_id
         end
     end
 end
