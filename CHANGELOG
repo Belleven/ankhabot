@@ -2,9 +2,13 @@
     -ahora el módulo de telegram puede usar el DankieLogger
     -setglobal y deltrigger ahora mandan los mensajes para aceptar/rechazar de forma más bonita
     -last.fm rediseñado
+    -/grita -perocontodo corregido
+    -corregidos errores menores
+    -corregido bugazo en /ban
+    -agregados varios manejos de excepciones de telegram
      
 1.0.8
-    -bug en ruleta
+    -corregido bug en ruleta
 
 1.0.7
     -setglobal responde al mensaje que llamo al comando al ser aceptado o rechazado
