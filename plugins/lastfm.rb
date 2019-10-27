@@ -112,7 +112,7 @@ class Dankie
     end
 
     def recientes(msj, args)
-        if args && (args =~ /\D+/ || args.to_i.zero?)
+        if args && (args.match?( /\D+/) || args.to_i.zero?)
             @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
                              text: "Pasame un número natural, #{TROESMAS.sample}.")
             return

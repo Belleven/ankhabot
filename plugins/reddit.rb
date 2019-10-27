@@ -190,7 +190,7 @@ class Dankie
     end
 
     def sub_inválido(msj, sub)
-        if (inválido = sub =~ /\W/ || sub.size > 21)
+        if (inválido = sub.match?(/\W/) || sub.size > 21)
             @tg.send_message(chat_id: msj.chat.id,
                              reply_to_message_id: msj.message_id,
                              text: 'Ese título de subreddit es '\

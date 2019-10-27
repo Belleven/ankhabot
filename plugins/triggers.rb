@@ -103,7 +103,7 @@ class Dankie
 
         Trigger.triggers(msj.chat.id) do |id_grupo, regexp|
             t1 = Time.now
-            match = regexp =~ texto
+            match = regexp.match? texto
             t2 = Time.now
 
             # Si el trigger tardó mucho en procesar, lo borro.
