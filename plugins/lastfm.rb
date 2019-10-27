@@ -2,15 +2,15 @@ class Dankie
     add_handler Handler::Comando.new(:usuariolastfm, :usuario_last_fm,
                                      permitir_params: true,
                                      descripción: 'Guardo o muestro tu '\
-                                     'usuario de last.fm')
+                                                  'usuario de last.fm')
     add_handler Handler::Comando.new(:borrarlastfm, :borrar_usuario_last_fm,
                                      descripción: 'Borro tu usuario de last.fm')
     add_handler Handler::Comando.new(:escuchando, :escuchando, permitir_params: true,
-                                     descripción: 'Lo que estás escuchando ahora o '\
-                                     'lo último que escuchaste.')
+                                                               descripción: 'Lo que estás escuchando ahora o '\
+                                                  'lo último que escuchaste.')
     add_handler Handler::Comando.new(:recientes, :recientes, permitir_params: true,
-                                     descripción: 'Lista de los últimos temas que '\
-                                     'escuchaste')
+                                                             descripción: 'Lista de los últimos temas que '\
+                                                  'escuchaste')
 
     def usuario_last_fm(msj, params)
         # Sin parámetros mando la info actual.
@@ -44,12 +44,10 @@ class Dankie
         texto << "<code>#{html_parser usuario.dig('user', 'name')}</code>."
         @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
                          parse_mode: :html, text: texto)
-
-        
     rescue StandardError => e
-        puts e 
+        puts e
         @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
-                         text: "Saltó un error, probablemente pusiste mal tu usuario.")
+                         text: 'Saltó un error, probablemente pusiste mal tu usuario.')
     end
 
     def borrar_usuario_last_fm(msj)
@@ -93,7 +91,9 @@ class Dankie
         temazo = temazo.dig 'recenttracks', 'track', 0
 
         # Primero pongo el link invisible así lo toma para la preview.
-        texto = '<a href="' << "#{html_parser temazo.dig('image', 2, '#text')}" << '">'
+        imágen = temazo.dig('image', -1, '#text')
+        imágen = imágen.empty? ? 'https://i.imgur.com/fwu2ESz.png' : imágen
+        texto = '<a href="' << html_parser(imágen) << '">'
         texto << "\u200d</a>"
 
         texto << (args || enlace_usuario_id(msj.from.id, msj.chat.id))
@@ -127,6 +127,7 @@ class Dankie
         end
 
         temas = temas.dig 'recenttracks', 'track'
+        temas.pop if temas.size > cantidad # Bug que manda un tema mas que lo pedido
 
         escuchando = temas.find { |tema| tema.dig('@attr', 'nowplaying') }
         temas.delete escuchando
@@ -176,6 +177,8 @@ class Dankie
 
         texto << if (álbum = tema.dig('album', '#text')) && !álbum.empty?
                      "\n\u{1F4BF} #{html_parser álbum}"
+                 else
+                     ''
                  end
 
         texto << "\n\u{1F464} "
@@ -198,14 +201,15 @@ class Dankie
         texto << if (artista = tema.dig('artist', '#text')) && !artista.empty?
                      " - <b>#{html_parser artista}</b>"
                  else
-                     'Sin artista'   
+                     'Sin artista'
                  end
 
         texto << if (álbum = tema.dig('album', '#text')) && !álbum.empty?
                      " (#{html_parser álbum})"
+                 else
+                     ''
                  end
 
         texto
     end
-
 end
