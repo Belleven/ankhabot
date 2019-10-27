@@ -27,7 +27,7 @@ class Dankie
                 enlace = resultados.shuffle!.find { |resultado| resultado.type == :image }
                 if enlace
                     loggeo = "Búsqueda: #{args}\nImagen: #{enlace.link}"
-                    @logger.info(loggeo, al_canal: true)
+                    @logger.info(loggeo, al_canal: false)
                     @tg.send_photo(chat_id: msj.chat.id, photo: enlace.link)
                 else
                     @tg.send_message(chat_id: msj.chat.id,

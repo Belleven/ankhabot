@@ -65,6 +65,8 @@ doujin&.exists?
                                             media: obtener_elemento_lista(id_chat,
                                                                           id_mensaje, 0) }.to_json)
         end
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        @logger.error e.to_s, al_canal: false
     end
 
     private
