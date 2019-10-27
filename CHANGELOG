@@ -6,6 +6,7 @@
     -corregidos errores menores
     -corregido bugazo en /ban
     -agregados varios manejos de excepciones de telegram
+    -/chats iniciado + otros comandos similares
      
 1.0.8
     -corregido bug en ruleta
