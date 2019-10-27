@@ -26,8 +26,7 @@ class Dankie
 
         doujin = Doujinshi.new(num)
 
-        unless
-doujin&.exists?
+        unless doujin&.exists?
             @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
                              text: 'No encontré ese doujin.')
             return

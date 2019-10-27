@@ -403,7 +403,7 @@ class Dankie
 
         Trigger.redis ||= @redis
 
-        enviar = "triggers que matchean el mensaje respondido:\n"
+        enviar = "Triggers que matchean el mensaje respondido:\n"
         emparejó = false
         Trigger.triggers(msj.chat.id) do |_id_grupo, regexp|
             next unless (match = regexp.match texto)

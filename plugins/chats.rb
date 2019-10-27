@@ -81,11 +81,41 @@ class Dankie
     end
 
     def estadochat(msj, params)
-        unless params
+        unless DEVS.include?(msj.from.id)
             @tg.send_message(chat_id: msj.chat.id,
-                             parse_mode: :html,
-                             text: 'Tenés que pasarme una id de chat')
-            nil
+                             reply_to_message_id: msj.message_id,
+                             text: 'Tenés que ser desarrollador '\
+                                      "para eso #{TROESMAS.sample}")
+            return
+        end
+
+        if params.nil? || !/\A-?\d+\z/.match?(params)
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: 'Tenés que pasarme una id de chat válida')
+            return
+        end
+
+        begin
+            id_chat = params.to_i
+            mensaje = @tg.send_message(chat_id: id_chat,
+                                       text: 'Mensaje para ver si sigo en el grupo')
+            break unless mensaje && mensaje['ok']
+
+            añadir_a_cola_spam(id_chat, resp.dig('result', 'message_id').to_i)
+
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: 'Sigo estando en ese chat',
+                             reply_to_message_id: msj.message_id)
+        rescue Telegram::Bot::Exceptions::ResponseError => e
+            case e.to_s
+            when /bla/
+                @logger.info('bla')
+
+            else
+                @tg.send_message(chat_id: msj.chat.id,
+                                 text: 'Error',
+                                 reply_to_message_id: msj.message_id)
+            end
         end
     end
 end
