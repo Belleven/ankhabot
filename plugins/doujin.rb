@@ -2,14 +2,13 @@ require 'nhentai-api'
 
 class Dankie
     add_handler Handler::Mensaje.new(:nhentai_mensaje, permitir_editados: false,
-                                                       ignorar_comandos: true)
+                                     ignorar_comandos: true, tipos: [:text])
     add_handler Handler::Comando.new(:nhentai, :nhentai_comando, permitir_params: true)
     add_handler Handler::Comando.new(:probar_botonera, :probar_botonera)
     add_handler Handler::CallbackQuery.new(:doujin_nsfw, 'doujin_nsfw')
 
     def nhentai_mensaje(msj)
-        return unless msj.text
-        return unless msj.text =~ /\A\d{6}\z/
+        return unless msj.text.match?(/\A\d{6}\z/)
 
         doujin = Doujinshi.new msj.text
         return unless doujin.exists?
@@ -18,7 +17,7 @@ class Dankie
     end
 
     def nhentai_comando(msj, params)
-        if params.nil? || params =~ /\D/ || (num = params.to_i).zero?
+        if params.nil? || params.match?(/\D/) || (num = params.to_i).zero?
             @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
                              text: "Pasame un natural, #{TROESMAS.sample}.")
             return
@@ -65,6 +64,8 @@ class Dankie
                                             media: obtener_elemento_lista(id_chat,
                                                                           id_mensaje, 0) }.to_json)
         end
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        @logger.error e.to_s, al_canal: false
     end
 
     private

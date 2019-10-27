@@ -557,11 +557,11 @@ class Dankie
         when /message to delete not found/
             @logger.error("Traté de borrar un mensaje (id mensaje: #{id_mensaje}) "\
                           "muy viejo (id chat: #{id_chat}).",
-                          al_canal: true)
+                          al_canal: false)
         when /message can't be deleted/
             @logger.error("No pude borrar un mensaje (id mensaje: #{id_mensaje}) "\
                           "(id chat: #{id_chat}).",
-                          al_canal: true)
+                          al_canal: false)
         end
     end
 

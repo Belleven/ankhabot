@@ -37,6 +37,6 @@ class Dankie
         @tg.edit_message_text(chat_id: enviado.chat.id, parse_mode: :html,
                               message_id: enviado.message_id, text: texto)
 
-        @logger.info(texto_log, al_canal: true)
+        @logger.info(texto_log, al_canal: false)
     end
 end
