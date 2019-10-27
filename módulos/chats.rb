@@ -99,7 +99,7 @@ class Dankie
             id_chat = params.to_i
             mensaje = @tg.send_message(chat_id: id_chat,
                                        text: 'Mensaje para ver si sigo en el grupo')
-            break unless mensaje && mensaje['ok']
+            return unless mensaje && mensaje['ok']
 
             añadir_a_cola_spam(id_chat, resp.dig('result', 'message_id').to_i)
 
