@@ -79,7 +79,7 @@ class Dankie
         @img = ImageSearcher.new args[:google_image_key], args[:google_image_cx],
                                  args[:google_image_gl], @logger
         @user = Telegram::Bot::Types::User.new @tg.get_me['result']
-        @lastFM = LastFMParser.new args[:last_fm_api]
+        @lastfm = LastFM::Api.new args[:last_fm_api]
         @tz = TZInfo::Timezone.get args[:timezone]
         @redditApi = Reddit::Api.new
     end

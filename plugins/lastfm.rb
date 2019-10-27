@@ -1,242 +1,227 @@
 class Dankie
-    add_handler Handler::Comando.new(:guardarlastfm, :guardar_lastfm,
+    add_handler Handler::Comando.new(:usuariolastfm, :usuario_last_fm,
                                      permitir_params: true,
-                                     descripción: 'Guardo tu usuario de Last.Fm '\
-                                                  '(solo necesito tu usuario)')
-    add_handler Handler::Comando.new(:verlastfm, :ver_lastfm,
-                                     descripción: 'Devuelvo el usuario de Last.fm '\
-                                                  'que haya a tu nombre')
-    add_handler Handler::Comando.new(:borrarlastfm, :borrar_lastfm,
-                                     descripción: 'Borra tu cuenta de Last.Fm')
-    add_handler Handler::Comando.new(:escuchando, :escuchando,
-                                     descripción: 'Devuelvo la canción más '\
-                                                  'reciente que escuchaste')
-    add_handler Handler::Comando.new(:recientes, :recientes,
-                                     permitir_params: true,
-                                     descripción: 'Devuelvo las últimas '\
-                                                  'canciones que escuchaste. '\
-                                                  'Pasame un número así te muestro '\
-                                                  'más de 1 canción (máx 15).')
+                                     descripción: 'Guardo o muestro tu '\
+                                                  'usuario de last.fm')
+    add_handler Handler::Comando.new(:borrarlastfm, :borrar_usuario_last_fm,
+                                     descripción: 'Borro tu usuario de last.fm')
+    add_handler Handler::Comando.new(:escuchando, :escuchando, permitir_params: true,
+                                                               descripción: 'Lo que estás escuchando ahora o '\
+                                                  'lo último que escuchaste.')
+    add_handler Handler::Comando.new(:recientes, :recientes, permitir_params: true,
+                                                             descripción: 'Lista de los últimos temas que '\
+                                                  'escuchaste')
 
-    def guardar_lastfm(msj, usuario)
-        return if no_hay_usuario(msj, usuario) || !usuario_válido(msj, usuario)
-
-        @redis.set("lastfm:#{msj.from.id}", usuario)
-        @tg.send_message(chat_id: msj.chat.id,
-                         reply_to_message_id: msj.message_id,
-                         text: "Listo #{TROESMAS.sample}. "\
-                               'Tu usuario de Last.fm ahora '\
-                               "es '#{usuario}'.")
-    end
-
-    def ver_lastfm(msj)
-        if (usuario = @redis.get("lastfm:#{msj.from.id}"))
-            @tg.send_message(chat_id: msj.chat.id,
-                             reply_to_message_id: msj.message_id,
-                             text: 'Por el momento, tu usuario de '\
-                                   "Last.fm es '#{usuario}'.")
-        else
-            @tg.send_message(chat_id: msj.chat.id,
-                             reply_to_message_id: msj.message_id,
-                             text: 'No tengo ningún usuario tuyo '\
-                                   'de Last.fm')
-        end
-    end
-
-    def borrar_lastfm(msj)
-        if @redis.del("lastfm:#{msj.from.id}") >= 1
-            @tg.send_message(chat_id: msj.chat.id,
-                             reply_to_message_id: msj.message_id,
-                             text: "Ya borré tu cuenta #{TROESMAS.sample}")
-        else
-            @tg.send_message(chat_id: msj.chat.id,
-                             reply_to_message_id: msj.message_id,
-                             text: "No pude borrar nada #{TROESMAS.sample}, "\
-                               'probablemente no guardaste ninguna cuenta')
-        end
-    end
-
-    def recientes(msj, cantidad)
-        # Me fijo si pasan un natural como parámetro, si no seteo 3
-        cantidad = cantidad.nil? || !(nat = natural(cantidad)) ? 3 : nat
-        # Si se pasa de 15 lo reduzco a ese valor
-        cantidad = 15 if cantidad > 15
-
-        # Tomo el usuario de last.fm, y termino si no tengo ninguno
-        usuario = @redis.get("lastfm:#{msj.from.id}")
-        return if no_hay_usuario(msj, usuario)
-
-        # Loggeo
-        @logger.info("Pidiendo la\\s #{cantidad} última\\s "\
-                                  "pista\\s que escuchó #{usuario}")
-
-        # Tomo la cantidad de temas que me piden, y si me llega un error termino
-        ahora_escuchando = @lastFM.now_playing usuario, cantidad
-        return unless validar_pistas(msj, ahora_escuchando)
-
-        # Empiezo a escribir el texto de respuesta y seteo variables para iterar
-        # en los temas que me llegan de last.fm
-        texto = "Canciones recientes del usuario: \n\n"
-        inicio = 0
-        fin = cantidad - 1
-        contador = 1
-
-        # Me fijo si hay un tema que se esté escuchando actualmente
-        if ahora_escuchando.first.key?('@attr') &&
-           ahora_escuchando.first['@attr']['nowplaying']
-            # Están escuchando un tema, lo agrego como caso especial
-            texto << "<b>#{contador}.</b>"
-            agregar_datos_pista(texto, ahora_escuchando.first,
-                                t1_antes: ' ', t1_dsp: ' ',
-                                t2_antes: '- <b>', t2_dsp: '</b> ',
-                                t3_antes: '[', t3_dsp: ']', actual: true)
-            # Tengo que ignorar el primer elemento
-            inicio += 1
-            contador += 1
-
-            # Ahora me fijo si este tema aparece repetido porque es algo que
-            # suele pasar: te mandan primero el tema que estás escuchando y
-            # después en la segunda posición del arreglo el mismo tema pero
-            # como si ya lo hubieras escuchado. Si la cantidad que se pide es
-            # 1 entonces no hago nada.
-            if cantidad > 1 && mismo_tema(ahora_escuchando.first, ahora_escuchando[1])
-                # Tengo que ignorar el segundo elemento y llegar hasta el final
-                inicio += 1
-                fin += 1
+    def usuario_last_fm(msj, params)
+        # Sin parámetros mando la info actual.
+        unless params
+            if (usuario = @redis.get("lastfm:#{msj.from.id}"))
+                @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
+                                 reply_to_message_id: msj.message_id,
+                                 text: 'Tu usuario de Last.fm es '\
+                                       "<code>#{html_parser usuario}</code>.")
+            else
+                @tg.send_message(chat_id: msj.chat.id,
+                                 reply_to_message_id: msj.message_id,
+                                 text: "Configurá tu usuario con \n"\
+                                       '/usuariolastfm mi_usuario')
             end
+            return
         end
 
-        # Itero por el resto del arreglo, ya sin casos especiales
-        (inicio..fin).each do |índice|
-            # Registro el número y tomo el tema
-            texto << "<b>#{contador}.</b>"
-            contador += 1
-            temazo = ahora_escuchando[índice]
-            # Agrego los datazos al texto
-            agregar_datos_pista(texto, temazo,
-                                t1_antes: ' ', t1_dsp: ' ',
-                                t2_antes: '- <b>', t2_dsp: '</b> ',
-                                t3_antes: '[', t3_dsp: ']')
+        # Si hay parámetros, sobreescribo la cuenta actual.
+        usuario = @lastfm.user.get_info user: params
+
+        unless usuario
+            @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                             text: "Pasame bien un usuario, #{TROESMAS.sample}.")
+            return
         end
 
-        # Mando el mensaje
-        @tg.send_message(chat_id: msj.chat.id,
-                         parse_mode: :html,
-                         reply_to_message_id: msj.message_id,
-                         text: texto)
+        @redis.set "lastfm:#{msj.from.id}", params
+
+        texto = "Listo, #{TROESMAS.sample}. Tu usuario ahora es "
+        texto << "<code>#{html_parser usuario.dig('user', 'name')}</code>."
+        @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                         parse_mode: :html, text: texto)
+    rescue StandardError => e
+        logger.error e.to_s
+        @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                         text: 'Saltó un error, probablemente pusiste mal tu usuario.')
     end
 
-    def escuchando(msj)
-        usuario = @redis.get("lastfm:#{msj.from.id}")
-        return if no_hay_usuario(msj, usuario)
+    def borrar_usuario_last_fm(msj)
+        if @redis.del("lastfm:#{msj.from.id}").zero?
+            @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                             text: 'No pude borrar nada. Capaz no '\
+                             'tenías tu cuenta puesta.')
+        else
+            @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                             text: "Ya borré tu cuenta, #{TROESMAS.sample}.")
+        end
+    end
 
-        @logger.info("Pidiendo la pista que está escuchando #{usuario}")
-        temazo = @lastFM.now_playing usuario, 1
-        return unless validar_pistas(msj, temazo)
+    def escuchando(msj, args)
+        unless (usuario = args || @redis.get("lastfm:#{msj.from.id}"))
+            @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                             text: 'Si no me pasás un usuario, está jodida la cosa, '\
+                             "#{TROESMAS.sample}.")
+            return
+        end
 
-        texto = if temazo.first.key?('@attr') && temazo.first['@attr']['nowplaying']
-                    "<b>#{usuario}</b> está escuchando este temón: \n"
-                else
-                    "<b>#{usuario}</b> estuvo escuchando este temón: \n"
-                end
+        @logger.info "Pidiendo el tema que está escuchando #{usuario}"
 
-        agregar_datos_pista(texto, temazo.first,
-                            t1_antes: '👤 ', t1_dsp: "\n",
-                            t2_antes: '🎵 ', t2_dsp: "\n",
-                            t3_antes: '💿 ', imagen: true)
+        temazo = @lastfm.user.get_recent_tracks(user: usuario, limit: 1)
 
-        @tg.send_message(chat_id: msj.chat.id,
-                         parse_mode: :html,
-                         text: texto)
+        # Capaz que esto despues sea validado como una excepción.
+        unless temazo
+            @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                             text: 'Me tiró error, ¿Pusiste bien el usuario?')
+            return
+        end
+
+        # Si no escuchó ningún tema.
+        if temazo.dig('recenttracks', '@attr', 'total').to_i.zero?
+            @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                             text: "No escuchaste nada, #{TROESMAS.sample}.")
+            return
+        end
+
+        # El primer tema.
+        temazo = temazo.dig 'recenttracks', 'track', 0
+
+        # Primero pongo el link invisible así lo toma para la preview.
+        imágen = temazo.dig('image', -1, '#text')
+        imágen = imágen.empty? ? 'https://i.imgur.com/fwu2ESz.png' : imágen
+        texto = '<a href="' << html_parser(imágen) << '">' << "\u200d</a>"
+
+        texto << (args || enlace_usuario_id(msj.from.id, msj.chat.id))
+        texto << if temazo.dig('@attr', 'nowplaying')
+                     " está escuchando\n\n"
+                 else
+                     " estuvo escuchando\n\n"
+                 end
+        texto << datos_tema(temazo)
+
+        @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                         parse_mode: :html, text: texto)
+    rescue StandardError => e
+        logger.error e.to_s
+        @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                         text: 'Saltó un error, probablemente pusiste mal tu usuario.')
+    end
+
+    def recientes(msj, args)
+        if args && (args =~ /\D+/ || args.to_i.zero?)
+            @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                             text: "Pasame un número natural, #{TROESMAS.sample}.")
+            return
+        end
+        cantidad = [args ? args.to_i : 5, 15].min # Si no recibe args, toma 5
+
+        unless (usuario = @redis.get "lastfm:#{msj.from.id}")
+            @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                             text: 'Si no me pasás un usuario, está jodida la cosa, '\
+                                   "#{TROESMAS.sample}.")
+            return
+        end
+
+        @logger.info "#{usuario} pidió #{cantidad} temas recientes"
+        temas = @lastfm.user.get_recent_tracks(user: usuario, limit: cantidad)
+        unless temas
+            @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                             text: 'Me tiró error, ¿Pusiste bien el usuario?')
+            return
+        end
+
+        temas = temas.dig 'recenttracks', 'track'
+        temas.pop if temas.size > cantidad # Bug que manda un tema mas que lo pedido
+
+        escuchando = temas.find { |tema| tema.dig('@attr', 'nowplaying') }
+        temas.delete(escuchando)
+
+        if temas.empty? && escuchando.nil?
+            @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                             text: "No escuchaste ningún tema, #{TROESMAS.sample}.")
+            return
+        end
+
+        texto = 'Canciones recientes de '
+        texto << "#{enlace_usuario_id(msj.from.id, msj.chat.id)}:\n\n"
+
+        if escuchando
+            texto << '<code>' << (temas.size > 9 ? '01.' : '1.') << '</code> '
+            texto << datos_tema_compacto(escuchando) << " <i>(ahora)</i>\n"
+
+            # despues veo si es verdad eso de que a veces el primer tema es el que suena
+        end
+
+        # Si ya puse un tema, arranco del 2
+        índice = escuchando ? 2 : 1
+
+        temas.each do |tema|
+            texto << '<code>' << (temas.size > 9 && índice < 10 ? '0' : '')
+            texto << índice.to_s << '.</code> '
+            texto << datos_tema_compacto(tema) << "\n"
+            índice += 1
+        end
+
+        @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                         disable_web_page_preview: true, parse_mode: :html, text: texto)
+    rescue StandardError => e
+        logger.error e.to_s
+        @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                         text: 'Saltó un error, probablemente pusiste mal tu usuario.')
     end
 
     private
 
-    def no_hay_usuario(msj, usuario)
-        if (hay = usuario.nil? || usuario.empty?)
-            @tg.send_message(chat_id: msj.chat.id,
-                             reply_to_message_id: msj.message_id,
-                             text: 'Si no me pasás un usuario, '\
-                                    "está jodida la cosa #{TROESMAS.sample}.")
-        end
-        hay
+    # Función que recibe un hash del arreglo de 'track' que devuelve la api y devuelve
+    # un String.
+    def datos_tema(tema)
+        texto = "\u{1F3B5} "
+
+        texto << if (nombre = tema.dig('name')) && !nombre.empty?
+                     html_parser nombre
+                 else
+                     'Sin nombre'
+                 end
+
+        texto << if (álbum = tema.dig('album', '#text')) && !álbum.empty?
+                     "\n\u{1F4BF} #{html_parser álbum}"
+                 else
+                     ''
+                 end
+
+        texto << "\n\u{1F464} "
+        texto << if (artista = tema.dig('artist', '#text')) && !artista.empty?
+                     html_parser artista
+                 else
+                     'Sin artista'
+                 end
     end
 
-    def validar_pistas(msj, arr)
-        if arr.empty?
-            @tg.send_message(chat_id: msj.chat.id,
-                             reply_to_message_id: msj.message_id,
-                             text: 'No encontré ninguna canción '\
-                                   "que hayas escuchado #{TROESMAS.sample}.")
-            return false
-        elsif arr.first == 'error'
-            @tg.send_message(chat_id: msj.chat.id,
-                             parse_mode: :html,
-                             reply_to_message_id: msj.message_id,
-                             text: "Alto error #{TROESMAS.sample}."\
-                                   "\n<b>#{html_parser(arr[1])}</b>")
-            @logger.error('Error con las pistas de '\
-                                       "Last.fm : <b>#{arr[1]}</b>")
-            return false
-        end
-        true
-    end
+    def datos_tema_compacto(tema)
+        texto = ''
 
-    def usuario_válido(msj, usuario)
-        unless (válido = usuario.length <= 15 &&
-                         usuario.match?(/^[a-zA-Z][\w|-]+$/))
-            @tg.send_message(chat_id: msj.chat.id,
-                             reply_to_message_id: msj.message_id,
-                             text: "Pasame un usuario válido #{TROESMAS.sample}.")
-        end
-        válido
-    end
+        texto << if (nombre = tema.dig('name')) && !nombre.empty?
+                     nombre
+                 else
+                     'Sin nombre'
+                 end
 
-    def agregar_datos_pista(texto, temazo, t1_antes: '', t1_dsp: '', t2_antes: '',
-                            t2_dsp: '', t3_antes: '', t3_dsp: '', imagen: false,
-                            actual: false)
+        texto << if (artista = tema.dig('artist', '#text')) && !artista.empty?
+                     " - <b>#{html_parser artista}</b>"
+                 else
+                     'Sin artista'
+                 end
 
-        partes_obtenidas = 0
+        texto << if (álbum = tema.dig('album', '#text')) && !álbum.empty?
+                     " (#{html_parser álbum})"
+                 else
+                     ''
+                 end
 
-        if temazo['artist']['#text'] && !temazo['artist']['#text'].empty?
-            texto << t1_antes + html_parser(temazo['artist']['#text']) + t1_dsp
-            partes_obtenidas += 1
-        end
-
-        if temazo['name'] && !temazo['name'].empty?
-            texto << t2_antes + html_parser(temazo['name']) + t2_dsp
-            partes_obtenidas += 1
-        end
-
-        if temazo['album']['#text'] && !temazo['album']['#text'].empty?
-            texto << t3_antes + html_parser(temazo['album']['#text']) + t3_dsp
-            partes_obtenidas += 1
-
-            if imagen
-                texto << '<a href="'\
-                         "#{html_parser(temazo['image'][2]['#text'])}\">\u200d</a>"
-            end
-        end
-
-        if partes_obtenidas.zero?
-            texto << 'No pude encontrar información de '
-            texto << "lo que estás escuchando #{TROESMAS.sample} :("
-        else
-            ahora = actual ? ' (ahora)' : ''
-            texto << "#{ahora}\n"
-        end
-    end
-
-    def mismo_tema(tema1, tema2)
-        # Si vienen con ID me fijo que sea el mismo ID
-        (!tema1['mbid'].empty? && !tema2['mbid'].empty? &&
-         tema1['mbid'] == tema2['mbid']) ||
-            # Si no, chequeo los demás atributos
-            (tema1['mbid'].length.zero? && tema2['mbid'].length.zero? &&
-             tema1['artist'] == tema2['artist'] &&
-             tema1['album'] == tema2['album'] &&
-             tema1['url'] == tema2['url'] &&
-             tema1['name'] == tema2['name'] &&
-             tema1['image'] == tema2['image'])
+        texto
     end
 end
