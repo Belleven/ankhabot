@@ -13,16 +13,6 @@ class Dankie
                                      descripción: 'Devuelve el estado del chat pasado '\
                                                   'por parámetro')
 
-    add_handler Handler::Comando.new(:testid, :testid,
-                                     permitir_params: true)
-
-    def testid(_msj, params)
-        @tg.send_message(chat_id: params.to_i,
-                         text: 'test id')
-
-        añadir_a_cola_spam(id_chat, resp.dig('result', 'message_id').to_i)
-    end
-
     def registrar_chat(msj)
         # Conjuntos con los grupetes
         @redis.sadd("chat:#{msj.chat.type}:activos", msj.chat.id.to_s)
@@ -91,7 +81,13 @@ class Dankie
 
         if params.nil? || !/\A-?\d+\z/.match?(params)
             @tg.send_message(chat_id: msj.chat.id,
+                             reply_to_message_id: msj.message_id,
                              text: 'Tenés que pasarme una id de chat válida')
+            return
+        elsif (migrado = @redis.hget('chats_migrados', params))
+            @tg.send_message(chat_id: msj.chat.id,
+                             reply_to_message_id: msj.message_id,
+                             text: "Ese chat migró a #{migrado}")
             return
         end
 
@@ -101,21 +97,34 @@ class Dankie
                                        text: 'Mensaje para ver si sigo en el grupo')
             return unless mensaje && mensaje['ok']
 
-            añadir_a_cola_spam(id_chat, resp.dig('result', 'message_id').to_i)
+            añadir_a_cola_spam(id_chat, mensaje.dig('result', 'message_id').to_i)
 
             @tg.send_message(chat_id: msj.chat.id,
                              text: 'Sigo estando en ese chat',
                              reply_to_message_id: msj.message_id)
         rescue Telegram::Bot::Exceptions::ResponseError => e
-            case e.to_s
-            when /bla/
-                @logger.info('bla')
+            texto << case e.to_s
+                     when /chat not found/
+                         "\nNunca estuve en este chat, o no existe"
+                     when /bot was kicked from the (super)?group chat/
+                         "\nMe banearon en ese chat"
+                     when /Forbidden: bot is not a member of the (super)?group chat/
+                         "\nMe fui de ese supergrupo"
+                     when /Forbidden: bot can't initiate conversation with a user/
+                         "\nMe fui de ese grupo"
+                     when /PEER_ID_INVALID/
+                         "\nEse usuario me tiene bloqueado"
+                     when /USER_IS_BOT/
+                         "\nEse usuario es un bot, no le puedo hablar"
+                     else
+                         "\nSaltó este otro error y no puedo saber si "\
+                                  "estoy en el chat: #{e}"
+                     end
 
-            else
-                @tg.send_message(chat_id: msj.chat.id,
-                                 text: 'Error',
-                                 reply_to_message_id: msj.message_id)
-            end
+            @logger.info("En el comando /estadochat => #{e}")
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: texto,
+                             reply_to_message_id: msj.message_id)
         end
     end
 end

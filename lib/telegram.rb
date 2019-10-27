@@ -139,12 +139,24 @@ class TelegramAPI
         when /bot was kicked from the (super)?group chat/
             @client.logger.fatal("Me echaron de este grupete: #{args[:chat_id]}, "\
                                  'y no puedo mandar mensajes')
+            raise
+
+        when /Forbidden: bot is not a member of the (super)?group chat/
+            @client.logger.fatal("Me fui de este grupete: #{args[:chat_id]}, "\
+                                 'y no puedo mandar mensajes')
+            raise
+
+        when /Forbidden: bot can't initiate conversation with a user/
+            @client.logger.fatal("Me fui de este grupete: #{args[:chat_id]}, "\
+                                 'y no puedo mandar mensajes')
+            raise
 
         when /USER_IS_BOT/
             texto, backtrace = @client.logger.excepcion_texto(e)
             texto << "\nLe quise mandar un mensaje privado a "\
                      "este bot: #{args[:chat_id]}"
             @client.logger.fatal(texto, al_canal: true, backtrace: backtrace)
+            raise
 
         when /chat not found/
             @client.logger.fatal("Chat inválido: #{args[:chat_id]}", al_canal: true)
