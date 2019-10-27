@@ -45,7 +45,7 @@ class Dankie
         @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
                          parse_mode: :html, text: texto)
     rescue StandardError => e
-        puts e
+        logger.error e.to_s
         @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
                          text: 'Saltó un error, probablemente pusiste mal tu usuario.')
     end
@@ -93,8 +93,7 @@ class Dankie
         # Primero pongo el link invisible así lo toma para la preview.
         imágen = temazo.dig('image', -1, '#text')
         imágen = imágen.empty? ? 'https://i.imgur.com/fwu2ESz.png' : imágen
-        texto = '<a href="' << html_parser(imágen) << '">'
-        texto << "\u200d</a>"
+        texto = '<a href="' << html_parser(imágen) << '">' << "\u200d</a>"
 
         texto << (args || enlace_usuario_id(msj.from.id, msj.chat.id))
         texto << if temazo.dig('@attr', 'nowplaying')
@@ -106,9 +105,18 @@ class Dankie
 
         @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
                          parse_mode: :html, text: texto)
+    rescue StandardError => e
+        logger.error e.to_s
+        @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                         text: 'Saltó un error, probablemente pusiste mal tu usuario.')
     end
 
     def recientes(msj, args)
+        if args && (args =~ /\D+/ || args.to_i.zero?)
+            @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                             text: "Pasame un número natural, #{TROESMAS.sample}.")
+            return
+        end
         cantidad = [args ? args.to_i : 5, 15].min # Si no recibe args, toma 5
 
         unless (usuario = @redis.get "lastfm:#{msj.from.id}")
@@ -130,9 +138,9 @@ class Dankie
         temas.pop if temas.size > cantidad # Bug que manda un tema mas que lo pedido
 
         escuchando = temas.find { |tema| tema.dig('@attr', 'nowplaying') }
-        temas.delete escuchando
+        temas.delete(escuchando)
 
-        if temas.empty?
+        if temas.empty? && escuchando.nil?
             @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
                              text: "No escuchaste ningún tema, #{TROESMAS.sample}.")
             return
@@ -142,7 +150,7 @@ class Dankie
         texto << "#{enlace_usuario_id(msj.from.id, msj.chat.id)}:\n\n"
 
         if escuchando
-            texto << '<code>' << (cantidad > 9 ? '01.' : '1.') << '</code> '
+            texto << '<code>' << (temas.size > 9 ? '01.' : '1.') << '</code> '
             texto << datos_tema_compacto(escuchando) << " <i>(ahora)</i>\n"
 
             # despues veo si es verdad eso de que a veces el primer tema es el que suena
@@ -152,7 +160,7 @@ class Dankie
         índice = escuchando ? 2 : 1
 
         temas.each do |tema|
-            texto << '<code>' << (cantidad > 9 && índice < 10 ? '0' : '')
+            texto << '<code>' << (temas.size > 9 && índice < 10 ? '0' : '')
             texto << índice.to_s << '.</code> '
             texto << datos_tema_compacto(tema) << "\n"
             índice += 1
@@ -160,6 +168,10 @@ class Dankie
 
         @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
                          disable_web_page_preview: true, parse_mode: :html, text: texto)
+    rescue StandardError => e
+        logger.error e.to_s
+        @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                         text: 'Saltó un error, probablemente pusiste mal tu usuario.')
     end
 
     private

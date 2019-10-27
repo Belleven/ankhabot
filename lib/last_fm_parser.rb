@@ -51,7 +51,7 @@ module LastFM
             resp = Net::HTTP.get_response URI.parse(url)
 
             # Debería levantar una excepción.
-            return resp unless resp.code == '200'
+            raise resp.body unless resp.code == '200'
 
             JSON.parse resp.body
         end
