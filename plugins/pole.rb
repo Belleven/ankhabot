@@ -186,9 +186,12 @@ class Dankie
             línea << enlace_usuario_id(pole.first, enviado.chat.id)
 
             cargando = índice == poles.length - 1 ? '' : "\n<i>cargando...</i>"
+            índice += 1
 
-            # Si el mensaje se pasa de los 4096 caracteres, mando uno nuevo
-            if texto.length + línea.length + cargando.length > 4096
+            # Si el mensaje se pasa de los 4096 caracteres,
+            # o ya hay más de 30 usuarios, mando uno nuevo
+            if texto.length + línea.length + cargando.length > 4096 ||
+               (índice % 30).zero?
 
                 # Primero borro el "cargando" del mensaje anterior
                 @tg.edit_message_text(chat_id: id_chat, text: texto,
@@ -200,6 +203,7 @@ class Dankie
                 # Después mando el nuevo mensaje
                 texto = línea
                 enviado = @tg.send_message(chat_id: id_chat, text: texto + cargando,
+                                           reply_to_message_id: enviado.message_id,
                                            parse_mode: :html,
                                            disable_web_page_preview: true,
                                            disable_notification: true)
@@ -214,8 +218,6 @@ class Dankie
                                       disable_web_page_preview: true,
                                       disable_notification: true)
             end
-
-            índice += 1
         end
     end
 

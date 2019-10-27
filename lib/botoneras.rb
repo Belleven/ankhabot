@@ -42,7 +42,7 @@ class Dankie
                                       text: 'Botonera ahora solo es presionable '\
                                       'por el que la pidió.')
             opciones = armar_botonera(índice, obtener_tamaño_lista(id_chat, id_mensaje),
-                                       callback.from.id, false)
+                                      callback.from.id, false)
             @tg.edit_message_reply_markup(chat_id: id_chat, message_id: id_mensaje,
                                           reply_markup: opciones)
             return
@@ -84,12 +84,10 @@ class Dankie
                                      reply_markup: opciones)
         else
             @tg.edit_message_media(chat_id: id_chat, message_id: id_mensaje,
-                                   media: {type: metadatos[:tipo],
-                                           media: valor
-                                          }.to_json,
+                                   media: { type: metadatos[:tipo],
+                                            media: valor }.to_json,
                                    reply_markup: opciones)
         end
-
     rescue Telegram::Bot::Exceptions::ResponseError => e
         @logger.error e.to_s, al_canal: false
     end
@@ -126,13 +124,15 @@ class Dankie
 
         arr = [[]]
         botones_abajo = [Telegram::Bot::Types::InlineKeyboardButton.new(
-                            text: (editable ? 'Todos tocan' : 'Solo yo'),
-                            callback_data: "lista:#{id_usuario}:#{página_actual}:"\
-                                           "#{editable ? 'noedit' : 'edit'}"),
+            text: (editable ? 'Todos tocan' : 'Solo yo'),
+            callback_data: "lista:#{id_usuario}:#{página_actual}:"\
+                           "#{editable ? 'noedit' : 'edit'}"
+        ),
                          Telegram::Bot::Types::InlineKeyboardButton.new(
                              text: 'borrar',
                              callback_data: "lista:#{id_usuario}:#{página_actual}:"\
-                                            'borrar')]
+                                            'borrar'
+                         )]
 
         if tamaño_máximo <= 5
             tamaño_máximo.times do |i|
@@ -171,7 +171,7 @@ class Dankie
                 callback_data: "lista:#{id_usuario}:#{botón.last}"
             )
         end
-        
+
         arr << botones_abajo
         Telegram::Bot::Types::InlineKeyboardMarkup.new(inline_keyboard: arr)
     end
@@ -180,13 +180,13 @@ class Dankie
     # Devuelve el id del mensaje, o false si no pudo enviar.
     # Uno tiene que hacer su propio handler con el prefijo pasado.
     def preguntar_nsfw(id_chat, id_usuario, prefijo_callback)
-        arr = ['Mostrar', 'Borrar']
+        arr = %w[Mostrar Borrar]
         arr.map! do |botón|
             Telegram::Bot::Types::InlineKeyboardButton.new(
                 text: botón,
-                callback_data: "#{prefijo_callback}:#{id_usuario}:#{botón}")
+                callback_data: "#{prefijo_callback}:#{id_usuario}:#{botón}"
+            )
         end
-
 
         botones = Telegram::Bot::Types::InlineKeyboardMarkup.new(inline_keyboard: [arr])
         respuesta = @tg.send_photo(chat_id: id_chat,
@@ -197,7 +197,7 @@ class Dankie
         return false unless respuesta
 
         respuesta = Telegram::Bot::Types::Message.new respuesta['result']
-        
+
         respuesta.message_id
     end
 end
