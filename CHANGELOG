@@ -1,4 +1,6 @@
 1.1.0
+    -Soporte para doujinshis de nhentai
+    -listas editables ahora soportan varios tipos de media
     -ahora el módulo de telegram puede usar el DankieLogger
     -setglobal y deltrigger ahora mandan los mensajes para aceptar/rechazar de forma más bonita
     -last.fm rediseñado

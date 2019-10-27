@@ -75,7 +75,7 @@ module Handler
 
         def verificar(_bot, callback)
             callback.is_a?(Telegram::Bot::Types::CallbackQuery) &&
-                callback.data.start_with?(@clave)
+                callback.data.start_with?("#{@clave}:")
         end
 
         def ejecutar(bot, callback)
