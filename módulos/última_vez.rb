@@ -80,7 +80,7 @@ class Dankie
             fecha = Time.at(elemento[1].to_i, in: @tz.utc_offset)
             fecha = fecha.strftime('%d/%m/%Y %T')
             # Armo la línea
-            "\n- #{enlace_usuario_id(id_usuario, msj.chat.id)} (#{fecha})"
+            "\n- #{obtener_enlace_usuario(id_usuario, msj.chat.id)} (#{fecha})"
         end
 
         if últimas_vistas.nil? || últimas_vistas.empty?

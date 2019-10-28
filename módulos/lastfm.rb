@@ -95,7 +95,7 @@ class Dankie
         imágen = imágen.empty? ? 'https://i.imgur.com/fwu2ESz.png' : imágen
         texto = '<a href="' << html_parser(imágen) << '">' << "\u200d</a>"
 
-        texto << (args || enlace_usuario_id(msj.from.id, msj.chat.id))
+        texto << (args || obtener_enlace_usuario(msj.from.id, msj.chat.id))
         texto << if temazo.dig('@attr', 'nowplaying')
                      " está escuchando\n\n"
                  else
@@ -147,7 +147,7 @@ class Dankie
         end
 
         texto = 'Canciones recientes de '
-        texto << "#{enlace_usuario_id(msj.from.id, msj.chat.id)}:\n\n"
+        texto << "#{obtener_enlace_usuario(msj.from.id, msj.chat.id)}:\n\n"
 
         if escuchando
             texto << '<code>' << (temas.size > 9 ? '01.' : '1.') << '</code> '
