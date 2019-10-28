@@ -195,6 +195,8 @@ class Dankie
         texto << "</code> #{match[:acción] == 'confirmar' ? 'aceptado' : 'rechazado'}."
         @tg.send_message(chat_id: temp[:id_grupo], parse_mode: :html,
                          text: texto, reply_to_message_id: temp[:id_msj])
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        @logger.warn e.to_s
     end
 
     def callback_del_trigger_global(callback)
@@ -237,6 +239,8 @@ class Dankie
                          text: texto, reply_to_message_id: temp[:id_msj],
                          disable_web_page_preview: true,
                          disable_notification: true)
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        @logger.warn e.to_s
     end
 
     def validar_borrar_trigger(msj, params)
