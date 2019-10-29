@@ -173,7 +173,7 @@ class Dankie
             return
         end
 
-        usuario = enlace_usuario_objeto(callback.from, callback.chat_instance)
+        usuario = obtener_enlace_usuario(callback.from, callback.chat_instance)
         case match[:acción]
         when 'confirmar'
             temp = Trigger.confirmar_trigger match[:id_regexp]
@@ -195,6 +195,8 @@ class Dankie
         texto << "</code> #{match[:acción] == 'confirmar' ? 'aceptado' : 'rechazado'}."
         @tg.send_message(chat_id: temp[:id_grupo], parse_mode: :html,
                          text: texto, reply_to_message_id: temp[:id_msj])
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        @logger.warn e.to_s
     end
 
     def callback_del_trigger_global(callback)
@@ -213,7 +215,7 @@ class Dankie
 
         temp = Trigger.obtener_del_trigger_temp match[:id_regexp]
 
-        usuario = enlace_usuario_objeto(callback.from, callback.chat_instance)
+        usuario = obtener_enlace_usuario(callback.from, callback.chat_instance)
         case match[:acción]
         when 'borrar'
             Trigger.borrar_trigger :global, temp[:regexp], match[:id_regexp]
@@ -237,6 +239,8 @@ class Dankie
                          text: texto, reply_to_message_id: temp[:id_msj],
                          disable_web_page_preview: true,
                          disable_notification: true)
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        @logger.warn e.to_s
     end
 
     def validar_borrar_trigger(msj, params)
@@ -383,7 +387,7 @@ class Dankie
             texto << "\nCaption: <code>#{html_parser trigger.caption}</code>"
         end
         texto << "\nTipo: #{id_grupo == :global ? 'global' : 'de grupo'}"
-        texto << "\nCreador: #{enlace_usuario_id(trigger.creador, msj.chat.id)}"
+        texto << "\nCreador: #{obtener_enlace_usuario(trigger.creador, msj.chat.id)}"
         texto << "\nTotal de usos: #{trigger.contador}"
         texto << "\nAñadido: <i>#{trigger.fecha.strftime('%d/%m/%Y %T')}</i>"
 
@@ -519,7 +523,7 @@ class Dankie
             contador = nil
 
             texto = "Trigger <code>#{html_parser regexp}</code> "
-            texto << "añadido por #{enlace_usuario_id(id_usuario, msj.chat.id)} "
+            texto << "añadido por #{obtener_enlace_usuario(id_usuario, msj.chat.id)} "
             @tg.send_message(chat_id: msj.chat.id,
                              parse_mode: :html,
                              text: texto,
@@ -550,7 +554,8 @@ class Dankie
         fecha = Time.at(fecha, in: @tz.utc_offset)
 
         texto = fecha.strftime("<code>[%d/%m/%Y %T]</code>\n")
-        texto << "Usuario #{enlace_usuario_id id_usuario, chat.id} en el chat "
+        texto << "Usuario #{obtener_enlace_usuario(id_usuario, chat.id,
+                                                   con_apodo: false)} en el chat "
         texto << "#{html_parser(chat&.title || chat&.username)} (#{chat.id}) "
         texto << 'quiere añadir trigger: '
         texto << "<code>#{regexp_sanitizada}</code>\n"
@@ -593,7 +598,8 @@ class Dankie
         fecha = Time.at(fecha, in: @tz.utc_offset)
 
         texto = fecha.strftime("<code>[%d/%m/%Y %T]</code>\n")
-        texto << "Usuario #{enlace_usuario_id id_usuario, chat.id} en el chat "
+        texto << "Usuario #{obtener_enlace_usuario(id_usuario, chat.id,
+                                                   con_apodo: false)} en el chat "
         texto << "#{html_parser(chat&.title || chat&.username)} (#{chat.id}) "
         texto << 'quiere borrar trigger: '
         texto << " <code>#{regexp_sanitizada}</code>\n"
@@ -627,7 +633,7 @@ class Dankie
         @logger.info(loggear)
         # Aviso en grupete
         texto = "Trigger <code>#{html_parser regexp_str}</code> "
-        texto << "borrado por #{enlace_usuario_id(msj.from.id, msj.chat.id)} "
+        texto << "borrado por #{obtener_enlace_usuario(msj.from.id, msj.chat.id)} "
         texto << "en #{html_parser(msj.chat&.title || msj.chat&.username)} "
         texto << "(#{msj.chat.id})"
         @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,

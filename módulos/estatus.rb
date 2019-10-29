@@ -23,7 +23,7 @@ class Dankie
                          traducción[miembro.status]
                      end
 
-            texto = "Estatus de #{enlace_usuario_objeto(miembro.user, msj.chat.id)}"\
+            texto = "Estatus de #{obtener_enlace_usuario(miembro.user, msj.chat.id)}"\
                     ": #{estado}"
             agregar_cualidades(miembro, texto) unless miembro.user.first_name.empty?
 

@@ -48,8 +48,6 @@ class Dankie
         @comandos ||= {}
     end
 
-    # Handler de las botoneras de lista, lo meto acá porque no se donde mas ponerlo
-    add_handler Handler::CallbackQuery.new(:editar_botonera_lista, 'lista')
 
     # Creo que esto es un dispatch si entendí bien
     def dispatch(msj)
@@ -175,7 +173,35 @@ class Dankie
                          text: texto)
     end
 
+
+
+    # Método recursivo que actualiza los nombres de usuarios en redis
+    def actualizar_nombres_usuarios(msj)
+        redis_actualizar_nombre msj.from.id, msj.from.first_name
+
+        if msj.forward_from
+            redis_actualizar_nombre msj.forward_from.id, msj.forward_from.first_name
+        end
+
+        msj.new_chat_members.each do |usuario|
+            redis_actualizar_nombre usuario.id, usuario.first_name
+        end
+
+        if msj.left_chat_member
+            redis_actualizar_nombre msj.left_chat_member.id, msj.left_chat_member.first_name
+        end
+
+        actualizar_nombres_usuarios(msj.reply_to_message) if msj.reply_to_message
+    end
+
     private
+
+    def redis_actualizar_nombre(id_usuario, nombre)
+        clave = "nombre:#{id_usuario}"
+        if !@redis.exists(clave) || @redis.get(clave) != nombre
+            @redis.set "nombre:#{id_usuario}", nombre, ex: 60*60*24
+        end
+    end
 
     # Analiza un texto y se fija si es un comando válido, devuelve el comando
     # y el resto del texto
@@ -214,40 +240,45 @@ class Dankie
         { command: command&.to_sym, params: params }
     end
 
-    def enlace_usuario_id(id_usuario, id_chat)
-        if (apodo = @redis.hget("apodo:#{id_chat}", id_usuario.to_s))
-            enlace_usuario = "<a href='tg://user?id=#{id_usuario}'>" \
-                             "#{html_parser(apodo)}</a>"
+    # Método que recibe un User o un id_usuario, un Chat o un id_chat y devuelve
+    # un enlace al usuario pasado, un texto si hubo un error o nil si el usuario
+    # borró su cuenta.
+    def obtener_enlace_usuario(usuario, chat, con_apodo: true)
+        id_usuario = usuario.is_a?(Telegram::Bot::Types::User) ? usuario.id : usuario
+        id_chat = chat.is_a?(Telegram::Bot::Types::Chat) ? chat.id : chat
+
+        if con_apodo && (apodo = @redis.hget("apodo:#{id_chat}", id_usuario))
+            enlace_usuario = "<a href='tg://user?id=#{id_usuario}'>"
+            enlace_usuario << "#{html_parser apodo}</a>"
+        elsif (nombre = @redis.get("nombre:#{id_usuario}"))
+            enlace_usuario = "<a href='tg://user?id=#{id_usuario}'>"
+            enlace_usuario << "#{html_parser nombre}</a>"
+        elsif usuario.is_a? Telegram::Bot::Types::User
+            enlace_usuario = _crear_enlace_usuario(usuario)
         else
             usuario = @tg.get_chat_member(chat_id: id_chat, user_id: id_usuario)
             usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
-            enlace_usuario = crear_enlace(usuario)
+            enlace_usuario = _crear_enlace_usuario(usuario)
         end
     rescue StandardError, Telegram::Bot::Exceptions::ResponseError => e
         enlace_usuario = nil
-        error = if e.to_s.include? 'USER_ID_INVALID'
-                    "Traté de obtener el nombre de una cuenta eliminada: #{id_usuario}"
-                else
-                    e.to_s
-                end
-        @logger.error(error, al_canal: false)
+        if e.to_s.include? 'USER_ID_INVALID'
+            @logger.error('Traté de obtener el nombre de una cuenta '\
+                          "eliminada: #{id_usuario}")
+            return nil
+        else
+            @logger.error e.to_s
+        end
     ensure
         return enlace_usuario || "ay no c (#{id_usuario})"
     end
 
-    def enlace_usuario_objeto(usuario, id_chat)
-        if (apodo = @redis.hget("apodo:#{id_chat}", usuario.id.to_s))
-            "<a href='tg://user?id=#{usuario.id}'>" \
-                   "#{html_parser(apodo)}</a>"
-        else
-            crear_enlace(usuario)
-        end
-    end
+    def _crear_enlace_usuario(usuario)
+        redis_actualizar_nombre usuario.id, usuario.first_name
 
-    def crear_enlace(usuario)
         if usuario.username
             "<a href='https://telegram.me/#{usuario.username}'>" \
-                "#{usuario.username}</a>"
+                "#{usuario.first_name}</a>"
         elsif !usuario.first_name.empty?
             "<a href='tg://user?id=#{usuario.id}'>" \
                 "#{html_parser(usuario.first_name)}</a>"
