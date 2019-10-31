@@ -117,7 +117,7 @@ class Dankie
                              text: "Pasame un número natural, #{TROESMAS.sample}.")
             return
         end
-        cantidad = [args ? args.to_i : 5, 15].min # Si no recibe args, toma 5
+        cantidad = [args ? args.to_i : 5, 999].min # Si no recibe args, toma 5
 
         unless (usuario = @redis.get "lastfm:#{msj.from.id}")
             @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
@@ -138,36 +138,47 @@ class Dankie
         temas.pop if temas.size > cantidad # Bug que manda un tema mas que lo pedido
 
         escuchando = temas.find { |tema| tema.dig('@attr', 'nowplaying') }
-        temas.delete(escuchando)
 
-        if temas.empty? && escuchando.nil?
+        if temas.empty?
             @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
                              text: "No escuchaste ningún tema, #{TROESMAS.sample}.")
             return
         end
 
-        texto = 'Canciones recientes de '
-        texto << "#{obtener_enlace_usuario(msj.from.id, msj.chat.id)}:\n\n"
+        título = 'Canciones recientes de '
+        título << "#{obtener_enlace_usuario(msj.from.id, msj.chat.id)}:\n"
 
-        if escuchando
-            texto << '<code>' << (temas.size > 9 ? '01.' : '1.') << '</code> '
-            texto << datos_tema_compacto(escuchando) << " <i>(ahora)</i>\n"
+        arr = [título.dup]
 
-            # despues veo si es verdad eso de que a veces el primer tema es el que suena
-        end
-
-        # Si ya puse un tema, arranco del 2
-        índice = escuchando ? 2 : 1
+        dígitos = temas.size.digits.count
+        contador = 0
+        índice = 1
 
         temas.each do |tema|
-            texto << '<code>' << (temas.size > 9 && índice < 10 ? '0' : '')
-            texto << índice.to_s << '.</code> '
-            texto << datos_tema_compacto(tema) << "\n"
+            if contador == 13 || arr.last.size >= 1000
+                arr << título.dup
+                contador = 0
+            end
+            
+            arr.last << "\n<code>" << format("%#{dígitos}d", índice) << '.</code> '
+            arr.last << datos_tema_compacto(tema)
+            arr.last << " <i>(ahora)</i>" if tema == escuchando
             índice += 1
+            contador += 1
         end
 
-        @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
-                         disable_web_page_preview: true, parse_mode: :html, text: texto)
+        # Armo botonera y envío
+        opciones = armar_botonera 0, arr.size, msj.from.id, true
+
+        respuesta = @tg.send_message(chat_id: msj.chat.id, text: arr.first,
+                                     reply_markup: opciones, parse_mode: :html,
+                                     reply_to_message_id: msj.message_id,
+                                     disable_web_page_preview: true)
+        return unless respuesta
+
+        respuesta = Telegram::Bot::Types::Message.new respuesta['result']
+        armar_lista(msj.chat.id, respuesta.message_id, arr, 'texto',  'todos')
+
     rescue StandardError => e
         logger.error e.to_s
         @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,

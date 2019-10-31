@@ -1,7 +1,7 @@
 class Dankie
     # Las siguientes i6 funciones son para manejar listas de n páginas de texto, media o caption
     def editar_botonera_lista(callback)
-        match = callback.data.match(/lista:(?<id_usuario>\d+):(?<índice>\d+)(:(?<acción>\w+))?/)
+        match = callback.data.match(/lista:(?<id_usuario>\d+):(?<índice>\d+)/)
 
         id_usuario = match[:id_usuario].to_i
         id_chat = callback.message.chat.id
@@ -18,42 +18,10 @@ class Dankie
             return
         end
 
-        # esto es para los dos botones inferiores
-        case match[:acción]
-        when 'borrar'
-            @tg.answer_callback_query(callback_query_id: callback.id,
-                                      text: 'Mensaje borrado.')
-            @tg.delete_message(chat_id: id_chat, message_id: id_mensaje)
-            return
-        when 'edit'
-            @redis.hset("botonera:#{id_chat}:#{id_mensaje}:metadatos",
-                        'editable_por', 'todos')
-            @tg.answer_callback_query(callback_query_id: callback.id,
-                                      text: 'Botonera ahora es presionable por todos.')
-            opciones = armar_botonera(índice, obtener_tamaño_lista(id_chat, id_mensaje),
-                                      callback.from.id, true)
-            @tg.edit_message_reply_markup(chat_id: id_chat, message_id: id_mensaje,
-                                          reply_markup: opciones)
-            return
-        when 'noedit'
-            @redis.hset("botonera:#{id_chat}:#{id_mensaje}:metadatos",
-                        'editable_por', 'dueño')
-            @tg.answer_callback_query(callback_query_id: callback.id,
-                                      text: 'Botonera ahora solo es presionable '\
-                                      'por el que la pidió.')
-            opciones = armar_botonera(índice, obtener_tamaño_lista(id_chat, id_mensaje),
-                                      callback.from.id, false)
-            @tg.edit_message_reply_markup(chat_id: id_chat, message_id: id_mensaje,
-                                          reply_markup: opciones)
-            return
-        end
-
-        # Si no se tocaron los botones inferiores, es porque tocaron un número.
-
         opciones = armar_botonera(índice,
                                   obtener_tamaño_lista(id_chat, id_mensaje),
-                                  callback.from.id,
-                                  metadatos[:editable] == 'todos')
+                                  id_usuario,
+                                  metadatos[:editable_por] == 'todos')
 
         valor = obtener_elemento_lista(id_chat,
                                        id_mensaje,
@@ -92,6 +60,55 @@ class Dankie
         @logger.error e.to_s, al_canal: false
     end
 
+    def acciones_inferiores_lista(callback)
+        match = callback.data.match(
+            /opcioneslista:(?<id_usuario>\d+):(?<índice>\d+)(:(?<acción>\w+))?/
+        )
+
+        id_usuario = match[:id_usuario].to_i
+        id_chat = callback.message.chat.id
+        id_mensaje = callback.message.message_id
+        índice = match[:índice].to_i
+
+        # valido id_usuario y que sea editable
+        if id_usuario != callback.from.id
+            @tg.answer_callback_query(callback_query_id: callback.id,
+                                      text: 'Vos no podés hacer eso, '\
+                                            "#{TROESMAS.sample}.")
+            return
+        end
+
+
+
+        case match[:acción]
+        when 'borrar'
+            @tg.answer_callback_query(callback_query_id: callback.id,
+                                      text: 'Mensaje borrado.')
+            @tg.delete_message(chat_id: id_chat, message_id: id_mensaje)
+        when 'edit'
+            @redis.hset("botonera:#{id_chat}:#{id_mensaje}:metadatos",
+                        'editable_por', 'todos')
+            @tg.answer_callback_query(callback_query_id: callback.id,
+                                      text: 'Botonera ahora es presionable por todos.')
+            opciones = armar_botonera(índice, obtener_tamaño_lista(id_chat, id_mensaje),
+                                      id_usuario, true)
+            @tg.edit_message_reply_markup(chat_id: id_chat, message_id: id_mensaje,
+                                          reply_markup: opciones)
+        when 'noedit'
+            @redis.hset("botonera:#{id_chat}:#{id_mensaje}:metadatos",
+                        'editable_por', 'dueño')
+            @tg.answer_callback_query(callback_query_id: callback.id,
+                                      text: 'Botonera ahora solo es presionable '\
+                                      'por el que la pidió.')
+            opciones = armar_botonera(índice, obtener_tamaño_lista(id_chat, id_mensaje),
+                                      id_usuario, false)
+            @tg.edit_message_reply_markup(chat_id: id_chat, message_id: id_mensaje,
+                                          reply_markup: opciones)
+        end
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        @logger.error e.to_s, al_canal: false
+    end
+
     # Guarda el arreglo en redis, tipo puede valer 'texto', 'photo', 'video',
     # 'animation', 'audio', 'document' o 'caption'
     # editable puede valer 'dueño' o 'todos'. son los que pueden tocar los  botones
@@ -124,13 +141,13 @@ class Dankie
 
         arr = [[]]
         botones_abajo = [Telegram::Bot::Types::InlineKeyboardButton.new(
-            text: (editable ? 'Todos tocan' : 'Solo yo'),
-            callback_data: "lista:#{id_usuario}:#{página_actual}:"\
-                           "#{editable ? 'noedit' : 'edit'}"
-        ),
+                             text: (editable ? "\u{1F513}" : "\u{1F512}"),
+                             callback_data: "opcioneslista:#{id_usuario}:#{página_actual}:"\
+                                            "#{editable ? 'noedit' : 'edit'}"
+                         ),
                          Telegram::Bot::Types::InlineKeyboardButton.new(
-                             text: 'borrar',
-                             callback_data: "lista:#{id_usuario}:#{página_actual}:"\
+                             text: "\u274C",
+                             callback_data: "opcioneslista:#{id_usuario}:#{página_actual}:"\
                                             'borrar'
                          )]
 
