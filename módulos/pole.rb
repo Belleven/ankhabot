@@ -14,10 +14,6 @@ class Dankie
     # add_handler Handler::Comando.new(:dar_nisman, :_test_dar_pole)
     # add_handler Handler::Comando.new(:reiniciar_nisman, :_test_reiniciar_pole)
 
-    # Variables para sincronizar y controlar la cantidad de threads que hay activos
-    $nisman_activas = Concurrent::AtomicFixnum.new(0)
-    $semáforo = Semáforo.new
-
     def _test_reiniciar_pole(msj)
         @redis.set "pole:#{msj.chat.id}:próxima", msg.date
         @tg.send_message(chat_id: msj.chat.id, text: 'Borré la clave pa')
@@ -33,10 +29,6 @@ class Dankie
                      html_parser(mensaje.from.first_name)
                  end
 
-        # Sincronizo para que se frene el comando /nisman hasta que
-        # se terminen de registrar la pole
-        $semáforo.bloqueo_uno
-
         @redis.zincrby("pole:#{mensaje.chat.id}", 1, id)
         @logger.info("#{nombre} hizo la nisman en #{mensaje.chat.id}", al_canal: false)
         @tg.send_message(chat_id: mensaje.chat.id,
@@ -44,12 +36,10 @@ class Dankie
                          reply_to_message_id: mensaje.message_id,
                          text: "<b>#{nombre}</b> hizo la Nisman")
 
-        # No olvidarse de desbloquear el semáforo, esto es mucho muy importante
-        $semáforo.desbloqueo_uno
     end
 
     def pole(msj)
-        # pole:chat_id:next es un timestamp de la hora de la próxima pole
+        # pole:chat_id:próxima es un timestamp de la hora de la próxima pole
         próx_pole = @redis.get("pole:#{msj.chat.id}:próxima").to_i
 
         # Si la clave no existe, próx_pole vale 0 así que cuenta como hacer la pole
@@ -61,10 +51,6 @@ class Dankie
         # La próxima pole va a ser en el día de "mañana" pero a las 00:00:00
         próx_pole = Time.new(mañana.year, mañana.month, mañana.day,
                              0, 0, 0, @tz.utc_offset)
-
-        # Sincronizo para que se frene el comando /nisman hasta que se
-        # terminen de registrar la pole
-        $semáforo.bloqueo_uno
 
         @redis.set "pole:#{msj.chat.id}:próxima", próx_pole.to_i
         @redis.zincrby("pole:#{msj.chat.id}", 1, msj.from.id)
@@ -80,71 +66,52 @@ class Dankie
                          reply_to_message_id: msj.message_id,
                          text: "<b>#{nombre}</b> hizo la Nisman")
 
-        # No olvidarse de desbloquear el semáforo, esto es mucho muy importante
-        $semáforo.desbloqueo_uno
     end
 
     def enviar_ranking_pole(msj)
-        id_chat = msj.chat.id
+        poles = @redis.zrevrange("pole:#{msj.chat.id}", 0, -1, with_scores: true)
 
-        # Si hay 4 hilos activos entonces no atiendo el comando y aviso de esto
-        if $nisman_activas.value >= 4
-            # Problema improbable que NO puede notar el usuario y por eso no
-            # es importante arreglar:
-            # Puede pasar durante el chequeo de este if, si pasa lo siguiente:
-            # - El hilo principal toma el valor de "nisman_activas" de memoria que es 4
-            # - Hay un cambio de contexto
-            # - Uno o más hilos terminan y decrementan el valor de "nisman_activas"
-            #   que ahora es 3 o menos
-            # Debería poder crearse un nuevo hilo entonces
-            # - PERO durante el if se trajo un 4 de memoria, con lo cual va a devolver
-            #   true la comparación 4 >= 4
-            # - NO se va a crear un nuevo hilo cuando debería
-            @tg.send_message(chat_id: id_chat,
-                             reply_to_message_id: msj.message_id,
-                             text: 'Disculpame pero hay demasiados comandos nisman '\
-                                   'activos en este momento, acá y/o en otros '\
-                                   'grupetes. Vas a tener que esperar.')
-
-        else
-
-            texto = '<b>Ranking de Nisman</b>'
-            enviado = @tg.send_message(chat_id: id_chat,
-                                       parse_mode: :html,
-                                       text: texto + "\n\n<i>cargando...</i>")
-            enviado = Telegram::Bot::Types::Message.new(enviado['result'])
-
-            # Aumento en 1 la cantidad de hilos activos
-            $nisman_activas.increment
-
-            # En vez de esto debería tener otra lista de plugins pesados que trabajen
-            # en un hilo aparte
-
-            Thread.new do
-                # Sincronizo para que se frene la captura de la pole hasta
-                # que se terminen de mandar los rankings que fueron llamados
-                $semáforo.bloqueo_muchos
-
-                @logger.info("#{msj.from.id} pidió el ranking de nisman "\
-                             "en el chat #{msj.chat.id}",
-                             al_canal: false)
-
-                editar_ranking_pole(enviado, texto)
-
-                # No olvidarse de desbloquear el semáforo, esto es mucho muy importante
-                $semáforo.desbloqueo_muchos
-                # Además de habilitar un nuevo hilo
-                $nisman_activas.decrement
-
-                # Posible problema: después de esta instrucción podría haber un cambio
-                # de contexto antes de que muera el hilo?? Espero que no, porque si
-                # fuese así entonces podría haber más de 4 hilos del comando "/nisman"
-                # activos a la vez. Aunque eso no se va a notar en las variables, ni lo
-                # va a notar el usuario, pero en un caso super borde podría causar
-                # problemas de eficiencia.
-            end
-
+        if poles.nil?
+            @tg.edit_message_text(chat_id: id_chat,
+                                  text: 'No hay poles en este grupo.',
+                                  message_id: enviado.message_id)
+            return
         end
+
+        título = '<b>Ranking de Nisman</b>'
+
+        # Tomo el total de poles y lo agrego al título
+        poles_totales = poles.map { |arr| arr.last }.inject { |c, i| c.to_i + i.to_i }
+        título << " <i>(#{poles_totales})</i>\n"
+
+        arr = [título.dup]
+
+        dígitos = poles.first[1].to_i.digits.count
+        contador = 0
+
+        poles.each do |pole|
+            if contador == 31 || arr.last.size >= 400
+                arr << título.dup
+                contador = 0
+            end
+            
+            arr.last << "\n<code>#{format("%#{dígitos}d", pole[1].to_i)}</code> "
+            arr.last << obtener_enlace_usuario(pole[0], msj.chat.id)            
+            
+            contador += 1
+        end
+
+        # Armo botonera y envío
+        opciones = armar_botonera 0, arr.size, msj.from.id, true
+
+        respuesta = @tg.send_message(chat_id: msj.chat.id, text: arr.first,
+                                     reply_markup: opciones, parse_mode: :html,
+                                     reply_to_message_id: msj.message_id,
+                                     disable_web_page_preview: true)
+        return unless respuesta
+
+        respuesta = Telegram::Bot::Types::Message.new respuesta['result']
+        armar_lista(msj.chat.id, respuesta.message_id, arr, 'texto',  'todos')
     end
 
     # Para cuando un grupo se convierte en supergrupo

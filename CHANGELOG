@@ -5,6 +5,7 @@
     -setglobal y deltrigger ahora mandan los mensajes para aceptar/rechazar de forma más bonita
     -last.fm rediseñado
     -función obtener_enlace_usuario rediseñada, cachea nombres
+    -/nisman ahora manda listas
     -/grita -perocontodo corregido
     -corregidos errores menores
     -corregido bugazo en /ban
