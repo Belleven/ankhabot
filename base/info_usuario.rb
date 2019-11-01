@@ -146,19 +146,42 @@ class Dankie
     end
 
     def apodos(msj)
-        # Tomo los apodos
-        conjunto_iterable = @redis.hgetall("apodo:#{msj.chat.id}")
-        # Título
-        título_lista = "Apodos del grupete #{html_parser(msj.chat.title)}\n"
-        # Código para crear línea
-        crear_línea = proc do |elemento|
-            "\n- <a href='tg://user?id=#{elemento.first}'> "\
-            "#{html_parser(elemento[1])}</a>"
-        end
-        # Error a mandar en caso de que el conjunto sea vacío
-        error_vacío = 'No hay nadie apodado en el grupete'
+        apodos = @redis.hgetall("apodo:#{msj.chat.id}")
 
-        enviar_lista(msj, conjunto_iterable, título_lista, crear_línea, error_vacío)
+        if apodos.empty?
+            @tg.send_message(chat_id: msj.chat.id,
+                             reply_to_message_id: msj.message_id,
+                             text: 'No hay nadie apodado en el grupete. :c')
+            return
+        end
+
+        título = "Apodos del grupete #{html_parser(msj.chat.title)}\n"
+
+        arr = [título.dup]
+        contador = 0
+
+        apodos.each do |apodo|
+            if contador == 13 || arr.last.size >= 500
+                arr << título.dup
+                contador = 0
+            end
+
+            arr.last << "\n- <a href='tg://user?id=#{apodo[0]}'> "
+            arr.last << "#{html_parser(apodo[1])}</a>"
+            contador += 1
+        end
+
+        # Armo botonera y envío
+        opciones = armar_botonera 0, arr.size, msj.from.id, true
+
+        respuesta = @tg.send_message(chat_id: msj.chat.id, text: arr.first,
+                                     reply_markup: opciones, parse_mode: :html,
+                                     reply_to_message_id: msj.message_id,
+                                     disable_web_page_preview: true)
+        return unless respuesta
+
+        respuesta = Telegram::Bot::Types::Message.new respuesta['result']
+        armar_lista(msj.chat.id, respuesta.message_id, arr, 'texto',  'todos')
     end
 
     def info_usuario_supergrupo(msj)
