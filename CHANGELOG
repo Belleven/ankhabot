@@ -9,6 +9,7 @@
     -/apodos ahora manda listas
     -solo se envía un mismo trigger por grupo cada 30 segundos como mínimo
     -ajustados valores del antiflood
+    -antiflood en la pole
     -/grita -perocontodo corregido
     -corregidos errores menores
     -corregido bugazo en /ban

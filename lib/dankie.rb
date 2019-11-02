@@ -592,6 +592,24 @@ class Dankie
         end
     end
 
+    # Función que recibe un arreglo de Time o unix-time y verifica si se mandaron
+    # muchos mensajes seguidos. Devuelve true o false
+    def chequear_flood(arr)
+        return true if arr.size.between? 0, 1
+
+        promedio = 0
+        arr.each { |i| promedio += i.to_r }
+        promedio /= arr.size
+        diferencia_ahora = Time.now.to_r - promedio
+
+        diferencia_ahora > 89
+    end
+
+    def incremetar_arr_flood(arr, tiempo)
+        arr << tiempo
+        arr.shift until arr.size <= 13
+    end
+
     def arreglo_tablero(conjunto_iterable, arr, título,
                         subtítulo, contador, max_cant, max_tam,
                         agr_elemento, inicio_en_subtítulo = false)

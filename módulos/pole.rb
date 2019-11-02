@@ -12,10 +12,10 @@ class Dankie
 
     # TODO: Ponerle algún flag de solo test a este comando
     # add_handler Handler::Comando.new(:dar_nisman, :_test_dar_pole)
-    # add_handler Handler::Comando.new(:reiniciar_nisman, :_test_reiniciar_pole)
+    add_handler Handler::Comando.new(:reiniciar_nisman, :_test_reiniciar_pole)
 
     def _test_reiniciar_pole(msj)
-        @redis.set "pole:#{msj.chat.id}:próxima", msg.date
+        @redis.set "pole:#{msj.chat.id}:próxima", msj.date
         @tg.send_message(chat_id: msj.chat.id, text: 'Borré la clave pa')
     end
 
@@ -38,11 +38,22 @@ class Dankie
     end
 
     def pole(msj)
+        id_chat = msj.chat.id
+        id_usuario = msj.from.id
+
+        @pole_flood ||= {}
+        @pole_flood[id_chat] ||= {}
+        @pole_flood[id_chat][id_usuario] ||= []
+
+        incremetar_arr_flood(@pole_flood[id_chat][id_usuario], msj.date)
+
         # pole:chat_id:próxima es un timestamp de la hora de la próxima pole
-        próx_pole = @redis.get("pole:#{msj.chat.id}:próxima").to_i
+        próx_pole = @redis.get("pole:#{id_chat}:próxima").to_i
 
         # Si la clave no existe, próx_pole vale 0 así que cuenta como hacer la pole
         return if próx_pole.to_i != 0 && msj.date < próx_pole
+
+        return unless chequear_flood(@pole_flood[id_chat][id_usuario])
 
         # Tomo el datetime del mensaje polero y le sumo 1 día
         # 86400 es un día en segundos -> 24*60*60 = 86400
@@ -51,17 +62,17 @@ class Dankie
         próx_pole = Time.new(mañana.year, mañana.month, mañana.day,
                              0, 0, 0, @tz.utc_offset)
 
-        @redis.set "pole:#{msj.chat.id}:próxima", próx_pole.to_i
-        @redis.zincrby("pole:#{msj.chat.id}", 1, msj.from.id)
+        @redis.set "pole:#{id_chat}:próxima", próx_pole.to_i
+        @redis.zincrby("pole:#{id_chat}", 1, id_usuario)
 
         nombre = if msj.from.first_name.empty?
-                     "ay no c (#{msj.from.id})"
+                     "ay no c (#{id_usuario})"
                  else
                      html_parser(msj.from.first_name)
                  end
 
-        @logger.info("#{nombre} hizo la nisman en #{msj.chat.id}", al_canal: false)
-        @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
+        @logger.info("#{nombre} hizo la nisman en #{id_chat}", al_canal: false)
+        @tg.send_message(chat_id: id_chat, parse_mode: :html,
                          reply_to_message_id: msj.message_id,
                          text: "<b>#{nombre}</b> hizo la Nisman")
     end
