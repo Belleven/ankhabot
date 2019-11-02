@@ -1,16 +1,16 @@
 class Dankie
-    add_handler Handler::Mensaje.new(:x2)
+    add_handler Handler::Mensaje.new(:x2, tipos: [:text])
 
     def x2(msj)
-        return unless msj.text
-
         texto = msj&.reply_to_message&.text || msj&.reply_to_message&.caption
         return unless texto
 
-        mensaje = msj.text.split(' ').first
-        return unless (r = /^[xX*](\d+)/) =~ mensaje
+        mensaje = msj.text.split.first
+        return unless /\A[xX*](\d+)\z/.match? mensaje
 
-        n = mensaje.gsub(r, '\\1').to_i
+        n = mensaje[1..].to_i
+        return if n.zero?
+
         texto << ' '
 
         n = (4096 / texto.length) + 1 if (texto.length * n - 1) > 4096

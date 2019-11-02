@@ -80,13 +80,30 @@ class Dankie
             fecha = Time.at(elemento[1].to_i, in: @tz.utc_offset)
             fecha = fecha.strftime('%d/%m/%Y %T')
             # Armo la línea
-            "\n- #{enlace_usuario_id(id_usuario, msj.chat.id)} (#{fecha})"
+            "\n- #{obtener_enlace_usuario(id_usuario, msj.chat.id)} (#{fecha})"
         end
 
-        # Error a mandar en caso de que sea un conjunto vacío
-        error_vacío = 'No tengo el último mensaje de nadie :c'
-
+        if últimas_vistas.nil? || últimas_vistas.empty?
+            @tg.send_message(chat_id: msj.chat.id,
+                             reply_to_message_id: msj.message_id,
+                             text: 'No tengo el último mensaje de nadie :c')
+            return
+        end
         # Llamo a la funcionaza
-        enviar_lista(msj, últimas_vistas, título_lista, crear_línea, error_vacío)
+        arr = []
+        arreglo_tablero(últimas_vistas, arr, título_lista,
+                        nil, 0, 30, 4096, crear_línea)
+        # Armo botonera y envío
+        opciones = armar_botonera 0, arr.size, msj.from.id
+        respuesta = @tg.send_message(chat_id: msj.chat.id,
+                                     parse_mode: :html,
+                                     reply_markup: opciones,
+                                     text: arr.first,
+                                     disable_web_page_preview: true,
+                                     disable_notification: true)
+        return unless respuesta
+
+        respuesta = Telegram::Bot::Types::Message.new respuesta['result']
+        armar_lista(msj.chat.id, respuesta.message_id, arr)
     end
 end
