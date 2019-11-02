@@ -102,32 +102,31 @@ class Dankie
         @trigger_flood[msj.chat.id] ||= []
 
         Trigger.triggers(msj.chat.id) do |id_grupo, regexp|
-            t1 = Time.now
-            match = regexp.match? texto
-            t2 = Time.now
-
-            # Si el trigger tardó mucho en procesar, lo borro.
-            if (t2.to_f - t1.to_f) > 0.500 # 500ms
-                Trigger.borrar_trigger(id_grupo, regexp)
-                texto = 'Trigger '
-                texto << "<code>#{html_parser Trigger.regexp_a_str(regexp)}</code> "
-                texto << 'borrado en el grupo '
-                texto << "#{html_parser msj.chat&.title} (#{msj.chat.id}) "
-                texto << "por ralentizar al bot.\n"
-                texto << "Tiempo de procesado: <pre>#{t2.to_f - t1.to_f}s</pre>"
-                @tg.send_message(chat_id: msj.chat.id, parse_mode: :html, text: texto)
-                @tg.send_message(chat_id: @canal, parse_mode: :html, text: texto)
-                next
-            end
-
-            next unless match
-
             next unless chequear_flood(@trigger_flood[msj.chat.id])
 
-            incremetar_arr_flood(@trigger_flood[msj.chat.id], Time.now)
+            match = Timeout::timeout(0.500) { regexp.match? texto }
+            next unless match
 
             trigger = Trigger.new(id_grupo, regexp)
+
+            # No manda el trigger si ya lo mandó en los últimos 30 segundos
+            next unless (Time.now.to_i - trigger.último_envío(msj.chat.id)) > 30
+
+            trigger.actualizar_último_envío(msj.chat.id)
+            incremetar_arr_flood(@trigger_flood[msj.chat.id], Time.now)
+
             enviar_trigger(msj.chat.id, trigger)
+
+        # Si el trigger tardó mucho en procesar, lo borro.
+        rescue Timeout::Error
+            Trigger.borrar_trigger(id_grupo, regexp)
+            texto = 'Trigger '
+            texto << "<code>#{html_parser Trigger.regexp_a_str(regexp)}</code> "
+            texto << 'borrado en el grupo '
+            texto << "#{html_parser msj.chat&.title} (#{msj.chat.id}) "
+            texto << "por ralentizar al bot.\n"
+            @tg.send_message(chat_id: msj.chat.id, parse_mode: :html, text: texto)
+            @tg.send_message(chat_id: @canal, parse_mode: :html, text: texto)
         end
     end
 
@@ -143,13 +142,12 @@ class Dankie
         promedio /= arr.size
         diferencia_ahora = Time.now.to_r - promedio
 
-        # POR AHORA 20 SEGUNDOS, DESPUES DE TESTEAR PONER EN 89
-        diferencia_ahora > 20
+        diferencia_ahora > 89
     end
 
     def incremetar_arr_flood(arr, tiempo)
         arr << tiempo
-        arr.shift until arr.size <= 7
+        arr.shift until arr.size <= 13
     end
 
     def validar_poner_trigger_local(msj, params)
@@ -717,6 +715,16 @@ class Trigger
 
     def aumentar_contador
         self.class.redis.hincrby @clave + ':metadata', 'contador', 1
+    end
+
+    # Método que devuelve la fecha del último envío del trigger en un grupo
+    # en unix time
+    def último_envío(id_grupo)
+        self.class.redis.hget(@clave + ':último_envío', id_grupo).to_i
+    end
+
+    def actualizar_último_envío(id_grupo)
+        self.class.redis.hset @clave + ':último_envío', id_grupo, Time.now.to_i
     end
 
     # Con esto meto redis en la clase Trigger para no pasarlo a cada rato
