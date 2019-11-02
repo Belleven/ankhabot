@@ -104,7 +104,7 @@ class Dankie
         Trigger.triggers(msj.chat.id) do |id_grupo, regexp|
             next unless chequear_flood(@trigger_flood[msj.chat.id])
 
-            match = Timeout::timeout(0.500) { regexp.match? texto }
+            match = Timeout.timeout(0.500) { regexp.match? texto }
             next unless match
 
             trigger = Trigger.new(id_grupo, regexp)
