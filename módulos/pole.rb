@@ -35,7 +35,6 @@ class Dankie
                          parse_mode: :html,
                          reply_to_message_id: mensaje.message_id,
                          text: "<b>#{nombre}</b> hizo la Nisman")
-
     end
 
     def pole(msj)
@@ -65,7 +64,6 @@ class Dankie
         @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
                          reply_to_message_id: msj.message_id,
                          text: "<b>#{nombre}</b> hizo la Nisman")
-
     end
 
     def enviar_ranking_pole(msj)
@@ -81,7 +79,7 @@ class Dankie
         título = '<b>Ranking de Nisman</b>'
 
         # Tomo el total de poles y lo agrego al título
-        poles_totales = poles.map { |arr| arr.last }.inject { |c, i| c.to_i + i.to_i }
+        poles_totales = poles.map(&:last).inject { |c, i| c.to_i + i.to_i }
         título << " <i>(#{poles_totales})</i>\n"
 
         arr = [título.dup]
@@ -94,10 +92,10 @@ class Dankie
                 arr << título.dup
                 contador = 0
             end
-            
+
             arr.last << "\n<code>#{format("%#{dígitos}d", pole[1].to_i)}</code> "
-            arr.last << obtener_enlace_usuario(pole[0], msj.chat.id)            
-            
+            arr.last << obtener_enlace_usuario(pole[0], msj.chat.id)
+
             contador += 1
         end
 
@@ -107,11 +105,12 @@ class Dankie
         respuesta = @tg.send_message(chat_id: msj.chat.id, text: arr.first,
                                      reply_markup: opciones, parse_mode: :html,
                                      reply_to_message_id: msj.message_id,
-                                     disable_web_page_preview: true)
+                                     disable_web_page_preview: true,
+                                     disable_notification: true)
         return unless respuesta
 
         respuesta = Telegram::Bot::Types::Message.new respuesta['result']
-        armar_lista(msj.chat.id, respuesta.message_id, arr, 'texto',  'todos')
+        armar_lista(msj.chat.id, respuesta.message_id, arr, 'texto', 'todos')
     end
 
     # Para cuando un grupo se convierte en supergrupo

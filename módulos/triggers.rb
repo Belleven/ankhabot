@@ -159,8 +159,12 @@ class Dankie
     end
 
     def callback_set_trigger_global(callback)
-        # valido usuario
-        return unless DEVS.member? callback.from.id
+        # Valido usuario
+        unless DEVS.member? callback.from.id
+            @tg.answer_callback_query(callback_query_id: callback.id,
+                                      text: 'Solo devs pueden usar esto')
+            return
+        end
 
         match = callback.data.match(/settrigger:(?<id_regexp>\d+):(?<acción>.+)/)
         Trigger.redis ||= @redis
@@ -198,8 +202,12 @@ class Dankie
     end
 
     def callback_del_trigger_global(callback)
-        # valido usuario
-        return unless DEVS.member? callback.from.id
+        # Valido usuario
+        unless DEVS.member? callback.from.id
+            @tg.answer_callback_query(callback_query_id: callback.id,
+                                      text: 'Solo devs pueden usar esto')
+            return
+        end
 
         match = callback.data.match(/deltrigger:(?<id_regexp>\d+):(?<acción>.+)/)
 

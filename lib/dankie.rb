@@ -4,7 +4,6 @@ require_relative 'logger.rb'
 require_relative 'telegram.rb'
 require_relative 'images.rb'
 require_relative 'last_fm_parser.rb'
-require_relative 'semáforo.rb'
 require_relative 'botoneras.rb'
 require 'redis'
 require 'tzinfo'
@@ -47,7 +46,6 @@ class Dankie
     def self.comandos
         @comandos ||= {}
     end
-
 
     # Creo que esto es un dispatch si entendí bien
     def dispatch(msj)
@@ -173,8 +171,6 @@ class Dankie
                          text: texto)
     end
 
-
-
     # Método recursivo que actualiza los nombres de usuarios en redis
     def actualizar_nombres_usuarios(msj)
         redis_actualizar_nombre msj.from.id, msj.from.first_name
@@ -199,7 +195,7 @@ class Dankie
     def redis_actualizar_nombre(id_usuario, nombre)
         clave = "nombre:#{id_usuario}"
         if !@redis.exists(clave) || @redis.get(clave) != nombre
-            @redis.set "nombre:#{id_usuario}", nombre, ex: 60*60*24
+            @redis.set "nombre:#{id_usuario}", nombre, ex: 60 * 60 * 24
         end
     end
 
