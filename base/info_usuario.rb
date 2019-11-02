@@ -177,11 +177,12 @@ class Dankie
         respuesta = @tg.send_message(chat_id: msj.chat.id, text: arr.first,
                                      reply_markup: opciones, parse_mode: :html,
                                      reply_to_message_id: msj.message_id,
-                                     disable_web_page_preview: true)
+                                     disable_web_page_preview: true,
+                                     disable_notification: true)
         return unless respuesta
 
         respuesta = Telegram::Bot::Types::Message.new respuesta['result']
-        armar_lista(msj.chat.id, respuesta.message_id, arr, 'texto',  'todos')
+        armar_lista(msj.chat.id, respuesta.message_id, arr, 'texto', 'todos')
     end
 
     def info_usuario_supergrupo(msj)

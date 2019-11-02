@@ -78,8 +78,6 @@ class Dankie
             return
         end
 
-
-
         case match[:acción]
         when 'borrar'
             @tg.answer_callback_query(callback_query_id: callback.id,
@@ -141,10 +139,10 @@ class Dankie
 
         arr = [[]]
         botones_abajo = [Telegram::Bot::Types::InlineKeyboardButton.new(
-                             text: (editable ? "\u{1F513}" : "\u{1F512}"),
-                             callback_data: "opcioneslista:#{id_usuario}:#{página_actual}:"\
-                                            "#{editable ? 'noedit' : 'edit'}"
-                         ),
+            text: (editable ? "\u{1F513}" : "\u{1F512}"),
+            callback_data: "opcioneslista:#{id_usuario}:#{página_actual}:"\
+                           "#{editable ? 'noedit' : 'edit'}"
+        ),
                          Telegram::Bot::Types::InlineKeyboardButton.new(
                              text: "\u274C",
                              callback_data: "opcioneslista:#{id_usuario}:#{página_actual}:"\

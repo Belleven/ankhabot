@@ -159,10 +159,10 @@ class Dankie
                 arr << título.dup
                 contador = 0
             end
-            
+
             arr.last << "\n<code>" << format("%#{dígitos}d", índice) << '.</code> '
             arr.last << datos_tema_compacto(tema)
-            arr.last << " <i>(ahora)</i>" if tema == escuchando
+            arr.last << ' <i>(ahora)</i>' if tema == escuchando
             índice += 1
             contador += 1
         end
@@ -177,8 +177,7 @@ class Dankie
         return unless respuesta
 
         respuesta = Telegram::Bot::Types::Message.new respuesta['result']
-        armar_lista(msj.chat.id, respuesta.message_id, arr, 'texto',  'todos')
-
+        armar_lista(msj.chat.id, respuesta.message_id, arr, 'texto', 'todos')
     rescue StandardError => e
         logger.error e.to_s
         @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
