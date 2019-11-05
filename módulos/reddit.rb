@@ -47,7 +47,7 @@ class Dankie
         enlace_post = "redd.it/#{id_post}"
         # Si es un posteo de texto, lo mando así
         if post.selftext && !post.selftext.empty?
-            @logger.info("Mandando post texto: #{post.url}", al_canal: true)
+            @logger.info("Mandando post texto: #{post.url}", al_canal: false)
 
             # Me fijo que el mensaje supere los 4096 cracteres (y si lo hace, lo corto)
             longitud_otros = título.length + enlace_post.length + 17
@@ -82,14 +82,14 @@ class Dankie
 
             # Depende si es gif o video, cómo lo mando
             if post.media['reddit_video']['is_gif']
-                @logger.info("Mandando gif: #{enlace}", al_canal: true)
+                @logger.info("Mandando gif: #{enlace}", al_canal: false)
                 @tg.send_animation(chat_id: msj.chat.id,
                                    animation: enlace,
                                    caption: texto,
                                    parse_mode: :html)
             else
                 # TODO: en un futuro descargar el archivo de video y resubirlo
-                @logger.info("Mandando video: #{enlace}", al_canal: true)
+                @logger.info("Mandando video: #{enlace}", al_canal: false)
                 enviar_multimedia(msj, título, enlace_post, post.url)
                 # @tg.send_video(chat_id: msj.chat.id,
                 #               video: enlace,
@@ -106,7 +106,7 @@ class Dankie
     def mandar_sub(msj, post, título)
         # Loggeo
         @logger.info("La búsqueda devolvió otro sub: #{post.url}",
-                     al_canal: true)
+                     al_canal: false)
         # Armo el textazo
         texto = 'El sub que me pasaste redirige a este:'\
                 "\n\n#{título}\nhttps://www.reddit.com#{post.url}"
@@ -133,7 +133,7 @@ class Dankie
 
         mensaje_log = "Enviando link: #{enlace.link}"\
                         " del tipo: #{enlace.type}"
-        @logger.info(mensaje_log, al_canal: true)
+        @logger.info(mensaje_log, al_canal: false)
 
         # Al texto de acompañamiento le pongo el título del post
         texto = título
@@ -183,14 +183,14 @@ class Dankie
         if (hay = sub.nil? || sub.empty?)
             @tg.send_message(chat_id: msj.chat.id,
                              reply_to_message_id: msj.message_id,
-                             text: 'Si no me pasás un subreddit,'\
+                             text: 'Si no me pasás un subreddit, '\
                                     "está jodida la cosa #{TROESMAS.sample}.")
         end
         hay
     end
 
     def sub_inválido(msj, sub)
-        if (inválido = sub =~ /\W/ || sub.size > 21)
+        if (inválido = sub.match?(/\W/) || sub.size > 21)
             @tg.send_message(chat_id: msj.chat.id,
                              reply_to_message_id: msj.message_id,
                              text: 'Ese título de subreddit es '\

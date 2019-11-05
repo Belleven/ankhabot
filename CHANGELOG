@@ -1,5 +1,23 @@
+1.1.0
+    -Soporte para doujinshis de nhentai
+    -listas editables ahora soportan varios tipos de media
+    -ahora el módulo de telegram puede usar el DankieLogger
+    -setglobal y deltrigger ahora mandan los mensajes para aceptar/rechazar de forma más bonita
+    -last.fm rediseñado
+    -función obtener_enlace_usuario rediseñada, cachea nombres
+    -/nisman ahora manda listas
+    -/apodos ahora manda listas
+    -solo se envía un mismo trigger por grupo cada 30 segundos como mínimo
+    -ajustados valores del antiflood
+    -antiflood en la pole
+    -/grita -perocontodo corregido
+    -corregidos errores menores
+    -corregido bugazo en /ban
+    -agregados varios manejos de excepciones de telegram
+    -/chats iniciado + otros comandos similares
+     
 1.0.8
-    -bug en ruleta
+    -corregido bug en ruleta
 
 1.0.7
     -setglobal responde al mensaje que llamo al comando al ser aceptado o rechazado

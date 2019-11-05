@@ -24,16 +24,31 @@ class Dankie
             case resultados
             # Caso bueno
             when Array
-                enlace = resultados.shuffle!.find { |resultado| resultado.type == :image }
-                if enlace
-                    @logger.info("Enviando imagen: #{enlace.link}", al_canal: true)
-                    @tg.send_photo(chat_id: msj.chat.id, photo: enlace.link)
-                else
-                    @tg.send_message(chat_id: msj.chat.id,
-                                     reply_to_message_id: msj.message_id,
-                                     text: 'No pude encontrar imágenes '\
-                                      "de eso, #{TROESMAS.sample}")
+                resultados.shuffle!.filter! { |resultado| resultado.type == :image }
+
+                resultados.each do |enlace|
+                    loggeo = "Búsqueda: #{args}\nImagen: #{enlace.link}"
+                    @logger.info(loggeo, al_canal: false)
+
+                    begin
+                        @tg.send_photo(chat_id: msj.chat.id, photo: enlace.link)
+                        return
+                    rescue Telegram::Bot::Exceptions::ResponseError => e
+                        e = e.to_s
+
+                        log = if e.include?('Bad Request: failed to get HTTP URL content')
+                                  "Error al querer mandar este link: #{enlace.link}"
+                              else
+                                  "Error desconocido: #{e}"
+                              end
+                        @logger.info(log, al_canal: false)
+                    end
                 end
+
+                @tg.send_message(chat_id: msj.chat.id,
+                                 reply_to_message_id: msj.message_id,
+                                 text: 'No pude encontrar imágenes '\
+                                       "de eso, #{TROESMAS.sample}")
 
             # Casos malos
             when :sin_resultados

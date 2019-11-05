@@ -2,73 +2,70 @@
 require 'yaml'
 require 'redis'
 
-datazos = YAML.load_file(File.join(__dir__, 'config.yml'))
-datazos.transform_keys!(&:to_sym)
+def imprimir_todas_las_claves(redis, patron = 'trigger')
+    redis.keys.each do |clave|
+        next unless clave.include? patron
 
-$redis = Redis.new port: datazos[:redis_port], host: datazos[:redis_host], password: datazos[:redis_pass]
+        case redis.type(clave)
 
-def imprimir_todas_las_claves(patron = '')
-    $redis.keys.each do |clave|
-        if clave.include? patron
+        when 'string'
+            valor = redis.get(clave)
+            puts "CLAVE NORMAL: #{clave}\nVALOR: #{valor}\n\n"
 
-            if $redis.type(clave) == 'string'
+        when 'list'
+            valores = redis.lrange(clave, 0, -1)
+            puts "LISTA: #{clave}\nELEMENTOS: #{valores}\n\n"
 
-                valor = $redis.get(clave)
-                puts 'CLAVE NORMAL: ' + clave + "\nVALOR: " + valor + "\n\n"
+        when 'set'
+            valores = redis.smembers(clave)
+            puts "CONJUNTO: #{clave}\nELEMENTOS: #{valores}\n\n"
 
-            elsif $redis.type(clave) == 'list'
-
-                valores = $redis.lrange(clave, 0, -1)
-                puts 'LISTA: ' + clave + "\nELEMENTOS: " + valores.to_s + "\n\n"
-
-            elsif $redis.type(clave) == 'set'
-
-                valores = $redis.smembers(clave)
-                puts 'CONJUNTO: ' + clave + "\nELEMENTOS: " + valores.to_s + "\n\n"
-
-            elsif $redis.type(clave) == 'zset'
-
-                valores = $redis.zrevrange(clave, 0, -1, with_scores: true)
-                puts 'CONJUNTO ORDENADO: ' + clave + "\nELEMENTOS: "
-                valores.each do |atributo|
-                    puts ' ' + atributo[0].to_s + ': ' + atributo[1].to_s
-                end
-                puts "\n"
-
-            elsif $redis.type(clave) == 'hash'
-
-                valores = $redis.hgetall(clave)
-                puts 'HASH: ' + clave + "\nELEMENTOS: "
-                valores.each do |atributo|
-                    puts ' ' + atributo[0].to_s + ': ' + atributo[1].to_s
-                end
-                puts "\n"
-
-            elsif $redis.type(clave) == 'stream'
-
-                puts 'STREAM: ' + clave + "\nVALOR: ¿QUÉ MIERDA ES ESTO FLACO? USÁ CLAVES NORMALES\n\n"
-
+        when 'zset'
+            valores = redis.zrevrange(clave, 0, -1, with_scores: true)
+            puts "CONJUNTO ORDENADO: #{clave}\nELEMENTOS: "
+            valores.each do |atributo|
+                puts " #{atributo[0]}: #{atributo[1]}"
             end
+            puts "\n"
+
+        when 'hash'
+            valores = redis.hgetall(clave)
+            puts "HASH: #{clave}\nELEMENTOS: "
+            valores.each do |atributo|
+                puts " #{atributo[0]}: #{atributo[1]}"
+            end
+            puts "\n"
+
+        when 'stream'
+            puts "STREAM: #{clave}\n"\
+                 "VALOR: ¿QUÉ MIERDA ES ESTO FLACO? USÁ CLAVES NORMALES\n\n"
 
         end
     end
 end
 
 def modificar_base
+    datazos = YAML.load_file(File.join(__dir__, 'config.yml'))
+    datazos.transform_keys!(&:to_sym)
+
+    redis = Redis.new(port: datazos[:redis_port],
+                      host: datazos[:redis_host],
+                      password: datazos[:redis_pass])
+
     puts "\n"
     puts '-' * 30
     puts 'ANTES DE CAMBIAR LA BBDD'
     puts '-' * 30
     puts "\n"
 
-    imprimir_todas_las_claves
+    imprimir_todas_las_claves redis
 
     puts '-' * 30
     puts 'CAMBIANDO LA BBDD'
     puts '-' * 30
 
     # Acá meter funciones para modificar la BD, NO OLVIDARSE de borrarlos después
-    # Por ejemplo: $redis.del("agregar:5")
+    # Por ejemplo: redis.del("agregar:5")
 
     puts 'CAMBIADA'
     puts '-' * 30
@@ -76,7 +73,7 @@ def modificar_base
     puts '-' * 30
     puts "\n"
 
-    imprimir_todas_las_claves
+    imprimir_todas_las_claves redis
 
     puts '-' * 30
     puts 'FIN'

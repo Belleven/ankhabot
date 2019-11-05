@@ -4,7 +4,6 @@ require_relative 'logger.rb'
 require_relative 'telegram.rb'
 require_relative 'images.rb'
 require_relative 'last_fm_parser.rb'
-require_relative 'semáforo.rb'
 require_relative 'botoneras.rb'
 require 'redis'
 require 'tzinfo'
@@ -48,9 +47,6 @@ class Dankie
         @comandos ||= {}
     end
 
-    # Handler de las botoneras de lista, lo meto acá porque no se donde mas ponerlo
-    add_handler Handler::CallbackQuery.new(:editar_botonera_lista, 'lista')
-
     # Creo que esto es un dispatch si entendí bien
     def dispatch(msj)
         # Handlers generales, no los de comando si no los de mensajes/eventos de chat
@@ -66,16 +62,20 @@ class Dankie
 
     # Recibe un Hash con los datos de config.yml
     def initialize(args)
-        logger = Logger.new $stderr
-        @tg = TelegramAPI.new args[:tg_token], logger
         @canal = args[:canal_logging]
-        @logger = DankieLogger.new logger, @canal, @tg.client
+        # Tanto tg como dankielogger usan un cliente para mandar mensajes
+        # Y además tg usa un logger
+        logger = Logger.new $stderr
+        @logger = DankieLogger.new logger, @canal
+        @tg = TelegramAPI.new args[:tg_token], @logger
+        @logger.inicializar_cliente @tg.client
+
         @redis = Redis.new port: args[:redis_port], host: args[:redis_host],
                            password: args[:redis_pass]
         @img = ImageSearcher.new args[:google_image_key], args[:google_image_cx],
                                  args[:google_image_gl], @logger
         @user = Telegram::Bot::Types::User.new @tg.get_me['result']
-        @lastFM = LastFMParser.new args[:last_fm_api]
+        @lastfm = LastFM::Api.new args[:last_fm_api]
         @tz = TZInfo::Timezone.get args[:timezone]
         @redditApi = Reddit::Api.new
     end
@@ -123,7 +123,7 @@ class Dankie
             # Sacar este raise cuando el bot deje de ser testeadísimo
             # lo puse porque luke dice que es pesado cuando se pone a mandar
             # errores en el grupete.
-            #            raise
+            #       raise
         end
     end
 
@@ -171,7 +171,33 @@ class Dankie
                          text: texto)
     end
 
+    # Método recursivo que actualiza los nombres de usuarios en redis
+    def actualizar_nombres_usuarios(msj)
+        redis_actualizar_nombre msj.from.id, msj.from.first_name
+
+        if msj.forward_from
+            redis_actualizar_nombre msj.forward_from.id, msj.forward_from.first_name
+        end
+
+        msj.new_chat_members.each do |usuario|
+            redis_actualizar_nombre usuario.id, usuario.first_name
+        end
+
+        if msj.left_chat_member
+            redis_actualizar_nombre msj.left_chat_member.id, msj.left_chat_member.first_name
+        end
+
+        actualizar_nombres_usuarios(msj.reply_to_message) if msj.reply_to_message
+    end
+
     private
+
+    def redis_actualizar_nombre(id_usuario, nombre)
+        clave = "nombre:#{id_usuario}"
+        if !@redis.exists(clave) || @redis.get(clave) != nombre
+            @redis.set "nombre:#{id_usuario}", nombre, ex: 60 * 60 * 24
+        end
+    end
 
     # Analiza un texto y se fija si es un comando válido, devuelve el comando
     # y el resto del texto
@@ -191,7 +217,8 @@ class Dankie
             command.gsub!(%r{^/([a-z]+)(@#{@user.username.downcase})?}, '\\1')
 
         elsif ['!', '>', '$', '.'].include? text[0] # "!cmd params" o ">cmd params"
-            command, params = text[1..-1].split ' ', 2
+            command, params = text.split ' ', 2
+            command = command[1..-1]
             command.downcase!
         else
             arr = text.split(' ', 3) # ["user", "comando", "params"]
@@ -209,40 +236,45 @@ class Dankie
         { command: command&.to_sym, params: params }
     end
 
-    def enlace_usuario_id(id_usuario, id_chat)
-        if (apodo = @redis.hget("apodo:#{id_chat}", id_usuario.to_s))
-            enlace_usuario = "<a href='tg://user?id=#{id_usuario}'>" \
-                             "#{html_parser(apodo)}</a>"
+    # Método que recibe un User o un id_usuario, un Chat o un id_chat y devuelve
+    # un enlace al usuario pasado, un texto si hubo un error o nil si el usuario
+    # borró su cuenta.
+    def obtener_enlace_usuario(usuario, chat, con_apodo: true)
+        id_usuario = usuario.is_a?(Telegram::Bot::Types::User) ? usuario.id : usuario
+        id_chat = chat.is_a?(Telegram::Bot::Types::Chat) ? chat.id : chat
+
+        if con_apodo && (apodo = @redis.hget("apodo:#{id_chat}", id_usuario))
+            enlace_usuario = "<a href='tg://user?id=#{id_usuario}'>"
+            enlace_usuario << "#{html_parser apodo}</a>"
+        elsif (nombre = @redis.get("nombre:#{id_usuario}"))
+            enlace_usuario = "<a href='tg://user?id=#{id_usuario}'>"
+            enlace_usuario << "#{html_parser nombre}</a>"
+        elsif usuario.is_a? Telegram::Bot::Types::User
+            enlace_usuario = _crear_enlace_usuario(usuario)
         else
             usuario = @tg.get_chat_member(chat_id: id_chat, user_id: id_usuario)
             usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
-            enlace_usuario = crear_enlace(usuario)
+            enlace_usuario = _crear_enlace_usuario(usuario)
         end
     rescue StandardError, Telegram::Bot::Exceptions::ResponseError => e
         enlace_usuario = nil
-        error = if e.to_s.include? 'USER_ID_INVALID'
-                    "Traté de obtener el nombre de una cuenta eliminada: #{id_usuario}"
-                else
-                    e.to_s
-                end
-        @logger.error(error, al_canal: false)
+        if e.to_s.include? 'USER_ID_INVALID'
+            @logger.error('Traté de obtener el nombre de una cuenta '\
+                          "eliminada: #{id_usuario}")
+            return nil
+        else
+            @logger.error e.to_s
+        end
     ensure
         return enlace_usuario || "ay no c (#{id_usuario})"
     end
 
-    def enlace_usuario_objeto(usuario, id_chat)
-        if (apodo = @redis.hget("apodo:#{id_chat}", usuario.id.to_s))
-            "<a href='tg://user?id=#{usuario.id}'>" \
-                   "#{html_parser(apodo)}</a>"
-        else
-            crear_enlace(usuario)
-        end
-    end
+    def _crear_enlace_usuario(usuario)
+        redis_actualizar_nombre usuario.id, usuario.first_name
 
-    def crear_enlace(usuario)
         if usuario.username
             "<a href='https://telegram.me/#{usuario.username}'>" \
-                "#{usuario.username}</a>"
+                "#{usuario.first_name}</a>"
         elsif !usuario.first_name.empty?
             "<a href='tg://user?id=#{usuario.id}'>" \
                 "#{html_parser(usuario.first_name)}</a>"
@@ -299,7 +331,7 @@ class Dankie
         if msj.chat.title.nil?
             msj.chat.id.to_s
         else
-            msj.chat.title + ' (' + msj.chat.id.to_s + ')'
+            "#{msj.chat.title} (#{msj.chat.id})"
         end
     end
 
@@ -392,11 +424,11 @@ class Dankie
             end
             # Si no conseguí ninguna id, entonces todo el argumento es "otro_texto"
             otro_texto = args_mensaje if id_afectada.nil?
-
+        end
         # Si está respondiendo a un mensaje y no se obtuvo un id de los argumentos
         # toma el id de ese miembro para ser afectado. Notar que el otro texto
         # es obtenido en el if anterior (si existe)
-        elsif msj.reply_to_message && id_afectada.nil?
+        if msj.reply_to_message && id_afectada.nil?
             id_afectada = msj.reply_to_message.from.id
         end
 
@@ -552,19 +584,39 @@ class Dankie
         when /message to delete not found/
             @logger.error("Traté de borrar un mensaje (id mensaje: #{id_mensaje}) "\
                           "muy viejo (id chat: #{id_chat}).",
-                          al_canal: true)
+                          al_canal: false)
         when /message can't be deleted/
             @logger.error("No pude borrar un mensaje (id mensaje: #{id_mensaje}) "\
                           "(id chat: #{id_chat}).",
-                          al_canal: true)
+                          al_canal: false)
         end
+    end
+
+    # Función que recibe un arreglo de Time o unix-time y verifica si se mandaron
+    # muchos mensajes seguidos. Devuelve true o false
+    def chequear_flood(arr)
+        return true if arr.size.between? 0, 1
+
+        promedio = 0
+        arr.each { |i| promedio += i.to_r }
+        promedio /= arr.size
+        diferencia_ahora = Time.now.to_r - promedio
+
+        diferencia_ahora > 89
+    end
+
+    def incremetar_arr_flood(arr, tiempo)
+        arr << tiempo
+        arr.shift until arr.size <= 13
     end
 
     def arreglo_tablero(conjunto_iterable, arr, título,
                         subtítulo, contador, max_cant, max_tam,
                         agr_elemento, inicio_en_subtítulo = false)
+        return if conjunto_iterable.nil? || conjunto_iterable.empty?
+
         # .dup crea una copia del objeto original
-        if inicio_en_subtítulo && !arr.empty? &&
+        if inicio_en_subtítulo && !arr.empty? && subtítulo &&
            contador < max_cant && arr.last.size < max_tam
             # Meto subtítulo si queda bien ponerlo en este caso
             arr.last << subtítulo.dup
@@ -574,7 +626,7 @@ class Dankie
             # Si es una página nueva agrego título y subtítulo
             if arr.empty? || contador >= max_cant || arr.last.size >= max_tam
                 arr << título.dup
-                arr.last << subtítulo.dup
+                arr.last << subtítulo.dup if subtítulo
                 contador = 0
             end
             # Agrego el elemento juju

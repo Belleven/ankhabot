@@ -23,7 +23,7 @@ class Dankie
                          traducción[miembro.status]
                      end
 
-            texto = "Estatus de #{enlace_usuario_objeto(miembro.user, msj.chat.id)}"\
+            texto = "Estatus de #{obtener_enlace_usuario(miembro.user, msj.chat.id)}"\
                     ": #{estado}"
             agregar_cualidades(miembro, texto) unless miembro.user.first_name.empty?
 
@@ -51,13 +51,13 @@ class Dankie
     private
 
     def miembro_válido(msj)
-        id_usuario, alias_usuario, = id_y_resto(msj)
+        id_usuario, alias_usuario, otro = id_y_resto(msj)
 
         if id_usuario.nil?
             @tg.send_message(chat_id: msj.chat.id,
                              text: 'Tenés que responder un mensaje o pasarme '\
-                                    'un usuario para que pueda revisar '\
-                                    "su estatus, #{TROESMAS.sample}",
+                                    'un usuario válido de este grupo para que '\
+                                    "pueda revisar su estatus, #{TROESMAS.sample}",
                              reply_to_message_id: msj.message_id)
             return nil
         end
