@@ -42,6 +42,8 @@ class Dankie
             @tg.edit_message_text(chat_id: id_chat,
                                   parse_mode: :html,
                                   message_id: id_mensaje,
+                                  disable_web_page_preview: true,
+                                  disable_notification: true, # TODO: ver como permitir que estos dos sean variables ???
                                   text: valor,
                                   reply_markup: opciones)
         when 'caption'
