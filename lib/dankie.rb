@@ -193,6 +193,8 @@ class Dankie
     private
 
     def redis_actualizar_nombre(id_usuario, nombre)
+        return if nombre.empty?
+
         clave = "nombre:#{id_usuario}"
         if !@redis.exists(clave) || @redis.get(clave) != nombre
             @redis.set "nombre:#{id_usuario}", nombre, ex: 60 * 60 * 24
@@ -240,47 +242,47 @@ class Dankie
     # un enlace al usuario pasado, un texto si hubo un error o nil si el usuario
     # borró su cuenta.
     def obtener_enlace_usuario(usuario, chat, con_apodo: true)
-        id_usuario = usuario.is_a?(Telegram::Bot::Types::User) ? usuario.id : usuario
-        id_chat = chat.is_a?(Telegram::Bot::Types::Chat) ? chat.id : chat
+        begin
+            id_chat = chat.is_a?(Telegram::Bot::Types::Chat) ? chat.id : chat
 
-        if con_apodo && (apodo = @redis.hget("apodo:#{id_chat}", id_usuario))
-            enlace_usuario = "<a href='tg://user?id=#{id_usuario}'>"
-            enlace_usuario << "#{html_parser apodo}</a>"
-        elsif (nombre = @redis.get("nombre:#{id_usuario}"))
-            enlace_usuario = "<a href='tg://user?id=#{id_usuario}'>"
-            enlace_usuario << "#{html_parser nombre}</a>"
-        elsif usuario.is_a? Telegram::Bot::Types::User
-            enlace_usuario = _crear_enlace_usuario(usuario)
-        else
-            usuario = @tg.get_chat_member(chat_id: id_chat, user_id: id_usuario)
-            usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
-            enlace_usuario = _crear_enlace_usuario(usuario)
-        end
-    rescue StandardError, Telegram::Bot::Exceptions::ResponseError => e
-        enlace_usuario = nil
-        if e.to_s.include? 'USER_ID_INVALID'
-            @logger.error('Traté de obtener el nombre de una cuenta '\
-                          "eliminada: #{id_usuario}")
-            return nil
-        else
-            @logger.error e.to_s
-        end
-    ensure
-        return enlace_usuario || "ay no c (#{id_usuario})"
-    end
+            if usuario.is_a?(Telegram::Bot::Types::User)
+                id_usuario = usuario.id
+                alias_usuario = usuario.username
+            else
+                usuario = @tg.get_chat_member(chat_id: id_chat, user_id: usuario)
+                usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
+                id_usuario = usuario.id
+                alias_usuario = usuario.username
+            end
 
-    def _crear_enlace_usuario(usuario)
-        redis_actualizar_nombre usuario.id, usuario.first_name
+            mención = if alias_usuario
+                      then "<a href='https://telegram.me/#{alias_usuario}'>"
+                      else "<a href='tg://user?id=#{id_usuario}'>"
+                      end
 
-        if usuario.username
-            "<a href='https://telegram.me/#{usuario.username}'>" \
-                "#{usuario.first_name}</a>"
-        elsif !usuario.first_name.empty?
-            "<a href='tg://user?id=#{usuario.id}'>" \
-                "#{html_parser(usuario.first_name)}</a>"
-        else
-            'ay no c (' + usuario.id.to_s + ')'
+            if con_apodo && (apodo = @redis.hget("apodo:#{id_chat}", id_usuario))
+                mención << "#{html_parser apodo}</a>"
+            elsif (nombre = @redis.get("nombre:#{id_usuario}")) && !nombre.empty?
+                mención << "#{html_parser nombre}</a>"
+            else
+                redis_actualizar_nombre usuario.id, usuario.first_name
+                if usuario.first_name.empty?
+                    mención = "ay no c (#{id_usuario})"
+                else
+                    mención << "#{html_parser usuario.first_name}</a>"
+                end
+            end
+        rescue Telegram::Bot::Exceptions::ResponseError => e
+            mención = "ay no c (#{id_usuario})"
+            puts 'Excepción: ' + mención + ' ' + id_usuario.to_s
+            if e.to_s.include? 'USER_ID_INVALID'
+                @logger.error('Traté de obtener el nombre de una cuenta '\
+                            "eliminada: #{id_usuario}")
+            else
+                @logger.error e.to_s
+            end
         end
+        mención
     end
 
     def natural(numero)

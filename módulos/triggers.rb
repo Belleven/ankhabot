@@ -543,7 +543,7 @@ class Dankie
         texto << "Usuario #{obtener_enlace_usuario(id_usuario, chat.id,
                                                    con_apodo: false)} en el chat "
         texto << "#{html_parser(chat&.title || chat&.username)} (#{chat.id}) "
-        texto << 'quiere añadir trigger: '
+        texto << 'quiere añadir el trigger: '
         texto << "<code>#{regexp_sanitizada}</code>\n"
         msj_log = @tg.send_message(chat_id: @canal, parse_mode: :html, text: texto,
                                    disable_web_page_preview: true,
@@ -558,7 +558,7 @@ class Dankie
         # Mando el tablero para aceptar o rechazarlo
         opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new inline_keyboard: arr
         @tg.send_message(chat_id: @canal, parse_mode: :html,
-                         text: "¿Aceptar trigger <code>#{regexp_sanitizada}</code>?",
+                         text: "¿Aceptar el trigger <code>#{regexp_sanitizada}</code>?",
                          reply_markup: opciones, disable_web_page_preview: true,
                          disable_notification: true,
                          reply_to_message_id: id_enviado)
@@ -587,7 +587,7 @@ class Dankie
         texto << "Usuario #{obtener_enlace_usuario(id_usuario, chat.id,
                                                    con_apodo: false)} en el chat "
         texto << "#{html_parser(chat&.title || chat&.username)} (#{chat.id}) "
-        texto << 'quiere borrar trigger: '
+        texto << 'quiere borrar el trigger: '
         texto << " <code>#{regexp_sanitizada}</code>\n"
         msj_log = @tg.send_message(chat_id: @canal, parse_mode: :html, text: texto,
                                    disable_web_page_preview: true,
@@ -602,7 +602,7 @@ class Dankie
         # Mando tablero con opciones para decidir si borrarlo o no
         opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new inline_keyboard: arr
         @tg.send_message(chat_id: @canal, parse_mode: :html,
-                         text: "¿Borrar trigger <code>#{regexp_sanitizada}</code>?",
+                         text: "¿Borrar el trigger <code>#{regexp_sanitizada}</code>?",
                          reply_markup: opciones, disable_web_page_preview: true,
                          reply_to_message_id: id_enviado,
                          disable_notification: true)

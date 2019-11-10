@@ -22,8 +22,8 @@ class Dankie
             @logger.info("Chat #{msj.migrate_from_chat_id} migró a #{msj.chat.id}",
                          al_canal: true)
 
-            @redis.sadd('chat:group:eliminados', migrate_from_chat_id.to_s)
-            @redis.srem('chat:group:activos', migrate_from_chat_id.to_s)
+            @redis.sadd('chat:group:eliminados', msj.migrate_from_chat_id.to_s)
+            @redis.srem('chat:group:activos', msj.migrate_from_chat_id.to_s)
 
             # Hash con los grupos que migran a supergrupos
             @redis.hset('chats_migrados',
