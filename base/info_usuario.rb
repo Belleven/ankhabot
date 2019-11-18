@@ -166,8 +166,7 @@ class Dankie
                 contador = 0
             end
 
-            arr.last << "\n- <a href='tg://user?id=#{apodo[0]}'> "
-            arr.last << "#{html_parser(apodo[1])}</a>"
+            arr.last << "\n- #{obtener_enlace_usuario(apodo.first, msj.chat.id)}"
             contador += 1
         end
 
@@ -176,7 +175,6 @@ class Dankie
 
         respuesta = @tg.send_message(chat_id: msj.chat.id, text: arr.first,
                                      reply_markup: opciones, parse_mode: :html,
-                                     reply_to_message_id: msj.message_id,
                                      disable_web_page_preview: true,
                                      disable_notification: true)
         return unless respuesta

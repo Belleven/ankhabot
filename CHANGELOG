@@ -1,3 +1,11 @@
+1.1.2
+    -ya no aparecen notificaciones para usuarios con alias cuando el bot los menciona
+    -ahora evita que se trate de borrar dos veces el mismo trigger
+    -arreglada redacción en mensajes de logging al agregar y borrar triggers globales
+    -arreglada excepción que saltaba cuando los grupos migraban a supergrupos 
+    -arreglado bug que registraba nombres de cuentas eliminadas
+    -arreglado bug en /grita -perocontodo que tomaba mal los parámetros
+
 1.1.1
     -arreglado bug de notificaciones con /nisman
 

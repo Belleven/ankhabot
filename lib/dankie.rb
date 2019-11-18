@@ -112,6 +112,7 @@ class Dankie
             retry
 
         rescue StandardError => e
+            raise e
 
             begin
                 texto, backtrace = @logger.excepcion_texto(e)
@@ -172,30 +173,38 @@ class Dankie
     end
 
     # Método recursivo que actualiza los nombres de usuarios en redis
-    def actualizar_nombres_usuarios(msj)
-        redis_actualizar_nombre msj.from.id, msj.from.first_name
+    def actualizar_datos_usuarios(msj)
+        redis_actualizar_datos msj.from
 
         if msj.forward_from
-            redis_actualizar_nombre msj.forward_from.id, msj.forward_from.first_name
+            redis_actualizar_datos msj.forward_from
         end
 
         msj.new_chat_members.each do |usuario|
-            redis_actualizar_nombre usuario.id, usuario.first_name
+            redis_actualizar_datos usuario
         end
 
         if msj.left_chat_member
-            redis_actualizar_nombre msj.left_chat_member.id, msj.left_chat_member.first_name
+            redis_actualizar_datos msj.left_chat_member
         end
 
-        actualizar_nombres_usuarios(msj.reply_to_message) if msj.reply_to_message
+        actualizar_datos_usuarios(msj.reply_to_message) if msj.reply_to_message
     end
 
     private
 
-    def redis_actualizar_nombre(id_usuario, nombre)
-        clave = "nombre:#{id_usuario}"
-        if !@redis.exists(clave) || @redis.get(clave) != nombre
-            @redis.set "nombre:#{id_usuario}", nombre, ex: 60 * 60 * 24
+    def redis_actualizar_datos(usuario)
+        
+        clave = "nombre:#{usuario.id}"
+
+        if @redis.get(clave) != usuario.first_name
+            @redis.set clave, usuario.first_name, ex: 60 * 60 * 24
+        end
+
+        clave = "usuario:#{usuario.id}"
+
+        if @redis.get(clave) != usuario.username
+            @redis.set clave, usuario.username, ex: 60 * 60 * 24
         end
     end
 
@@ -240,47 +249,57 @@ class Dankie
     # un enlace al usuario pasado, un texto si hubo un error o nil si el usuario
     # borró su cuenta.
     def obtener_enlace_usuario(usuario, chat, con_apodo: true)
-        id_usuario = usuario.is_a?(Telegram::Bot::Types::User) ? usuario.id : usuario
         id_chat = chat.is_a?(Telegram::Bot::Types::Chat) ? chat.id : chat
 
-        if con_apodo && (apodo = @redis.hget("apodo:#{id_chat}", id_usuario))
-            enlace_usuario = "<a href='tg://user?id=#{id_usuario}'>"
-            enlace_usuario << "#{html_parser apodo}</a>"
-        elsif (nombre = @redis.get("nombre:#{id_usuario}"))
-            enlace_usuario = "<a href='tg://user?id=#{id_usuario}'>"
-            enlace_usuario << "#{html_parser nombre}</a>"
-        elsif usuario.is_a? Telegram::Bot::Types::User
-            enlace_usuario = _crear_enlace_usuario(usuario)
+        if usuario.is_a?(Telegram::Bot::Types::User)
+            id_usuario = usuario.id
+            alias_usuario = usuario.username
         else
-            usuario = @tg.get_chat_member(chat_id: id_chat, user_id: id_usuario)
-            usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
-            enlace_usuario = _crear_enlace_usuario(usuario)
+            id_usuario = usuario
+
+            alias_usuario = @redis.get "usuario:#{id_usuario}"
+            if !alias_usuario 
+                usuario = @tg.get_chat_member(chat_id: id_chat, user_id: usuario)
+                usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
+                alias_usuario = usuario.username
+                redis_actualizar_datos usuario
+            end
         end
-    rescue StandardError, Telegram::Bot::Exceptions::ResponseError => e
-        enlace_usuario = nil
+
+        mención = if alias_usuario && !alias_usuario.empty?
+                  then "<a href='https://telegram.me/#{alias_usuario}'>"
+                  else "<a href='tg://user?id=#{id_usuario}'>"
+                  end
+
+        if con_apodo && (apodo = @redis.hget("apodo:#{id_chat}", id_usuario))
+            mención << "#{html_parser apodo}</a>"
+        elsif (nombre = @redis.get("nombre:#{id_usuario}")) && !nombre.empty?
+            mención << "#{html_parser nombre}</a>"
+        else
+            usuario = @tg.get_chat_member(chat_id: id_chat, user_id: usuario)
+            usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
+            alias_usuario = usuario.username
+
+            redis_actualizar_datos usuario
+            if usuario.first_name.empty?
+                mención = "ay no c (#{id_usuario})"
+            else
+                mención << "#{html_parser usuario.first_name}</a>"
+            end
+        end
+
+        return mención
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        mención = "ay no c (#{id_usuario})"
+        puts 'Excepción: ' + mención + ' ' + id_usuario.to_s
         if e.to_s.include? 'USER_ID_INVALID'
             @logger.error('Traté de obtener el nombre de una cuenta '\
-                          "eliminada: #{id_usuario}")
-            return nil
+                        "eliminada: #{id_usuario}")
         else
             @logger.error e.to_s
         end
-    ensure
-        return enlace_usuario || "ay no c (#{id_usuario})"
-    end
 
-    def _crear_enlace_usuario(usuario)
-        redis_actualizar_nombre usuario.id, usuario.first_name
-
-        if usuario.username
-            "<a href='https://telegram.me/#{usuario.username}'>" \
-                "#{usuario.first_name}</a>"
-        elsif !usuario.first_name.empty?
-            "<a href='tg://user?id=#{usuario.id}'>" \
-                "#{html_parser(usuario.first_name)}</a>"
-        else
-            'ay no c (' + usuario.id.to_s + ')'
-        end
+        return mención
     end
 
     def natural(numero)

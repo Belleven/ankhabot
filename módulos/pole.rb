@@ -11,7 +11,7 @@ class Dankie
                                      descripción: 'Muestro el ranking de Nisman')
 
     # TODO: Ponerle algún flag de solo test a este comando
-    # add_handler Handler::Comando.new(:dar_nisman, :_test_dar_pole)
+    add_handler Handler::Comando.new(:darnisman, :_test_dar_pole)
     # add_handler Handler::Comando.new(:reiniciar_nisman, :_test_reiniciar_pole)
 
     def _test_reiniciar_pole(msj)
@@ -99,7 +99,7 @@ class Dankie
         contador = 0
 
         poles.each do |pole|
-            if contador == 31 || arr.last.size >= 400
+            if contador == 31 || arr.last.size >= 2000
                 arr << título.dup
                 contador = 0
             end
