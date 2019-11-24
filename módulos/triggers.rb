@@ -540,8 +540,9 @@ class Dankie
         fecha = Time.at(fecha, in: @tz.utc_offset)
 
         texto = fecha.strftime("<code>[%d/%m/%Y %T]</code>\n")
-        texto << "Usuario #{obtener_enlace_usuario(id_usuario, chat.id,
-                                                   con_apodo: false)} en el chat "
+        texto << "Usuario "
+        texto << obtener_enlace_usuario(id_usuario, chat.id, con_apodo: false)
+        texto << " (#{id_usuario}) en el chat "
         texto << "#{html_parser(chat&.title || chat&.username)} (#{chat.id}) "
         texto << 'quiere añadir el trigger: '
         texto << "<code>#{regexp_sanitizada}</code>\n"
@@ -584,8 +585,9 @@ class Dankie
         fecha = Time.at(fecha, in: @tz.utc_offset)
 
         texto = fecha.strftime("<code>[%d/%m/%Y %T]</code>\n")
-        texto << "Usuario #{obtener_enlace_usuario(id_usuario, chat.id,
-                                                   con_apodo: false)} en el chat "
+        texto << "Usuario "
+        texto << obtener_enlace_usuario(id_usuario, chat.id, con_apodo: false)
+        texto << "(#{id_usuario}) en el chat "
         texto << "#{html_parser(chat&.title || chat&.username)} (#{chat.id}) "
         texto << 'quiere borrar el trigger: '
         texto << " <code>#{regexp_sanitizada}</code>\n"
