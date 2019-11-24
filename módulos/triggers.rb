@@ -256,7 +256,7 @@ class Dankie
                                   "fijate en /triggers@#{@user.username}.",
                              reply_to_message_id: msj.message_id)
         elsif grupo == :global
-            if Trigger.temporal?(regexp)
+            if Trigger.temporal_deltrigger(regexp)
                 texto = 'Alguien ya está borrando un trigger con esa expresión '
                 texto << "regular, #{TROESMAS.sample}."
                 @tg.send_message(chat_id: msj.chat.id, text: texto,
@@ -758,9 +758,9 @@ class Trigger
     end
 
     # Ver si existe un temporal
-    def self.existe_temporal?(clave)
-        @redis.exists("triggers:settrigger:#{clave}") ||
-            @redis.exists("triggers:deltrigger:#{clave}")
+    def self.existe_temporal?(id)
+        @redis.exists("triggers:settrigger:#{id}") ||
+            @redis.exists("triggers:deltrigger:#{id}")
     end
 
     # Método que mueve las claves de un trigger temporal a la lista de trigger globales.
@@ -804,13 +804,14 @@ class Trigger
         @redis.del clave
         return unless id_trigger
 
-        @redis.del "triggers:deltrigger:#{id_trigger}"
+        descartar_temporal id_trigger
     end
 
     # Método que toma un trigger y devuelve un id, así es identificable a la hora de
     # borrarlo.
     def self.confirmar_borrar_trigger(id_grupo, regexp, id_msj)
         contador = @redis.incr 'triggers:contador'
+        @redis.sadd 'triggers:temp:deltrigger', regexp_a_str(regexp)
         @redis.mapped_hmset("triggers:deltrigger:#{contador}",
                             regexp: regexp_a_str(regexp),
                             id_grupo: id_grupo,
@@ -826,7 +827,15 @@ class Trigger
         hash
     end
 
+    # Método que informa si existe un temporal de deltrigger global
+    def self.temporal_deltrigger(regexp)
+        @redis.sismember('triggers:temp:deltrigger', regexp_a_str(regexp))
+    end
+
+    # Método que descarta un temporal de deltrigger global
     def self.descartar_temporal(id_trigger)
+        regexp = @redis.hget "triggers:deltrigger:#{id_trigger}", regexp
+        @redis.srem 'trigger:temp:deltrigger', regexp
         @redis.del "triggers:deltrigger:#{id_trigger}"
     end
 
