@@ -213,6 +213,8 @@ class Dankie
             texto << "</code> salvado por #{usuario} (#{callback.from.id})."
         end
 
+        Trigger.borrar_global_resuelto(temp[:regexp])
+
         @tg.answer_callback_query(callback_query_id: callback.id)
         @tg.edit_message_text(chat_id: callback.message.chat.id,
                               parse_mode: :html, text: texto,
@@ -540,7 +542,7 @@ class Dankie
         fecha = Time.at(fecha, in: @tz.utc_offset)
 
         texto = fecha.strftime("<code>[%d/%m/%Y %T]</code>\n")
-        texto << "Usuario "
+        texto << 'Usuario '
         texto << obtener_enlace_usuario(id_usuario, chat.id, con_apodo: false)
         texto << " (#{id_usuario}) en el chat "
         texto << "#{html_parser(chat&.title || chat&.username)} (#{chat.id}) "
@@ -585,7 +587,7 @@ class Dankie
         fecha = Time.at(fecha, in: @tz.utc_offset)
 
         texto = fecha.strftime("<code>[%d/%m/%Y %T]</code>\n")
-        texto << "Usuario "
+        texto << 'Usuario '
         texto << obtener_enlace_usuario(id_usuario, chat.id, con_apodo: false)
         texto << "(#{id_usuario}) en el chat "
         texto << "#{html_parser(chat&.title || chat&.username)} (#{chat.id}) "
@@ -830,6 +832,10 @@ class Trigger
     # Método que informa si existe un temporal de deltrigger global
     def self.temporal_deltrigger(regexp)
         @redis.sismember('triggers:temp:deltrigger', regexp_a_str(regexp))
+    end
+
+    def self.borrar_global_resuelto(regexp)
+        @redis.srem('triggers:temp:deltrigger', regexp_a_str(regexp))
     end
 
     # Método que descarta un temporal de deltrigger global
