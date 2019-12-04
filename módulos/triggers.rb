@@ -645,7 +645,7 @@ class Dankie
         if params.length > 89 && !DEVS.member?(msj.from.id)
             texto = "Perdón, #{TROESMAS.sample}, pero tu trigger es muy largo."
             @tg.send_message(chat_id: msj.chat.id, text: texto,
-                             reply_to_message_id: message_id)
+                             reply_to_message_id: msj.message_id)
             return
         end
 

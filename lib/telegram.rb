@@ -194,6 +194,18 @@ class TelegramAPI
         when /not enough rights to send (sticker|animation)s to the chat/
             @client.logger.error("Me restringieron stickers/gifs en #{args[:chat_id]}")
 
+        when /CHAT_SEND_GIFS_FORBIDDEN/
+            @client.logger.error("Me restringieron los gifs en #{args[:chat_id]}")
+
+        when /CHAT_SEND_STICKERS_FORBIDDEN/
+            @client.logger.error("Me restringieron los stickers en #{args[:chat_id]}")
+
+        when /CHAT_SEND_MEDIA_FORBIDDEN/
+            @client.logger.error("Me restringieron la multimedia en #{args[:chat_id]}")
+
+        when /CHAT_WRITE_FORBIDDEN/
+            @client.logger.error("Me restringieron los mensajes en #{args[:chat_id]}")
+
         when /group chat was upgraded to a supergroup chat/
             @client.logger.error("#{args[:chat_id]} migró a otra id, pronto va a "\
                                  'llegar el update sobre eso y ahí actualizo las '\
