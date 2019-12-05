@@ -21,7 +21,7 @@ class Dankie
     DEUS_VULT = File.readlines('resources/deus.txt').map(&:chomp).freeze
     DEVS = Set.new([240_524_686, # Luke
                     98_631_116,  # M
-                    263_078_683, # Santi
+                    812_107_125, # Santi
                     267_832_653, # Galerazo
                     196_535_916, # Ale
                     298_088_760, # Mel
@@ -176,17 +176,13 @@ class Dankie
     def actualizar_datos_usuarios(msj)
         redis_actualizar_datos msj.from
 
-        if msj.forward_from
-            redis_actualizar_datos msj.forward_from
-        end
+        redis_actualizar_datos msj.forward_from if msj.forward_from
 
         msj.new_chat_members.each do |usuario|
             redis_actualizar_datos usuario
         end
 
-        if msj.left_chat_member
-            redis_actualizar_datos msj.left_chat_member
-        end
+        redis_actualizar_datos msj.left_chat_member if msj.left_chat_member
 
         actualizar_datos_usuarios(msj.reply_to_message) if msj.reply_to_message
     end
@@ -194,7 +190,6 @@ class Dankie
     private
 
     def redis_actualizar_datos(usuario)
-        
         clave = "nombre:#{usuario.id}"
 
         if @redis.get(clave) != usuario.first_name
@@ -258,7 +253,7 @@ class Dankie
             id_usuario = usuario
 
             alias_usuario = @redis.get "usuario:#{id_usuario}"
-            if !alias_usuario 
+            unless alias_usuario
                 usuario = @tg.get_chat_member(chat_id: id_chat, user_id: usuario)
                 usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
                 alias_usuario = usuario.username
@@ -288,7 +283,7 @@ class Dankie
             end
         end
 
-        return mención
+        mención
     rescue Telegram::Bot::Exceptions::ResponseError => e
         mención = "ay no c (#{id_usuario})"
         puts 'Excepción: ' + mención + ' ' + id_usuario.to_s
@@ -299,7 +294,7 @@ class Dankie
             @logger.error e.to_s
         end
 
-        return mención
+        mención
     end
 
     def natural(numero)

@@ -11,7 +11,7 @@ class Dankie
                                      descripción: 'Muestro el ranking de Nisman')
 
     # TODO: Ponerle algún flag de solo test a este comando
-    add_handler Handler::Comando.new(:darnisman, :_test_dar_pole)
+    # add_handler Handler::Comando.new(:darnisman, :_test_dar_pole)
     # add_handler Handler::Comando.new(:reiniciar_nisman, :_test_reiniciar_pole)
 
     def _test_reiniciar_pole(msj)
