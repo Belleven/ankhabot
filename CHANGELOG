@@ -1,3 +1,8 @@
+1.1.3
+    -santi implementado
+    -arreglados bugs
+    -correcciones ortográficas
+
 1.1.2
     -ya no aparecen notificaciones para usuarios con alias cuando el bot los menciona
     -ahora evita que se trate de borrar dos veces el mismo trigger

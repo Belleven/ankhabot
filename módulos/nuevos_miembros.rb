@@ -6,7 +6,7 @@ class Dankie
     def nuevos_miembros(msj)
         if msj.new_chat_members.any? { |miembro| miembro.id == @user.id }
             nombre_bot = primer_nombre(@user)
-            saludo = "hyoroskune soy #{nombre_bot} nwn arigato x meterme al grupete"
+            saludo = "yoroshikune soy #{nombre_bot} nwn arigato x meterme al grupete"
             @tg.send_message(chat_id: msj.chat.id,
                              text: saludo,
                              reply_to_message_id: msj.message_id)
