@@ -112,7 +112,6 @@ class Dankie
             retry
 
         rescue StandardError => e
-            raise e
 
             begin
                 texto, backtrace = @logger.excepcion_texto(e)
