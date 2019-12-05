@@ -19,19 +19,16 @@ class Dankie
 
         if con_todo
             # Caso 1: al comando solo lo acompaña un -perocontodo
-            if parámetros.downcase <= 12
-                puts 'Caso 1'
+            if parámetros.length <= 12
                 texto = msj.reply_to_message&.text ||
                         msj.reply_to_message&.caption || parámetros
             # Caso 2: al comando lo acompaña un -perocontodo + más texto
             else
-                puts 'Caso 2'
                 texto = parámetros[12..-1] ||
                         msj.reply_to_message&.text || msj.reply_to_message&.caption
             end
         # Caso 3: al comando no lo acompaña un -perocontodo
         else
-            puts 'Caso 3'
             texto = parámetros ||
                     msj.reply_to_message&.text || msj.reply_to_message&.caption
         end

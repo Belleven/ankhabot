@@ -181,7 +181,7 @@ class Dankie
         texto << if entidad.can_invite_users
                      "\n✅ #{inicio_pos} añadir miembros."
                  else
-                     "\n❌ #{inicio_neg} iañadir miembros."
+                     "\n❌ #{inicio_neg} añadir miembros."
                  end
 
         texto << if entidad.can_pin_messages
