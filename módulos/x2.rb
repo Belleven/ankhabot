@@ -25,7 +25,7 @@ class Dankie
         end
 
         resp = @tg.send_message(chat_id: msj.chat.id, text: texto)
-        return unless resp['ok']
+        return unless resp && resp['ok']
 
         añadir_a_cola_spam(msj.chat.id, resp.dig('result', 'message_id').to_i)
     end
