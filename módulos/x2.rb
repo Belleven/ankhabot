@@ -9,7 +9,6 @@ class Dankie
         return unless /\A[xX*](\d+)\z/.match? mensaje
 
         n = mensaje[1..].to_i
-        return if n.zero?
 
         texto << ' '
 
