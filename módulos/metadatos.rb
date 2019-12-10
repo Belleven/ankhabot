@@ -256,7 +256,7 @@ class Dankie
 
         # Otros
 
-        if !msj.photo.empty?
+        unless msj.photo.empty?
             agregar_imágenes(respuesta, msj.photo, "\n\n - Imagen:", nivel)
         end
         if msj.animation
@@ -275,7 +275,7 @@ class Dankie
         if msj.location
             agregar_ubicación(respuesta, msj.location, "\n\n - Ubicación:", nivel)
         end
-        
+
         agregar_contacto(respuesta, msj.contact, nivel) if msj.contact
         agregar_juego(respuesta, msj.game, nivel, pasar_entidades) if msj.game
         agregar_botones(respuesta, msj.reply_markup, nivel) if msj.reply_markup
@@ -618,7 +618,7 @@ class Dankie
                  "#{tab} Código de Divisa: <code>#{factura.currency}</code>"
 
         total = factura.currency.to_s
-        total = total[0..-3] + "," + total[-2..-1]
+        total = total[0..-3] + ',' + total[-2..-1]
 
         texto << "#{tab} Total facturado: <code>#{total}</code>"
     end
@@ -633,12 +633,12 @@ class Dankie
         texto << "#{tab} Código de divisa: <code>#{pago_exitoso.currency}</code>"
 
         total = pago_exitoso.currency.to_s
-        total = total[0..-3] + "," + total[-2..-1]
+        total = total[0..-3] + ',' + total[-2..-1]
         texto << "#{tab} Total facturado: <code>#{total}</code>"
-        
+
         factura = html_parser(pago_exitoso.invoice_payload)
         texto << "#{tab} Factura del pago: <code>#{factura}</code>"
-        
+
         if pago_exitoso.invoice_payload
             id_opción_envío = html_parser(pago_exitoso.invoice_payload)
             texto << "#{tab} ID opción de envío: <code>#{id_opción_envío}</code>"
@@ -687,7 +687,6 @@ class Dankie
                  "#{tab3} Código Postal: <code>#{dir_envío.post_code}</code>"
     end
 
-    
     def agregar_pasaporte(texto, data_pasaporte, nivel)
         tab = crear_tab(nivel)
         tab2 = crear_tab(nivel + 1)
@@ -698,7 +697,7 @@ class Dankie
         # Datos
         unless data_pasaporte.data.empty?
             texto << "#{tab} Data:"
-            data_pasaporte.data.each_with_index do |elem, índice|           
+            data_pasaporte.data.each_with_index do |elem, índice|
                 texto << "#{tab2} Elemento #{índice + 1}:"
                 agregar_elemento_pasaporte(texto, elem, nivel + 2)
             end
@@ -707,7 +706,7 @@ class Dankie
 
         # Credenciales
         credenciales = data_pasaporte.credentials
-      
+
         texto << "#{tab} Credenciales:"\
                  "#{tab2} Data: <code>#{credenciales.data}</code>"\
                  "#{tab2} Hash: <code>#{credenciales.hash}</code>"\
@@ -719,24 +718,23 @@ class Dankie
         tab2 = crear_tab(nivel + 1)
         tab3 = crear_tab(nivel + 2)
 
-      
         # Título
         texto << "\n\n - Botonera:"
 
         botonera = tablero.inline_keyboard
         if botonera.empty?
-            texto << " <b>LA BOTONERA ESTÁ VACÍA</b>"
+            texto << ' <b>LA BOTONERA ESTÁ VACÍA</b>'
             return
         end
 
         texto << "\n#{tab} Botones:\n"
-        
+
         # Matriz de botonazos
         botonera.each_with_index do |fila, índice|
             texto << "#{tab2} Fila #{índice + 1}:"
 
             if fila.empty?
-                texto << " <b>FILA VACÍA</b>"
+                texto << ' <b>FILA VACÍA</b>'
             else
                 fila.each_with_index do |botón, índice2|
                     texto << "#{tab3} Botón #{índice2 + 1}:"
@@ -746,8 +744,6 @@ class Dankie
 
             texto << "\n"
         end
-
-
     end
 
     # TODO
@@ -821,11 +817,11 @@ class Dankie
 
         texto << "#{tab} Tipo: <code>#{elem.type}</code>"
         texto << "#{tab} Data: <code>#{elem.data}</code>" if elem.data
-        
+
         if elem.phone_number
             texto << "#{tab} Teléfono: <code>#{elem.phone_number}</code>"
         end
-        
+
         texto << "#{tab} Email: <code>#{html_parser(elem.email)}</code>" if elem.email
         texto << "#{tab} Hash: <code>#{elem.hash}</code>"
 
@@ -835,8 +831,8 @@ class Dankie
                 texto << "#{tab2} Archivo #{índice + 1}:"
                 agregar_archivo_pasaporte(texto, archivo, nivel + 2)
             end
-            texto << "\n" 
-        end 
+            texto << "\n"
+        end
 
         if elem.front_side
             texto << "#{tab} Frente documento:"
@@ -862,9 +858,8 @@ class Dankie
                 texto << "#{tab2} Traducción #{índice + 1}:"
                 agregar_archivo_pasaporte(texto, archivo, nivel + 2)
             end
-            texto << "\n" 
-        end 
-
+            texto << "\n"
+        end
     end
 
     def agregar_archivo_pasaporte(texto, archivo, nivel)
@@ -891,30 +886,30 @@ class Dankie
         end
 
         if botón.key?('switch_inline_query') && !botón['switch_inline_query'].nil?
-            string = if botón['switch_inline_query'].empty? 
-                        "<b>STRING VACÍO</b>"
+            string = if botón['switch_inline_query'].empty?
+                         '<b>STRING VACÍO</b>'
                      else
-                        "<code>#{html_parser(botón['switch_inline_query'])}</code>"
+                         "<code>#{html_parser(botón['switch_inline_query'])}</code>"
                      end
 
             texto << "#{tab} Cambio a query inline: #{string}"
         end
 
         if botón.key?('switch_inline_query_current_chat') &&
-            !botón['switch_inline_query_current_chat'].nil?
-            
+           !botón['switch_inline_query_current_chat'].nil?
+
             string = botón['switch_inline_query_current_chat']
-            string = if string.empty? 
-                        "<b>STRING VACÍO</b>"
+            string = if string.empty?
+                         '<b>STRING VACÍO</b>'
                      else
-                        "<code>#{html_parser(string)}</code>"
+                         "<code>#{html_parser(string)}</code>"
                      end
 
             texto << "#{tab} Cambio a query inline en el chat actual: #{string}"
         end
 
         if botón.key?('pay') && !botón['pay'].nil?
-            texto << "#{tab} Pago: <code>#{botón['pay'] ? "Sí" : "No"}</code>"
+            texto << "#{tab} Pago: <code>#{botón['pay'] ? 'Sí' : 'No'}</code>"
         end
 
         if botón.key?('callback_game') && !botón['callback_game'].nil?
@@ -926,9 +921,9 @@ class Dankie
             login = botón['login_url']
 
             texto << "#{tab} URL login:"
-            
+
             texto << "#{tab2} URL: <code>#{html_parser(login.url)}</code>"
-            
+
             if login.forward_text
                 reenvío = html_parser(login.forward_text)
                 texto << "#{tab2} Texto reenviado: <code>#{reenvío}</code>"
@@ -938,12 +933,11 @@ class Dankie
                 texto << "#{tab2} Alias del bot: <code>#{login.bot_username}</code>"
             end
 
-            if !login.request_write_access.nil?
+            unless login.request_write_access.nil?
                 texto << "#{tab2} ¿Puedo escribirle al usuario?: "\
-                            "<code>#{login.request_write_access ? "Sí" : "No"}</code>"
+                            "<code>#{login.request_write_access ? 'Sí' : 'No'}</code>"
             end
         end
-
     end
 
     def crear_tab(profundidad, formato = true)
