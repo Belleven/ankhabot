@@ -98,10 +98,10 @@ class Dankie
 
     def agregar_info_mensaje(msj, texto, nivel)
         # Pongo la id del mensaje
-        texto << "\n- ID del mensaje: <code>#{msj.message_id}</code>"
+        texto << "\n - ID del mensaje: <code>#{msj.message_id}</code>"
         # Fecha del mensaje
         fecha = Time.at(msj.date, in: @tz.utc_offset).to_datetime
-        texto << "\n- Fecha envío: <code>#{fecha.strftime('%d/%m/%Y %T %Z')}</code>"
+        texto << "\n - Fecha envío: <code>#{fecha.strftime('%d/%m/%Y %T %Z')}</code>"
 
         # Fecha de última edición del mensaje
         if msj.edit_date
@@ -284,7 +284,7 @@ class Dankie
         agregar_factura(respuesta, msj.invoice, nivel) if msj.invoice
         agregar_pago(respuesta, msj.successful_payment, nivel) if msj.successful_payment
 
-        agregar_eventos_chat(respuesta, msj, nivel)
+        agregar_eventos_chat(respuesta, msj, nivel, pasar_entidades)
 
         # Agrego caption si hay
         agregar_texto(respuesta, 'Epígrafe:', msj.caption, msj.caption_entities,
@@ -746,8 +746,61 @@ class Dankie
         end
     end
 
-    # TODO
-    def agregar_eventos_chat(texto, msj, nivel); end
+    def agregar_eventos_chat(texto, msj, nivel, pasar_entidades)
+        tab = crear_tab(nivel)
+
+        unless msj.new_chat_members.empty?
+            texto << "\n\n - Nuevos miembros:"
+
+            msj.new_chat_members.each_with_index do |miembro, índice|
+                título = "\n#{tab} Nuevo miembro #{índice + 1}:"
+                agregar_usuario(texto, miembro, título, nivel + 1)
+            end
+        end
+
+        if msj.left_chat_member
+            título = "\n\n - Miembro eliminado:"
+            agregar_usuario(texto, msj.left_chat_member, título, nivel)
+        end
+
+        if msj.new_chat_title
+            texto << "\n\n - Nuevo título: #{html_parser(msj.new_chat_title)}"
+        end
+
+        unless msj.new_chat_photo.empty?
+            agregar_imágenes(texto,
+                             msj.new_chat_photo,
+                             "\n\n - Nueva imagen del chat:",
+                             nivel)
+        end
+
+        if msj.delete_chat_photo
+            texto << "\n\n - ¿Imagen del chat borrada?: <code>Sí</code>"
+        end
+
+        texto << "\n\n - ¿Grupo creado?: <code>Sí</code>" if msj.group_chat_created
+
+        if msj.supergroup_chat_created
+            texto << "\n\n - ¿Supergrupo creado?: <code>Sí</code>"
+        end
+
+        texto << "\n\n - ¿Canal creado?: <code>Sí</code>" if msj.channel_chat_created
+
+        if msj.migrate_to_chat_id
+            texto << "\n\n - ID del supergrupo al que se migró: "\
+                     "<code>#{msj.migrate_to_chat_id}</code>"
+        end
+
+        if msj.migrate_from_chat_id
+            texto << "\n\n - ID del grupo desde el que se migró: "\
+                     "<code>#{msj.migrate_from_chat_id}</code>"
+        end
+
+        if msj.pinned_message
+            texto << "\n\n\n - Mensaje anclado:\n\n<code>------------</code>\n"
+            agregar_datos_mensaje(msj.pinned_message, texto, pasar_entidades, nivel + 2)
+        end
+    end
 
     def agregar_imagen(texto, imagen, nivel, título = nil)
         # Creo tabs

@@ -285,12 +285,16 @@ class Dankie
         mención
     rescue Telegram::Bot::Exceptions::ResponseError => e
         mención = "ay no c (#{id_usuario})"
-        puts 'Excepción: ' + mención + ' ' + id_usuario.to_s
-        if e.to_s.include? 'USER_ID_INVALID'
+        e = e.to_s
+
+        case e
+        when /USER_ID_INVALID|wrong user_id specified/
+            puts "\n\n\n\n\nCATCHEADA\n\n\n\n\n"
             @logger.error('Traté de obtener el nombre de una cuenta '\
                         "eliminada: #{id_usuario}")
         else
-            @logger.error e.to_s
+            puts "\n\n\n\n\nOTRA\n\n\n\n\n"
+            @logger.error e
         end
 
         mención
