@@ -148,67 +148,6 @@ class Dankie
 
     private
 
-    def editar_ranking_pole(enviado, texto)
-        # Tomo las poles de las bases de datos y seteo los espacios para dígitos
-        poles = @redis.zrevrange("pole:#{enviado.chat.id}", 0, -1, with_scores: true)
-        id_chat = enviado.chat.id
-
-        if poles.nil?
-            @tg.edit_message_text(chat_id: id_chat,
-                                  text: 'No hay poles en este grupo',
-                                  message_id: enviado.message_id)
-            return
-        end
-
-        dígitos = poles.first[1].to_i.digits.count
-
-        # Tomo el total de poles y lo agrego al título
-        texto << " (#{calcular_total_poles(poles)})\n"
-
-        # Tomo otras variables que luego usaré
-        índice = 0
-
-        poles.each do |pole|
-            # Armo la línea y el cargando... si es que no es la última línea
-            línea = "\n<code>#{format("%#{dígitos}d", pole[1].to_i)}</code> "
-            línea << obtener_enlace_usuario(pole.first, enviado.chat.id)
-
-            cargando = índice == poles.length - 1 ? '' : "\n<i>cargando...</i>"
-            índice += 1
-
-            # Si el mensaje se pasa de los 4096 caracteres,
-            # o ya hay más de 30 usuarios, mando uno nuevo
-            if texto.length + línea.length + cargando.length > 4096 ||
-               (índice % 30).zero?
-
-                # Primero borro el "cargando" del mensaje anterior
-                @tg.edit_message_text(chat_id: id_chat, text: texto,
-                                      parse_mode: :html,
-                                      message_id: enviado.message_id,
-                                      disable_web_page_preview: true,
-                                      disable_notification: true)
-
-                # Después mando el nuevo mensaje
-                texto = línea
-                enviado = @tg.send_message(chat_id: id_chat, text: texto + cargando,
-                                           reply_to_message_id: enviado.message_id,
-                                           parse_mode: :html,
-                                           disable_web_page_preview: true,
-                                           disable_notification: true)
-                enviado = Telegram::Bot::Types::Message.new(enviado['result'])
-
-            # Si no, edito el actual
-            else
-                texto << línea
-                @tg.edit_message_text(chat_id: id_chat, text: texto + cargando,
-                                      parse_mode: :html,
-                                      message_id: enviado.message_id,
-                                      disable_web_page_preview: true,
-                                      disable_notification: true)
-            end
-        end
-    end
-
     def calcular_total_poles(poles)
         acumulador = 0
         poles.each do |pole|
