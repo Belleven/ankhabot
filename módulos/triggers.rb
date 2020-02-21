@@ -109,8 +109,8 @@ class Dankie
 
             trigger = Trigger.new(id_grupo, regexp)
 
-            # No manda el trigger si ya lo mandó en los últimos 30 segundos
-            next unless (Time.now.to_i - trigger.último_envío(msj.chat.id)) > 30
+            # No manda el trigger si fue lo último que mandó en cinco minutos
+            next unless (Time.now.to_i - trigger.último_envío(msj.chat.id)) > 300
 
             trigger.actualizar_último_envío(msj.chat.id)
             incremetar_arr_flood(@trigger_flood[msj.chat.id], Time.now)
