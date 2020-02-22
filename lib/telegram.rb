@@ -227,7 +227,12 @@ class TelegramAPI
         retry
     rescue Telegram::Bot::Exceptions::ResponseError => e
         texto, backtrace = @client.logger.excepcion_texto(e)
-        @client.logger.error texto, backtrace: backtrace
+
+        if !texto.include?('wrong user_id specified') ||
+           !backtrace.include?('obtener_enlace_usuario')
+            @client.logger.error texto, backtrace: backtrace
+        end
+
         raise e
     end
 

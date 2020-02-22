@@ -1,3 +1,7 @@
+1.1.5
+    -/metadatos terminado por fin
+    -rediseñado método obtener_enlace_usuario
+
 1.1.4
     -solucionada regresión en x2
     -arreglado bug con respuestas de la api
