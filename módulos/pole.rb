@@ -115,9 +115,12 @@ class Dankie
                 contador = 0
             end
 
-            arr.last << "\n<code>#{format("%#{dígitos}d", pole[1].to_i)}</code> "
-            arr.last << obtener_enlace_usuario(pole[0], msj.chat.id)
+            unless enlace_usuario = obtener_enlace_usuario(pole[0], msj.chat.id)
+                @redis.zrem "pole:#{msj.chat.id}", pole[0]
+            end
 
+            arr.last << "\n<code>#{format("%#{dígitos}d", pole[1].to_i)}</code> "
+            arr.last << (enlace_usuario || '<i>Usuario eliminado</i>')
             contador += 1
         end
 

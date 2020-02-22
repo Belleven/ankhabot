@@ -155,7 +155,7 @@ class Dankie
             return
         end
 
-        usuario = obtener_enlace_usuario(callback.from, callback.chat_instance)
+        usuario = obtener_enlace_usuario(callback.from, callback.chat_instance) || 'dou'
         case match[:acción]
         when 'confirmar'
             temp = Trigger.confirmar_trigger match[:id_regexp]
@@ -201,7 +201,7 @@ class Dankie
 
         temp = Trigger.obtener_del_trigger_temp match[:id_regexp]
 
-        usuario = obtener_enlace_usuario(callback.from, callback.chat_instance)
+        usuario = obtener_enlace_usuario(callback.from, callback.chat_instance) || 'dou'
         case match[:acción]
         when 'borrar'
             Trigger.borrar_trigger :global, temp[:regexp], match[:id_regexp]
@@ -375,7 +375,7 @@ class Dankie
             texto << "\nCaption: <code>#{html_parser trigger.caption}</code>"
         end
         texto << "\nTipo: #{id_grupo == :global ? 'global' : 'de grupo'}"
-        texto << "\nCreador: #{obtener_enlace_usuario(trigger.creador, msj.chat.id)}"
+        texto << "\nCreador: #{obtener_enlace_usuario(trigger.creador, msj.chat.id) || 'eliminado'}"
         texto << "\nTotal de usos: #{trigger.contador}"
         texto << "\nAñadido: <i>#{trigger.fecha.strftime('%d/%m/%Y %T')}</i>"
 
@@ -511,7 +511,7 @@ class Dankie
             contador = nil
 
             texto = "Trigger <code>#{html_parser regexp}</code> "
-            texto << "añadido por #{obtener_enlace_usuario(id_usuario, msj.chat.id)} "
+            texto << "añadido por #{obtener_enlace_usuario(id_usuario, msj.chat.id) || 'eliminado'} "
             @tg.send_message(chat_id: msj.chat.id,
                              parse_mode: :html,
                              text: texto,
@@ -543,7 +543,7 @@ class Dankie
 
         texto = fecha.strftime("<code>[%d/%m/%Y %T]</code>\n")
         texto << 'Usuario '
-        texto << obtener_enlace_usuario(id_usuario, chat.id, con_apodo: false)
+        texto << obtener_enlace_usuario(id_usuario, chat.id, con_apodo: false) || 'eliminado'
         texto << " (#{id_usuario}) en el chat "
         texto << "#{html_parser(chat&.title || chat&.username)} (#{chat.id}) "
         texto << 'quiere añadir el trigger: '
@@ -588,7 +588,7 @@ class Dankie
 
         texto = fecha.strftime("<code>[%d/%m/%Y %T]</code>\n")
         texto << 'Usuario '
-        texto << obtener_enlace_usuario(id_usuario, chat.id, con_apodo: false)
+        texto << obtener_enlace_usuario(id_usuario, chat.id, con_apodo: false) || 'eliminado'
         texto << "(#{id_usuario}) en el chat "
         texto << "#{html_parser(chat&.title || chat&.username)} (#{chat.id}) "
         texto << 'quiere borrar el trigger: '
@@ -623,7 +623,7 @@ class Dankie
         @logger.info(loggear)
         # Aviso en grupete
         texto = "Trigger <code>#{html_parser regexp_str}</code> "
-        texto << "borrado por #{obtener_enlace_usuario(msj.from.id, msj.chat.id)} "
+        texto << "borrado por #{obtener_enlace_usuario(msj.from.id, msj.chat.id) || 'eliminado'} "
         texto << "en #{html_parser(msj.chat&.title || msj.chat&.username)} "
         texto << "(#{msj.chat.id})"
         @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,

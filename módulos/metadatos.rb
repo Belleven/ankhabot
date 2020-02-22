@@ -130,7 +130,7 @@ class Dankie
 
         # Agrego usuario
         if msj.from
-            usuario = obtener_enlace_usuario(msj.from, msj.chat.id)
+            usuario = obtener_enlace_usuario(msj.from, msj.chat.id) || '<code>cuenta eliminada</code>'
             título = "\n\n - Enviado por: #{usuario}"
             agregar_usuario(texto, msj.from, título, nivel + 1)
         end
@@ -217,7 +217,7 @@ class Dankie
         # Info del usuario original
         if msj.forward_from
             texto << "#{tab} Cuenta oculta:<code> No</code>"
-            usuario = obtener_enlace_usuario(msj.forward_from, msj.chat.id)
+            usuario = obtener_enlace_usuario(msj.forward_from, msj.chat.id) || '<code>Cuenta eliminada</code>'
             título = "#{tab} Reenviado de: #{usuario}"
             agregar_usuario(texto, msj.forward_from, título, nivel + 1)
         elsif msj.forward_sender_name
