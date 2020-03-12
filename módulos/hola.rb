@@ -12,16 +12,15 @@ class Dankie
 
     def responder(msj, frases, respuesta)
         # Este if es para no convertir todo el texto a minúsculas al p2
-        if msj.text.length <= 20
-            texto = msj.text.downcase
+        return unless msj.text.length <= 20 && !msj.reply_to_message
 
-            if frases.include? texto
-                resp = @tg.send_message(chat_id: msj.chat.id,
-                                        text: respuesta)
-                return unless resp && resp['ok']
+        texto = msj.text.downcase
 
-                añadir_a_cola_spam(msj.chat.id, resp.dig('result', 'message_id').to_i)
-            end
-        end
+        return unless frases.include? texto
+
+        resp = @tg.send_message(chat_id: msj.chat.id, text: respuesta)
+        return unless resp && resp['ok']
+
+        añadir_a_cola_spam(msj.chat.id, resp.dig('result', 'message_id').to_i)
     end
 end
