@@ -174,7 +174,7 @@ class Dankie
                 else
                     @tg.send_message(chat_id: id_chat,
                                      text: 'ya no te doy bola '\
-                                           "#{obtener_enlace_usuario(id, id_chat)} ¬_¬",
+                                           "#{obtener_enlace_usuario(id, id_chat) || 'eliminado'} ¬_¬",
                                      parse_mode: :html,
                                      disable_web_page_preview: true,
                                      disable_notification: true)
@@ -183,7 +183,7 @@ class Dankie
                 @tg.send_message(chat_id: id_chat,
                                  reply_to_message_id: msj.reply_to_message.message_id,
                                  text: 'ya no te doy bola '\
-                                       "#{obtener_enlace_usuario(id, id_chat)} ¬_¬",
+                                       "#{obtener_enlace_usuario(id, id_chat) || 'eliminado'} ¬_¬",
                                  parse_mode: :html,
                                  disable_web_page_preview: true,
                                  disable_notification: true)
@@ -221,7 +221,7 @@ class Dankie
                 else
                     @tg.send_message(chat_id: id_chat,
                                      text: 'ola de nuevo '\
-                                           "#{obtener_enlace_usuario(id, id_chat)} nwn",
+                                           "#{obtener_enlace_usuario(id, id_chat) || 'eliminado-kun'} nwn",
                                      parse_mode: :html,
                                      disable_web_page_preview: true,
                                      disable_notification: true)
@@ -231,7 +231,7 @@ class Dankie
                 @tg.send_message(chat_id: id_chat,
                                  reply_to_message_id: msj.reply_to_message.message_id,
                                  text: 'ola de nuevo '\
-                                       "#{obtener_enlace_usuario(id, id_chat)} nwn",
+                                       "#{obtener_enlace_usuario(id, id_chat) || 'eliminado-kun'} nwn",
                                  parse_mode: :html,
                                  disable_web_page_preview: true,
                                  disable_notification: true)
@@ -295,7 +295,7 @@ class Dankie
             miembro = if es_global
                           elemento
                       else
-                          obtener_enlace_usuario(elemento, msj.chat.id)
+                          obtener_enlace_usuario(elemento, msj.chat.id) || 'eliminado'
                       end
             "\n- #{miembro}"
         end
