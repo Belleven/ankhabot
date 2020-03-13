@@ -95,7 +95,7 @@ class Dankie
         imágen = imágen.empty? ? 'https://i.imgur.com/fwu2ESz.png' : imágen
         texto = '<a href="' << html_parser(imágen) << '">' << "\u200d</a>"
 
-        texto << (args || obtener_enlace_usuario(msj.from.id, msj.chat.id))
+        texto << (args || obtener_enlace_usuario(msj.from.id, msj.chat.id) || 'si salta este texto estamos mal')
         texto << if temazo.dig('@attr', 'nowplaying')
                      " está escuchando\n\n"
                  else
@@ -146,7 +146,7 @@ class Dankie
         end
 
         título = 'Canciones recientes de '
-        título << "#{obtener_enlace_usuario(msj.from.id, msj.chat.id)}:\n"
+        título << "#{obtener_enlace_usuario(msj.from.id, msj.chat.id) || 'COMO CARAJOS BORRÁS EL USUARIO despues DE MANDAR ESTE COMANDO LOCO'}:\n"
 
         arr = [título.dup]
 

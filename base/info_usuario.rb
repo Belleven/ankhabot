@@ -166,7 +166,11 @@ class Dankie
                 contador = 0
             end
 
-            arr.last << "\n- #{obtener_enlace_usuario(apodo.first, msj.chat.id)}"
+            unless enlace_usuario = obtener_enlace_usuario(apodo.first, msj.chat.id)
+                @redis.hdel("apodo:#{msj.chat.id}", apodo.first.to_s)
+            end
+
+            arr.last << "\n- #{enlace_usuario || '<i>Usuario eliminado</i>'}"
             contador += 1
         end
 
