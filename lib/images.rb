@@ -21,6 +21,10 @@ class ImageSearcher
         respuesta = Net::HTTP.get_response URI.parse(dirección)
         resultado = JSON.parse(respuesta.body)
 
+        # Cuantas imágenes fueron enviadas por día
+        # ejemplo: googleapi-2020-12-25
+        Stats.incr('googleapi-' + Time.now.strftime("%Y-%m-%d"))
+
         if resultado['error']
             if resultado.dig('error', 'errors', 0, 'reason') == 'dailyLimitExceeded'
                 @logger.info('Alcancé el límite diario de imágenes')
@@ -32,6 +36,7 @@ class ImageSearcher
             @logger.info('Sin resultados en la búsqueda')
             return :sin_resultados
         else
+
             resultado['items'].map { |i| Link.new i['link'] }
         end
 

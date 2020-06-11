@@ -7,6 +7,7 @@ gem 'nhentai-api'
 gem 'rake'
 gem 'redis'
 gem 'ruby_reddit_api'
+gem 'stats'
 gem 'telegram-bot-ruby'
 gem 'tzinfo'
 
