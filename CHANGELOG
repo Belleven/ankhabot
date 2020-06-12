@@ -1,3 +1,6 @@
+1.1.5.2
+    -cambiado mensaje de error incorrecto en /img
+
 1.1.5.1
     -sacado log de debbugging horrible que rompía todo
 
