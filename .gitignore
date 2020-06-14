@@ -51,3 +51,6 @@ __pycache__
 
 # swap de vim
 *.swp
+
+# vagrant folder
+.vagrant

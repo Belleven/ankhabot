@@ -1,4 +1,5 @@
 require 'concurrent-ruby'
+require 'byebug'
 
 TIPOS_MMEDIA = { text: :send_message,
                  photo: :send_photo,
@@ -115,7 +116,8 @@ class Dankie
             trigger.actualizar_último_envío(msj.chat.id)
             incremetar_arr_flood(@trigger_flood[msj.chat.id], Time.now)
 
-            enviar_trigger(msj.chat.id, trigger)
+            puede_globales =  validar_globales_en_chat(msj.chat.id)
+            enviar_trigger(msj.chat.id, trigger) unless !puede_globales && id_grupo == :global
 
         # Si el trigger tardó mucho en procesar, lo borro.
         rescue Timeout::Error
@@ -128,6 +130,12 @@ class Dankie
             @tg.send_message(chat_id: msj.chat.id, parse_mode: :html, text: texto)
             @tg.send_message(chat_id: @canal, parse_mode: :html, text: texto)
         end
+    end
+
+    def validar_globales_en_chat(id_chat)
+        Configuración.redis ||= @redis
+        puede = Configuración.config(id_chat, :admite_triggers_globales)
+        puede.nil? ? true : puede.to_i.positive?
     end
 
     def validar_poner_trigger_local(msj, params)

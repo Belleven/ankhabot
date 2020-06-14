@@ -1,5 +1,6 @@
 source 'https://rubygems.org'
 # Instalar: gem install bundler 'nombre_gema (sin comillas)'
+gem 'byebug'
 gem 'concurrent-ruby'
 gem 'filesize'
 gem 'httpclient'
