@@ -2,6 +2,8 @@
 config.yml
 Gemfile.lock
 .bundle/config
+dump.rdb
+*.gem
 
 # Pre-requisitos
 *.d
