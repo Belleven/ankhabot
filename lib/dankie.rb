@@ -5,10 +5,12 @@ require_relative 'telegram.rb'
 require_relative 'images.rb'
 require_relative 'last_fm_parser.rb'
 require_relative 'botoneras.rb'
+require_relative 'configuración.rb'
 require 'redis'
 require 'tzinfo'
 require 'set'
 require 'securerandom'
+require 'stats'
 require 'ruby_reddit_api'
 require 'cgi'
 
@@ -70,8 +72,14 @@ class Dankie
         @tg = TelegramAPI.new args[:tg_token], @logger
         @logger.inicializar_cliente @tg.client
 
-        @redis = Redis.new port: args[:redis_port], host: args[:redis_host],
-                           password: args[:redis_pass]
+        # Creo dos instancias de Redis, una base de datos general y una de stats
+        dbs = 2.times.map do |i|
+            Redis.new(port: args[:redis_port], host: args[:redis_host],
+                      password: args[:redis_pass], db: i)
+        end
+        @redis = dbs.first
+        Stats.redis = dbs.last
+
         @img = ImageSearcher.new args[:google_image_key], args[:google_image_cx],
                                  args[:google_image_gl], @logger
         @user = Telegram::Bot::Types::User.new @tg.get_me['result']
@@ -83,48 +91,53 @@ class Dankie
     def run
         # Ciclo principal
         @tg.client.listen do |msj|
-            # Si se cerró una encuesta, no hago nada más que loggear
-            if msj.is_a?(Telegram::Bot::Types::Poll)
-                información = 'Se acaba de cerrar esta encuesta:'
-                agregar_encuesta(información, msj, 1, false)
-                @logger.info información
-                next
+            # Registra cuanto tiempo tarda en ejecutar el loop del bot
+            # ejemplo: tiempo_procesado_loop-2020-12-25
+            Stats.time('tiempo_procesado_loop-' + Time.now.strftime('%Y-%m-%d')) do
+                loop_principal(msj)
             end
-
-            # Chequeo que msj sea un mensaje válido, y que quien lo manda no
-            # esté bloqueado por el bot, o restringido del bot en el chat
-            next unless msj&.from&.id
-            next if @redis.sismember('lista_negra:global', msj.from.id.to_s)
-            next if msj.is_a?(Telegram::Bot::Types::Message) &&
-                    @redis.sismember("lista_negra:#{msj.chat.id}", msj.from.id.to_s)
-
-            # Le paso el mensaje a los handlers correspondientes
-            dispatch(msj)
-
-        rescue Faraday::ConnectionFailed, Faraday::TimeoutError,
-               HTTPClient::ReceiveTimeoutError, Net::OpenTimeout => e
-            begin
-                texto, backtrace = @logger.excepcion_texto(e)
-                @logger.error texto, al_canal: true, backtrace: backtrace
-            rescue StandardError => e
-                @logger.fatal "EXCEPCIÓN LEYENDO LA EXCEPCIÓN\n#{e}", al_canal: true
-            end
-            retry
-
-        rescue StandardError => e
-
-            begin
-                texto, backtrace = @logger.excepcion_texto(e)
-                @logger.fatal texto, al_canal: true, backtrace: backtrace
-            rescue StandardError => e
-                @logger.fatal "EXCEPCIÓN LEYENDO LA EXCEPCIÓN\n#{e}", al_canal: true
-            end
-
-            # Sacar este raise cuando el bot deje de ser testeadísimo
-            # lo puse porque luke dice que es pesado cuando se pone a mandar
-            # errores en el grupete.
-            #       raise
         end
+    end
+
+    def loop_principal(msj)
+        # Si se cerró una encuesta, no hago nada más que loggear
+        if msj.is_a?(Telegram::Bot::Types::Poll)
+            información = 'Se acaba de cerrar esta encuesta:'
+            agregar_encuesta(información, msj, 1, false)
+            @logger.info información
+            return
+        end
+
+        # Chequeo que msj sea un mensaje válido, y que quien lo manda no
+        # esté bloqueado por el bot, o restringido del bot en el chat
+        return unless msj&.from&.id
+        return if @redis.sismember('lista_negra:global', msj.from.id.to_s)
+        return if msj.is_a?(Telegram::Bot::Types::Message) &&
+                  @redis.sismember("lista_negra:#{msj.chat.id}", msj.from.id.to_s)
+
+        # Le paso el mensaje a los handlers correspondientes
+        dispatch(msj)
+    rescue Faraday::ConnectionFailed, Faraday::TimeoutError,
+           HTTPClient::ReceiveTimeoutError, Net::OpenTimeout => e
+        begin
+            texto, backtrace = @logger.excepcion_texto(e)
+            @logger.error texto, al_canal: true, backtrace: backtrace
+        rescue StandardError => e
+            @logger.fatal "EXCEPCIÓN LEYENDO LA EXCEPCIÓN\n#{e}", al_canal: true
+        end
+        retry
+    rescue StandardError => e
+        begin
+            texto, backtrace = @logger.excepcion_texto(e)
+            @logger.fatal texto, al_canal: true, backtrace: backtrace
+        rescue StandardError => e
+            @logger.fatal "EXCEPCIÓN LEYENDO LA EXCEPCIÓN\n#{e}", al_canal: true
+        end
+
+        # Sacar este raise cuando el bot deje de ser testeadísimo
+        # lo puse porque luke dice que es pesado cuando se pone a mandar
+        # errores en el grupete.
+        #       raise
     end
 
     # Permite iterar sobre los comandos del bot, y sus descripciones
