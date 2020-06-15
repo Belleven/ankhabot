@@ -13,6 +13,8 @@ class Dankie
                  }.freeze()
 
     def configuraciones(msg)
+        error_msj = "Ese comando es solo para admins, #{TROESMAS.sample}."
+        return unless es_admin(msg.from.id, msg.chat.id, msg.message_id, error_msj)
         Configuración.redis ||= @redis
         respuesta, opciones = obtener_mensaje_configuraciones(msg.chat.id)
 
@@ -24,6 +26,9 @@ class Dankie
     end
 
     def callback_config_seleccionada(callback)
+        return unless es_admin(callback.from.id,
+                               callback.message.chat.id,
+                               callback.message.message_id)
         match = callback.data.match(/config_seleccionada:(?<categoria>.+)/)
 
         case match[:categoria]
@@ -65,6 +70,9 @@ class Dankie
     end
 
     def callback_modificar_config(callback)
+        return unless es_admin(callback.from.id,
+            callback.message.chat.id,
+            callback.message.message_id)
         match = callback.data.match(/modificar_config:(?<categoria>.+):(?<acción>.+)/)
         id_grupo = callback.message.chat.id
         
