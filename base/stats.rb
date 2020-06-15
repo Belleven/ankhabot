@@ -1,11 +1,11 @@
 class Dankie
-    add_handler Handler::Mensaje.new(:stats_básicas)
-    add_handler Handler::Comando.new(:stats, :enviar_stats_grupo,
-                                     permitir_params: true,
-                                     chats_permitidos: %i[group supergroup],
-                                     descripción: 'Te digo cuanto me usan en el grupo 7u7')
-    add_handler Handler::Comando.new(:stats_bot, :enviar_stats_bot,
-                                     permitir_params: true)
+#    add_handler Handler::Mensaje.new(:stats_básicas)
+#    add_handler Handler::Comando.new(:stats, :enviar_stats_grupo,
+#                                     permitir_params: true,
+#                                     chats_permitidos: %i[group supergroup],
+#                                     descripción: 'Te digo cuanto me usan en el grupo 7u7')
+#    add_handler Handler::Comando.new(:stats_bot, :enviar_stats_bot,
+#                                     permitir_params: true)
 
 
 
