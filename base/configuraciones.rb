@@ -8,8 +8,7 @@ class Dankie
 
     #Diccionario de Categorías. Uso: {clave de categoría => descripción}
     CATEGORIAS = {:admite_triggers_globales => "Admite Triggers Globales",
-                  :categoría_prueba => "Categoría de Test [WIP]",
-                  :admite_x2 => "Habilitar x2 [WIP]"
+                  :admite_x2 => "Habilitar x2"
                  }.freeze()
 
     def configuraciones(msg)
