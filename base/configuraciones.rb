@@ -3,23 +3,110 @@ class Dankie
     add_handler Handler::Comando.new(:configuraciones, :configuraciones,
         descripción: 'Te muestro las configuraciones del grupete')
 
+    add_handler Handler::CallbackQuery.new(:callback_config_seleccionada, 'config_seleccionada')
+    add_handler Handler::CallbackQuery.new(:callback_modificar_config, 'modificar_config')
+
     #Diccionario de Categorías. Uso: {clave de categoría => descripción}
     CATEGORIAS = {:admite_triggers_globales => "Admite Triggers Globales",
-                  :categoría_prueba => "Categoría de Test",
-                  :admite_x2 => "Admite usar comando x2"
+                  :categoría_prueba => "Categoría de Test [WIP]",
+                  :admite_x2 => "Habilitar x2 [WIP]"
                  }.freeze()
 
     def configuraciones(msg)
         Configuración.redis ||= @redis
-        respuesta = "Configuraciones del chat:"
-        CATEGORIAS.each do |categoria, mensaje|
-            valor = parsear_valor_booleano(Configuración.config(msg.chat.id, categoria))
-            respuesta << "\n-#{mensaje}: #{valor}"
-        end
+        respuesta, opciones = obtener_mensaje_configuraciones(msg.chat.id)
+
         @tg.send_message(chat_id: msg.chat.id,
             text: respuesta,
+            reply_markup: opciones,
             parse_mode: :html,
             reply_to_message_id: msg&.reply_to_message&.message_id)
+    end
+
+    def callback_config_seleccionada(callback)
+        match = callback.data.match(/config_seleccionada:(?<categoria>.+)/)
+
+        case match[:categoria]
+        when "cerrar_config"
+            chat_id = callback.message.chat.id
+            respuesta, _opciones = obtener_mensaje_configuraciones(chat_id)
+            @tg.edit_message_text(chat_id: chat_id,
+                parse_mode: :html,
+                text: respuesta,
+                message_id: callback.message.message_id,
+                disable_web_page_preview: true,
+                disable_notification: true)
+            return
+        end
+
+        arr = [[
+            Telegram::Bot::Types::InlineKeyboardButton.new(
+                text: "Sí",
+                callback_data: "modificar_config:#{match[:categoria]}:Sí"
+            ),
+            Telegram::Bot::Types::InlineKeyboardButton.new(
+                text: "No",
+                callback_data: "modificar_config:#{match[:categoria]}:No"
+            )
+        ],
+        Telegram::Bot::Types::InlineKeyboardButton.new(
+            text: "Cancelar",
+            callback_data: "modificar_config:#{match[:categoria]}:Cancelar"
+        )]
+        opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new inline_keyboard: arr
+        @tg.answer_callback_query(callback_query_id: callback.id)
+        @tg.edit_message_text(chat_id: callback.message.chat.id,
+                              parse_mode: :html,
+                              text: callback.message.text,
+                              reply_markup: opciones,
+                              message_id: callback.message.message_id,
+                              disable_web_page_preview: true,
+                              disable_notification: true)
+    end
+
+    def callback_modificar_config(callback)
+        match = callback.data.match(/modificar_config:(?<categoria>.+):(?<acción>.+)/)
+        id_grupo = callback.message.chat.id
+        
+        case match[:acción]
+        when 'Sí'
+            Configuración.poner_config(id_grupo, match[:categoria], 1)
+        when 'No'
+            Configuración.poner_config(id_grupo, match[:categoria], 0)
+        end
+
+        text, options = obtener_mensaje_configuraciones(id_grupo)
+
+        @tg.edit_message_text(chat_id: id_grupo,
+            parse_mode: :html,
+            text: text,
+            message_id: callback.message.message_id,
+            reply_markup: options,
+            disable_web_page_preview: true,
+            disable_notification: true)
+    end
+
+    def obtener_mensaje_configuraciones(chat_id)
+        respuesta = "Configuraciones del chat:"
+        arr = []
+        CATEGORIAS.each do |categoria, mensaje|
+            valor = parsear_valor_booleano(Configuración.config(chat_id, categoria))
+            respuesta << "\n-#{mensaje}: #{valor}"
+            button = Telegram::Bot::Types::InlineKeyboardButton.new(
+                text: "Modificar: #{mensaje}",
+                callback_data: "config_seleccionada:#{categoria}"
+            )
+            arr << button
+        end
+
+        button = Telegram::Bot::Types::InlineKeyboardButton.new(
+            text: "Terminar",
+            callback_data: "config_seleccionada:cerrar_config"
+        )
+        arr << button
+
+        opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new inline_keyboard: arr
+        return respuesta, opciones
     end
 
 
