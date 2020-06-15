@@ -2,6 +2,8 @@
 config.yml
 Gemfile.lock
 .bundle/config
+dump.rdb
+*.gem
 
 # Pre-requisitos
 *.d
@@ -51,3 +53,9 @@ __pycache__
 
 # swap de vim
 *.swp
+
+# vagrant folder
+.vagrant
+
+# byebug debugger
+*byebug*

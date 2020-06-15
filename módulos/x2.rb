@@ -2,6 +2,7 @@ class Dankie
     add_handler Handler::Mensaje.new(:x2, tipos: [:text])
 
     def x2(msj)
+        return unless validar_permiso_x2(msj.chat.id)
         texto = msj&.reply_to_message&.text || msj&.reply_to_message&.caption
         return unless texto
 
@@ -28,5 +29,11 @@ class Dankie
         return unless resp && resp['ok']
 
         añadir_a_cola_spam(msj.chat.id, resp.dig('result', 'message_id').to_i)
+    end
+
+    def validar_permiso_x2(chat_id)
+        Configuración.redis ||= @redis
+        puede = Configuración.config(chat_id, :admite_x2)
+        puede.nil? ? true : puede.to_i.positive?
     end
 end

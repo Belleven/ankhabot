@@ -26,10 +26,11 @@ class ImageSearcher
         Stats.incr('googleapi-' + Time.now.strftime("%Y-%m-%d"))
 
         if resultado['error']
-            if resultado.dig('error', 'errors', 0, 'reason') == 'dailyLimitExceeded'
+            if ['dailyLimitExceeded', 'rateLimitExceeded'].include? resultado.dig('error', 'errors', 0, 'reason')
                 @logger.info('Alcancé el límite diario de imágenes')
                 return :límite_diario
             else
+                @logger.error resultado['error']
                 return :error
             end
         elsif resultado['searchInformation']['totalResults'] == '0'
