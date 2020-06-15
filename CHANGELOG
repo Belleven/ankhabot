@@ -1,5 +1,5 @@
 1.2
-    -implementación de estadísticas de uso
+    -implementación básica de estadísticas de uso (sin visualización)
     -agregado de configuración de grupos
         -los triggers globales pueden desactivarse en el grupo
         -el comando x2 puede desactivarse en el grupo
