@@ -95,7 +95,7 @@ class Dankie
     end
 
     def obtener_mensaje_configuraciones(chat_id)
-        respuesta = "Configuraciones del chat:"
+        respuesta = "<b>Configuraciones del chat</b>"
         arr = []
         CATEGORIAS.each do |categoria, mensaje|
             valor = parsear_valor_booleano(Configuración.config(chat_id, categoria))
