@@ -1,5 +1,8 @@
 1.2
     -implementación de estadísticas de uso
+    -agregado de configuración de grupos
+        -los triggers globales pueden desactivarse en el grupo
+        -el comando x2 puede desactivarse en el grupo
 1.1.5.2
     -cambiado mensaje de error incorrecto en /img
 
