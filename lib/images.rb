@@ -23,19 +23,21 @@ class ImageSearcher
 
         # Cuantas imágenes fueron enviadas por día
         # ejemplo: googleapi-2020-12-25
-        Stats.incr('googleapi-' + Time.now.strftime("%Y-%m-%d"))
+        Stats.incr('googleapi-' + Time.now.strftime('%Y-%m-%d'))
 
         if resultado['error']
-            if ['dailyLimitExceeded', 'rateLimitExceeded'].include? resultado.dig('error', 'errors', 0, 'reason')
+            if %w[dailyLimitExceeded
+                  rateLimitExceeded].include? resultado.dig('error', 'errors', 0,
+                                                            'reason')
                 @logger.info('Alcancé el límite diario de imágenes')
-                return :límite_diario
+                :límite_diario
             else
                 @logger.error resultado['error']
-                return :error
+                :error
             end
         elsif resultado['searchInformation']['totalResults'] == '0'
             @logger.info('Sin resultados en la búsqueda')
-            return :sin_resultados
+            :sin_resultados
         else
 
             resultado['items'].map { |i| Link.new i['link'] }

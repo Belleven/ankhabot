@@ -125,6 +125,6 @@ class DankieLogger
 
     def html_parser(texto)
         html_dicc = { '&' => '&amp;', '<' => '&lt;', '>' => '&gt;', '"' => '&quot;' }
-        texto.gsub(/&|<|>|\"/, html_dicc)
+        texto.gsub(/&|<|>|"/, html_dicc)
     end
 end

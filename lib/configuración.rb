@@ -1,11 +1,12 @@
 class Configuración
     attr_reader :id_grupo, :categoria, :valor
-    #categoria es la categoría de configuración. Ej: :acepta_triggers_globales
-    #valor es el valor en Integer de la configuración. Si es booleano, 0=false 1=true
 
-#    def initialize(id_grupo, categoria, valor)
-#        clave = "configs:#{id_grupo}"
-#    end
+    # categoria es la categoría de configuración. Ej: :acepta_triggers_globales
+    # valor es el valor en Integer de la configuración. Si es booleano, 0=false 1=true
+
+    #    def initialize(id_grupo, categoria, valor)
+    #        clave = "configs:#{id_grupo}"
+    #    end
 
     # Con esto meto redis en la clase Configuración para no pasarlo a cada rato
     class << self
@@ -26,9 +27,9 @@ class Configuración
         @redis.hgetall(clave)
     end
 
-    #Devuelve el valor de la config de ese grupo.
-    def self.config(id_grupo,categoria)
+    # Devuelve el valor de la config de ese grupo.
+    def self.config(id_grupo, categoria)
         clave = "configs:#{id_grupo}"
-        @redis.hget(clave,categoria)
+        @redis.hget(clave, categoria)
     end
 end

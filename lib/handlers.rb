@@ -34,6 +34,7 @@ module Handler
 
     class Comando
         attr_reader :cmd, :descripción
+
         def initialize(cmd, callback, args = {})
             @cmd = cmd
             @callback = callback

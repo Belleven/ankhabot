@@ -3,6 +3,7 @@ class Dankie
 
     def x2(msj)
         return unless validar_permiso_x2(msj.chat.id)
+
         texto = msj&.reply_to_message&.text || msj&.reply_to_message&.caption
         return unless texto
 

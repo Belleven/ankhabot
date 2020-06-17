@@ -116,8 +116,11 @@ class Dankie
             trigger.actualizar_último_envío(msj.chat.id)
             incremetar_arr_flood(@trigger_flood[msj.chat.id], Time.now)
 
-            puede_globales =  validar_globales_en_chat(msj.chat.id)
-            enviar_trigger(msj.chat.id, trigger) unless !puede_globales && id_grupo == :global
+            puede_globales = validar_globales_en_chat(msj.chat.id)
+            unless !puede_globales && id_grupo == :global
+                enviar_trigger(msj.chat.id,
+                               trigger)
+            end
 
         # Si el trigger tardó mucho en procesar, lo borro.
         rescue Timeout::Error
@@ -383,7 +386,8 @@ class Dankie
             texto << "\nCaption: <code>#{html_parser trigger.caption}</code>"
         end
         texto << "\nTipo: #{id_grupo == :global ? 'global' : 'de grupo'}"
-        texto << "\nCreador: #{obtener_enlace_usuario(trigger.creador, msj.chat.id) || 'eliminado'}"
+        texto << "\nCreador: #{obtener_enlace_usuario(trigger.creador,
+                                                      msj.chat.id) || 'eliminado'}"
         texto << "\nTotal de usos: #{trigger.contador}"
         texto << "\nAñadido: <i>#{trigger.fecha.strftime('%d/%m/%Y %T')}</i>"
 
@@ -441,7 +445,7 @@ class Dankie
         # Tremenda virgueada esto, pero no queda otra papá, por lo menos
         # no con como tenemos las claves ahora y no pienso cambiar el diseño
         # de la bbdd porque me da paja pelearme con el luke soladri por eso
-        @redis.keys.each do |clave|
+        @redis.each_key do |clave|
             next unless clave.start_with?('triggers:settrigger:') ||
                         clave.start_with?('triggers:deltrigger:')
             next unless @redis.hget(clave, 'id_grupo') == msj.migrate_from_chat_id.to_s
@@ -519,7 +523,8 @@ class Dankie
             contador = nil
 
             texto = "Trigger <code>#{html_parser regexp}</code> "
-            texto << "añadido por #{obtener_enlace_usuario(id_usuario, msj.chat.id) || 'eliminado'} "
+            texto << "añadido por #{obtener_enlace_usuario(id_usuario,
+                                                           msj.chat.id) || 'eliminado'} "
             @tg.send_message(chat_id: msj.chat.id,
                              parse_mode: :html,
                              text: texto,
@@ -551,7 +556,8 @@ class Dankie
 
         texto = fecha.strftime("<code>[%d/%m/%Y %T]</code>\n")
         texto << 'Usuario '
-        texto << obtener_enlace_usuario(id_usuario, chat.id, con_apodo: false) || 'eliminado'
+        texto << obtener_enlace_usuario(id_usuario, chat.id,
+                                        con_apodo: false) || 'eliminado'
         texto << " (#{id_usuario}) en el chat "
         texto << "#{html_parser(chat&.title || chat&.username)} (#{chat.id}) "
         texto << 'quiere añadir el trigger: '
@@ -596,7 +602,8 @@ class Dankie
 
         texto = fecha.strftime("<code>[%d/%m/%Y %T]</code>\n")
         texto << 'Usuario '
-        texto << obtener_enlace_usuario(id_usuario, chat.id, con_apodo: false) || 'eliminado'
+        texto << obtener_enlace_usuario(id_usuario, chat.id,
+                                        con_apodo: false) || 'eliminado'
         texto << "(#{id_usuario}) en el chat "
         texto << "#{html_parser(chat&.title || chat&.username)} (#{chat.id}) "
         texto << 'quiere borrar el trigger: '
@@ -631,7 +638,8 @@ class Dankie
         @logger.info(loggear)
         # Aviso en grupete
         texto = "Trigger <code>#{html_parser regexp_str}</code> "
-        texto << "borrado por #{obtener_enlace_usuario(msj.from.id, msj.chat.id) || 'eliminado'} "
+        texto << "borrado por #{obtener_enlace_usuario(msj.from.id,
+                                                       msj.chat.id) || 'eliminado'} "
         texto << "en #{html_parser(msj.chat&.title || msj.chat&.username)} "
         texto << "(#{msj.chat.id})"
         @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,

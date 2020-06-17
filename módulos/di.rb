@@ -24,7 +24,7 @@ class Dankie
                         msj.reply_to_message&.caption || parámetros
             # Caso 2: al comando lo acompaña un -perocontodo + más texto
             else
-                texto = parámetros[12..-1] ||
+                texto = parámetros[12..] ||
                         msj.reply_to_message&.text || msj.reply_to_message&.caption
             end
         # Caso 3: al comando no lo acompaña un -perocontodo

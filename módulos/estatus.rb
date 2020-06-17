@@ -23,7 +23,8 @@ class Dankie
                          traducción[miembro.status]
                      end
 
-            usuario = obtener_enlace_usuario(miembro.user, msj.chat.id) || '<code>Usuario eliminado</code>'
+            usuario = obtener_enlace_usuario(miembro.user,
+                                             msj.chat.id) || '<code>Usuario eliminado</code>'
 
             texto = "Estatus de #{usuario}"\
                     ": #{estado}"
@@ -53,7 +54,7 @@ class Dankie
     private
 
     def miembro_válido(msj)
-        id_usuario, alias_usuario, _ = id_y_resto(msj)
+        id_usuario, alias_usuario, = id_y_resto(msj)
 
         if id_usuario.nil?
             @tg.send_message(chat_id: msj.chat.id,

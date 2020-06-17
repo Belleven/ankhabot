@@ -3,14 +3,14 @@
 
 Vagrant.configure(2) do |config|
     config.vm.box = 'ubuntu/xenial64'
-  
+
     config.vm.network 'forwarded_port', guest: 3000, host: 3000
     config.vm.hostname = 'dankiebot'
     config.vm.provider 'virtualbox' do |vb|
-      vb.memory = '1024'
-      vb.name = 'dankiebot'
+        vb.memory = '1024'
+        vb.name = 'dankiebot'
     end
-  
+
     config.vm.provision 'shell', privileged: false, inline: <<-SHELL
       sudo apt-get update
       sudo apt-get install -y build-essential git

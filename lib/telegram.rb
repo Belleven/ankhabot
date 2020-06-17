@@ -220,20 +220,20 @@ class TelegramAPI
     def method_missing(method_name, *args)
         super unless @client.api.respond_to?(method_name)
         @client.api.send(method_name, *args)
-#    rescue Faraday::ConnectionFailed, Faraday::TimeoutError,
-#           HTTPClient::ReceiveTimeoutError, Net::OpenTimeout => e
-#        texto, backtrace = @client.logger.excepcion_texto(e)
-#        @client.logger.error texto, backtrace: backtrace
-#        retry
-#    rescue Telegram::Bot::Exceptions::ResponseError => e
-#        texto, backtrace = @client.logger.excepcion_texto(e)
-#
-#        if !texto.include?('wrong user_id specified') ||
-#           !backtrace.include?('obtener_enlace_usuario')
-#            @client.logger.error texto, backtrace: backtrace
-#        end
-#
-#        raise e
+        #    rescue Faraday::ConnectionFailed, Faraday::TimeoutError,
+        #           HTTPClient::ReceiveTimeoutError, Net::OpenTimeout => e
+        #        texto, backtrace = @client.logger.excepcion_texto(e)
+        #        @client.logger.error texto, backtrace: backtrace
+        #        retry
+        #    rescue Telegram::Bot::Exceptions::ResponseError => e
+        #        texto, backtrace = @client.logger.excepcion_texto(e)
+        #
+        #        if !texto.include?('wrong user_id specified') ||
+        #           !backtrace.include?('obtener_enlace_usuario')
+        #            @client.logger.error texto, backtrace: backtrace
+        #        end
+        #
+        #        raise e
     end
 
     def respond_to_missing?(method_name)

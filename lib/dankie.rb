@@ -16,11 +16,13 @@ require 'cgi'
 
 class Dankie
     attr_reader :tg, :logger, :redis, :reddit, :user
+
     TROESMAS = File.readlines('resources/troesmas.txt', encoding: 'UTF-8').map(&:chomp)
     TROESMAS.freeze
     REKT = File.readlines('resources/rekt.txt', encoding: 'UTF-8').map(&:chomp).freeze
     CALLEFUEGOS = File.readlines('resources/callefuegos.txt').map(&:chomp).freeze
     DEUS_VULT = File.readlines('resources/deus.txt').map(&:chomp).freeze
+    # rubocop:disable Layout/MultilineArrayBraceLayout
     DEVS = Set.new([240_524_686, # Luke
                     98_631_116,  # M
                     812_107_125, # Santi
@@ -29,6 +31,7 @@ class Dankie
                     298_088_760, # Mel
                     36_557_595   # Bruno
     ]).freeze
+    # rubocop:enable Layout/MultilineArrayBraceLayout
 
     def self.add_handler(handler)
         @comandos ||= {}
@@ -234,7 +237,7 @@ class Dankie
 
         elsif ['!', '>', '$', '.'].include? text[0] # "!cmd params" o ">cmd params"
             command, params = text.split ' ', 2
-            command = command[1..-1]
+            command = command[1..]
             command.downcase!
         else
             arr = text.split(' ', 3) # ["user", "comando", "params"]
@@ -428,7 +431,7 @@ class Dankie
                 if entidad &&
                    args_mensaje.start_with?(texto[entidad.offset..(fin - 1)])
 
-                    otro_texto = texto[fin..-1].strip
+                    otro_texto = texto[fin..].strip
                     otro_texto = nil if otro_texto.empty?
 
                     # Me fijo si esa entidad efectivamente era un alias
@@ -466,7 +469,7 @@ class Dankie
         primer_palabra = natural(lista_palabras.first)
 
         if primer_palabra
-            [primer_palabra, lista_palabras[1..-1].join(' ')]
+            [primer_palabra, lista_palabras[1..].join(' ')]
         else
             [nil, nil]
         end

@@ -67,13 +67,13 @@ class Dankie
         hoy = Time.at(msj.date)
         if [hoy.month, hoy.day] == [12, 25] # Navidad
             @redis.zincrby("pole:#{id_chat}", 5, id_usuario)
-            tipo_de_pole = "nisman navideña, +5"
+            tipo_de_pole = 'nisman navideña, +5'
         elsif [hoy.month, hoy.day] == [1, 1] # Año nuevo
             @redis.zincrby("pole:#{id_chat}", 2, id_usuario)
-            tipo_de_pole = "primer nisman del año, +2"
+            tipo_de_pole = 'primer nisman del año, +2'
         else # Despues se podría añadir otro tipo de eventos, ej cumpleaños
             @redis.zincrby("pole:#{id_chat}", 1, id_usuario)
-            tipo_de_pole = "nisman"
+            tipo_de_pole = 'nisman'
         end
 
         nombre = if msj.from.first_name.empty?
