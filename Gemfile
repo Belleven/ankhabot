@@ -1,5 +1,7 @@
 source 'https://rubygems.org'
-# Instalar: gem install bundler 'nombre_gema (sin comillas)'
+
+ruby '>=2.6'
+
 gem 'byebug'
 gem 'concurrent-ruby'
 gem 'filesize'
