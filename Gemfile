@@ -16,4 +16,5 @@ gem 'tzinfo'
 
 group :test do
     gem 'rubocop'
+    gem 'rubocop_runner'
 end
