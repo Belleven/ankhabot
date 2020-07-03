@@ -6,6 +6,9 @@ require_relative 'lib/dankie'
 Dir[File.dirname(__FILE__) + '/base/*.rb'].each { |file| require_relative file }
 Dir[File.dirname(__FILE__) + '/módulos/*.rb'].each { |file| require_relative file }
 
+# pongo Dir en la raíz del projecto
+Dir.chdir File.dirname($PROGRAM_NAME)
+
 config = YAML.load_file(File.join(__dir__, 'config.yml'))
 config.transform_keys!(&:to_sym)
 

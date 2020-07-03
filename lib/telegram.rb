@@ -93,6 +93,10 @@ class TelegramAPI
         enviar(:send_sticker, args)
     end
 
+    def send_media_group(args)
+        enviar(:send_media_group, args, 'upload_photo')
+    end
+
     def answer_callback_query(args)
         enviar :answer_callback_query, args
     end
@@ -104,6 +108,10 @@ class TelegramAPI
         if acción
             @client.api.send_chat_action(chat_id: args[:chat_id],
                                          action: acción)
+
+            # Como los métodos que tienen acción son los que envían mensajes,
+            # voy a aumentar las stats de mensajes enviados acá.
+            Stats.incr('msj_enviados:' + Time.now.strftime('%Y-%m-%d'))
         end
 
         # TODO: meter delay para no sobrepasar los

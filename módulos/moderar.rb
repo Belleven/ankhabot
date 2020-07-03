@@ -98,7 +98,11 @@ class Dankie
                                  text: error_afectado,
                                  reply_to_message_id: msj.message_id)
             elsif moderar(msj, miembro.user.id, func_moderadora)
-                razón = razón.nil? ? '' : ".\nRazón: " + razón + (razón[-1] == '.' ? '' : '.')
+                razón = if razón.nil?
+                            ''
+                        else
+                            ".\nRazón: " + razón + (razón[-1] == '.' ? '' : '.')
+end
                 nombre = obtener_enlace_usuario(miembro.user,
                                                 msj.chat.id) || 'Usuario eliminado'
 

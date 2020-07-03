@@ -95,8 +95,8 @@ class Dankie
         # Ciclo principal
         @tg.client.listen do |msj|
             # Registra cuanto tiempo tarda en ejecutar el loop del bot
-            # ejemplo: tiempo_procesado_loop-2020-12-25
-            Stats.time('tiempo_procesado_loop-' + Time.now.strftime('%Y-%m-%d')) do
+            # ejemplo: tiempo_procesado_loop:2020-12-25
+            Stats.time('tiempo_procesado_loop:' + Time.now.strftime('%Y-%m-%d')) do
                 loop_principal(msj)
             end
         end

@@ -4,7 +4,6 @@ class Dankie
     add_handler Handler::Mensaje.new(:nhentai_mensaje, permitir_editados: false,
                                                        ignorar_comandos: true, tipos: [:text])
     add_handler Handler::Comando.new(:nhentai, :nhentai_comando, permitir_params: true)
-    add_handler Handler::Comando.new(:probar_botonera, :probar_botonera)
     add_handler Handler::CallbackQuery.new(:doujin_nsfw, 'doujin_nsfw')
 
     def nhentai_mensaje(msj)
