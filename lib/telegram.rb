@@ -140,7 +140,7 @@ class TelegramAPI
             @client.logger.error('No puedo responder a un mensaje '\
                                  "borrado (ID: #{args[:reply_to_message_id]}) "\
                                  "en #{args[:chat_id]}",
-                                 al_canal: true)
+                                 al_canal: false)
             args[:reply_to_message_id] = nil
             retry
 
