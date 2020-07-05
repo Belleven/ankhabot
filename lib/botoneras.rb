@@ -209,7 +209,7 @@ class Dankie
         respuesta = @tg.send_photo(chat_id: id_chat,
                                    caption: 'El contenido que querés ver es NSFW. '\
                                             '¿Ver de todas formas?',
-                                   photo: 'AgADAQADKagxG1kzoEUdtJ7Xoasff832awYABAEAAwIAA3gAA10kAQABFgQ',
+                                   photo: 'https://i.imgur.com/I7buUmr.jpg',
                                    reply_markup: botones)
         return false unless respuesta
 
