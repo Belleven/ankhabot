@@ -152,12 +152,12 @@ class Dankie
 
     def callback_set_trigger_global(callback)
         # Valido usuario
-        #
-        #unless DEVS.member? callback.from.id
-        #    @tg.answer_callback_query(callback_query_id: callback.id,
-        #                              text: 'Solo devs pueden usar esto')
-        #    return
-        #end
+        
+        unless DEVS.member? callback.from.id
+            @tg.answer_callback_query(callback_query_id: callback.id,
+                                      text: 'Solo devs pueden usar esto')
+            return
+        end
 
         match = callback.data.match(/settrigger:(?<id_regexp>\d+):(?<acción>.+)/)
         Trigger.redis ||= @redis
