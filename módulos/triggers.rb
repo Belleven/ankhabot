@@ -1,3 +1,4 @@
+# coding: utf-8
 require 'concurrent-ruby'
 require 'byebug'
 
@@ -151,11 +152,12 @@ class Dankie
 
     def callback_set_trigger_global(callback)
         # Valido usuario
-        unless DEVS.member? callback.from.id
-            @tg.answer_callback_query(callback_query_id: callback.id,
-                                      text: 'Solo devs pueden usar esto')
-            return
-        end
+        #
+        #unless DEVS.member? callback.from.id
+        #    @tg.answer_callback_query(callback_query_id: callback.id,
+        #                              text: 'Solo devs pueden usar esto')
+        #    return
+        #end
 
         match = callback.data.match(/settrigger:(?<id_regexp>\d+):(?<acción>.+)/)
         Trigger.redis ||= @redis
@@ -185,7 +187,8 @@ class Dankie
                               disable_web_page_preview: true,
                               disable_notification: true)
         texto = "Trigger <code>#{html_parser Trigger.regexp_a_str(temp[:regexp])}"
-        texto << "</code> #{match[:acción] == 'confirmar' ? 'aceptado' : 'rechazado'}."
+        rechazado = 'rechazado, podés ponerlo como un trigger local con /settrigger trigger.'
+        texto << "</code> #{match[:acción] == 'confirmar' ? 'aceptado' : rechazado} "
         @tg.send_message(chat_id: temp[:id_grupo], parse_mode: :html,
                          text: texto, reply_to_message_id: temp[:id_msj])
     rescue Telegram::Bot::Exceptions::ResponseError => e
