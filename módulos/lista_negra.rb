@@ -214,7 +214,6 @@ class Dankie
                                    'está en la lista negra')
         else
             @redis.srem("lista_negra:#{id_grupo}", id)
-            @redis.bgsave
 
             if msj.reply_to_message.nil?
 
