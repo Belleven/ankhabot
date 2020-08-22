@@ -96,7 +96,7 @@ class Dankie
             @tg.send_message(chat_id: msj.chat.id,
                              text: "Respondele a una imagen #{TROESMAS.sample}",
                              reply_to_message_id: msj.message_id)
-            return
+            nil
         elsif cumple_req_modificar_chat(msj, false, :can_change_info,
                                         'No tengo permisos para cambiar '\
                                         'la imagen del grupete')
@@ -198,9 +198,9 @@ class Dankie
                              text: 'Estás tratando de hacer que ancle un mensaje que '\
                                      "ya está anclado #{TROESMAS.sample}",
                              reply_to_message_id: msj.message_id)
-            return false
+            false
         else
-            return true
+            true
         end
     end
 

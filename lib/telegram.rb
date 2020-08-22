@@ -93,6 +93,10 @@ class TelegramAPI
         enviar(:send_sticker, args)
     end
 
+    def send_media_group(args)
+        enviar(:send_media_group, args, 'upload_photo')
+    end
+
     def answer_callback_query(args)
         enviar :answer_callback_query, args
     end
@@ -104,6 +108,10 @@ class TelegramAPI
         if acción
             @client.api.send_chat_action(chat_id: args[:chat_id],
                                          action: acción)
+
+            # Como los métodos que tienen acción son los que envían mensajes,
+            # voy a aumentar las stats de mensajes enviados acá.
+            Stats.incr('msj_enviados:' + Time.now.strftime('%Y-%m-%d'))
         end
 
         # TODO: meter delay para no sobrepasar los
@@ -220,20 +228,20 @@ class TelegramAPI
     def method_missing(method_name, *args)
         super unless @client.api.respond_to?(method_name)
         @client.api.send(method_name, *args)
-#    rescue Faraday::ConnectionFailed, Faraday::TimeoutError,
-#           HTTPClient::ReceiveTimeoutError, Net::OpenTimeout => e
-#        texto, backtrace = @client.logger.excepcion_texto(e)
-#        @client.logger.error texto, backtrace: backtrace
-#        retry
-#    rescue Telegram::Bot::Exceptions::ResponseError => e
-#        texto, backtrace = @client.logger.excepcion_texto(e)
-#
-#        if !texto.include?('wrong user_id specified') ||
-#           !backtrace.include?('obtener_enlace_usuario')
-#            @client.logger.error texto, backtrace: backtrace
-#        end
-#
-#        raise e
+        #    rescue Faraday::ConnectionFailed, Faraday::TimeoutError,
+        #           HTTPClient::ReceiveTimeoutError, Net::OpenTimeout => e
+        #        texto, backtrace = @client.logger.excepcion_texto(e)
+        #        @client.logger.error texto, backtrace: backtrace
+        #        retry
+        #    rescue Telegram::Bot::Exceptions::ResponseError => e
+        #        texto, backtrace = @client.logger.excepcion_texto(e)
+        #
+        #        if !texto.include?('wrong user_id specified') ||
+        #           !backtrace.include?('obtener_enlace_usuario')
+        #            @client.logger.error texto, backtrace: backtrace
+        #        end
+        #
+        #        raise e
     end
 
     def respond_to_missing?(method_name)

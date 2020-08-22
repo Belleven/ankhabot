@@ -174,7 +174,8 @@ class Dankie
                 else
                     @tg.send_message(chat_id: id_chat,
                                      text: 'ya no te doy bola '\
-                                           "#{obtener_enlace_usuario(id, id_chat) || 'eliminado'} ¬_¬",
+                                           "#{obtener_enlace_usuario(id,
+                                                                     id_chat) || 'eliminado'} ¬_¬",
                                      parse_mode: :html,
                                      disable_web_page_preview: true,
                                      disable_notification: true)
@@ -183,7 +184,8 @@ class Dankie
                 @tg.send_message(chat_id: id_chat,
                                  reply_to_message_id: msj.reply_to_message.message_id,
                                  text: 'ya no te doy bola '\
-                                       "#{obtener_enlace_usuario(id, id_chat) || 'eliminado'} ¬_¬",
+                                       "#{obtener_enlace_usuario(id,
+                                                                 id_chat) || 'eliminado'} ¬_¬",
                                  parse_mode: :html,
                                  disable_web_page_preview: true,
                                  disable_notification: true)
@@ -212,7 +214,6 @@ class Dankie
                                    'está en la lista negra')
         else
             @redis.srem("lista_negra:#{id_grupo}", id)
-            @redis.bgsave
 
             if msj.reply_to_message.nil?
 
@@ -221,7 +222,8 @@ class Dankie
                 else
                     @tg.send_message(chat_id: id_chat,
                                      text: 'ola de nuevo '\
-                                           "#{obtener_enlace_usuario(id, id_chat) || 'eliminado-kun'} nwn",
+                                           "#{obtener_enlace_usuario(id,
+                                                                     id_chat) || 'eliminado-kun'} nwn",
                                      parse_mode: :html,
                                      disable_web_page_preview: true,
                                      disable_notification: true)
@@ -231,7 +233,8 @@ class Dankie
                 @tg.send_message(chat_id: id_chat,
                                  reply_to_message_id: msj.reply_to_message.message_id,
                                  text: 'ola de nuevo '\
-                                       "#{obtener_enlace_usuario(id, id_chat) || 'eliminado-kun'} nwn",
+                                       "#{obtener_enlace_usuario(id,
+                                                                 id_chat) || 'eliminado-kun'} nwn",
                                  parse_mode: :html,
                                  disable_web_page_preview: true,
                                  disable_notification: true)

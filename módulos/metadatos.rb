@@ -130,7 +130,8 @@ class Dankie
 
         # Agrego usuario
         if msj.from
-            usuario = obtener_enlace_usuario(msj.from, msj.chat.id) || '<code>cuenta eliminada</code>'
+            usuario = obtener_enlace_usuario(msj.from,
+                                             msj.chat.id) || '<code>cuenta eliminada</code>'
             título = "\n\n - Enviado por: #{usuario}"
             agregar_usuario(texto, msj.from, título, nivel + 1)
         end
@@ -217,7 +218,8 @@ class Dankie
         # Info del usuario original
         if msj.forward_from
             texto << "#{tab} Cuenta oculta:<code>No</code>"
-            usuario = obtener_enlace_usuario(msj.forward_from, msj.chat.id) || '<i>Cuenta eliminada</i>'
+            usuario = obtener_enlace_usuario(msj.forward_from,
+                                             msj.chat.id) || '<i>Cuenta eliminada</i>'
             título = "#{tab} Reenviado de: #{usuario}"
             agregar_usuario(texto, msj.forward_from, título, nivel + 1)
         elsif msj.forward_sender_name
@@ -618,7 +620,7 @@ class Dankie
                  "#{tab} Código de Divisa: <code>#{factura.currency}</code>"
 
         total = factura.currency.to_s
-        total = total[0..-3] + ',' + total[-2..-1]
+        total = total[0..-3] + ',' + total[-2..]
 
         texto << "#{tab} Total facturado: <code>#{total}</code>"
     end
@@ -633,7 +635,7 @@ class Dankie
         texto << "#{tab} Código de divisa: <code>#{pago_exitoso.currency}</code>"
 
         total = pago_exitoso.currency.to_s
-        total = total[0..-3] + ',' + total[-2..-1]
+        total = total[0..-3] + ',' + total[-2..]
         texto << "#{tab} Total facturado: <code>#{total}</code>"
 
         factura = html_parser(pago_exitoso.invoice_payload)

@@ -135,8 +135,12 @@ class Dankie
 
         respuesta << (alias_usuario.nil? ? '' : "Alias: <b>#{alias_usuario}</b>\n")
         respuesta << "Id de usuario: <b>#{id_usuario}</b>\n"
-        respuesta << (apodo.nil? ? '' : 'Apodo en el grupete: '\
-                                        "<b>#{html_parser(apodo)}</b>\n")
+        respuesta << (if apodo.nil?
+                          ''
+                      else
+                          'Apodo en el grupete: '\
+                                                                "<b>#{html_parser(apodo)}</b>\n"
+end)
         respuesta << (lastfm.nil? ? '' : "Cuenta de LastFM: <b>#{lastfm}</b>")
 
         @tg.send_message(chat_id: msj.chat.id,
