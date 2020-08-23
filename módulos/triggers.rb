@@ -607,7 +607,7 @@ class Dankie
         texto << 'Usuario '
         texto << obtener_enlace_usuario(id_usuario, chat.id,
                                         con_apodo: false) || 'eliminado'
-        texto << "(#{id_usuario}) en el chat "
+        texto << " (#{id_usuario}) en el chat "
         texto << "#{html_parser(chat&.title || chat&.username)} (#{chat.id}) "
         texto << 'quiere borrar el trigger: '
         texto << " <code>#{regexp_sanitizada}</code>\n"
