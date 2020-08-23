@@ -15,6 +15,7 @@ gem 'ruby_reddit_api'
 gem 'stats'
 gem 'telegram-bot-ruby'
 gem 'tzinfo'
+gem 'xkcd'
 
 group :test do
     gem 'rubocop'

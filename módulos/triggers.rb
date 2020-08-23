@@ -780,8 +780,8 @@ class Trigger
 
     # Ver si existe un temporal
     def self.existe_temporal?(id)
-        @redis.exists("triggers:settrigger:#{id}") ||
-            @redis.exists("triggers:deltrigger:#{id}")
+        @redis.exists?("triggers:settrigger:#{id}") ||
+            @redis.exists?("triggers:deltrigger:#{id}")
     end
 
     # Método que mueve las claves de un trigger temporal a la lista de trigger globales.

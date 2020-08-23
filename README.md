@@ -72,7 +72,7 @@ Copy config-sample.yml to config.yml
 6) Get a programmable search engine (https://developers.google.com/custom-search/v1/using_rest)
 7) A country code (https://developers.google.com/custom-search/docs/xml_results_appendices#countryCodes) in 'google_image_gl'
 8) Get a last.fm api (follow instructions https://www.last.fm/api/) and put it in 'last_fm_api'
-9) Set a chat to see the logs of the bot (you can use a channel setting the bot as an administrator, or yout private chat for example). Put the chat's id in 'canal_logging' as a string. Plz use a valid id, not a bot id or id of a chat that the bot has not acces to it.
+9) Set a chat to see the logs of the bot (you can use a channel setting the bot as an administrator, or your private chat for example). Put the chat's id in 'canal_logging' as a string. Plz use a valid id, not a bot id or id of a chat that the bot has not acces to it.
 
 
 ## Usage
