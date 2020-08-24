@@ -34,6 +34,11 @@ Redis server installation (for debian, if you use another magic distro you would
 
 Change the default por to 42069:
 First open /etc/redis.conf with your favourite text editor, here I will user nano but you can use wathever shit you want
+On Ubuntu:
+
+	$ sudo nano /etc/redis/redis.conf
+
+On other distributions:
 
 	$ sudo nano /etc/redis.conf
 
