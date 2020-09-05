@@ -1,146 +1,162 @@
 require 'telegram/bot'
 
-$indice = 8
-
 class Dankie
-    add_handler Handler::Comando.new(:tirada, :tirada,
-                                     descripción: 'Tiro un dado de dragones y mazmorras')
-
-    # Comprueba que sea un texto valido
-    def comprobar_dado(texto)
-        texto.match(/[1-9]*d(4|6|8|10|12|20)(\+[1-9])?/)
-    end
-
-    def enviar_mensaje_error(error_code)
-        case error_code
-        when 'caras'
-            dado_texto = 'Mira kpo/a, vos te pensas que te voy a tirar tantas veces el dado? Hasta 666 te lo hago sin problemas, pero ubicate'
-        when 'modificador'
-            dado_texto = 'Por que queres un modificador tan alto??? Hasta 999 te acepto pero sino es mucho trabajo'
-        end
-        dado_texto
-    end
-
-    # A partir del texto, consigue la informacion de la cantidad de tiradas que se necesita
-    # Solo se permiten hasta 666 tiradas
-    def get_cantidad_dados(texto)
-        contador = 0
-        # Si lo primero que aparece es un d, entonces significa que esta implicito que la cantidad de tiradas es una sola
-        if texto[$indice] == 'd'
-            cantidad_dados = '1'
-        else
-            cantidad_dados = ''
-            while (texto[$indice] != 'd') && (contador < 3)
-                cantidad_dados += texto[$indice]
-                contador += 1
-                $indice = $indice + 1
-            end
-        end
-        # Si contador es 3, significa que el numero tiene 4 digitos con lo cual se paso del limite
-        # o la cantidad es mayor a 666, devuelve -1 indicando que se produzco un error
-        cantidad_dados = '-1' if (contador == 3) || (cantidad_dados.to_i > 666)
-        cantidad_dados
-    end
-
-    # Devuelve la cantidad de caras de un texto
-    def get_cantidad_caras(texto)
-        $indice = $indice + 1
-        cantidad_caras = ''
-        while (texto[$indice] != '+') && (texto[$indice] != '.')
-            cantidad_caras += texto[$indice]
-            $indice = $indice + 1
-        end
-        cantidad_caras
-    end
-
-    def get_modificador(texto)
-        $indice = $indice + 1
-        contador = 0
-        modificador = ''
-        while (texto[$indice] != '.') && (contador < 4)
-            modificador += texto[$indice]
-            contador += 1
-            $indice = $indice + 1
-        end
-        modificador = '-1' if contador == 4
-        modificador
-    end
-
-    def conseguir_valor_dado(cantidad_caras = 6, cantidad_dados = 1, modificador = '')
-        dado = Dado.new(cantidad_caras.to_i)
-        dado_texto = ''
-        i = 0
-        while i < cantidad_dados.to_i
-            valor_dado = dado.tirar_dado
-            dado_texto << if modificador == ''
-                              "#{valor_dado} "
-                          else
-                              "#{valor_dado}+#{modificador} "
-                          end
-            i += 1
-        end
-        dado_texto
-    end
+    add_handler Handler::Comando.new(:tirada, :tirada, permitir_params: true,
+                                                       descripción: 'Un dado de dragones y mazmorras')
+    add_handler Handler::Comando.new(:roll, :tirada, permitir_params: true,
+                                                     descripción: 'Un dado de dragones y mazmorras')
 
     # Funcion que tira varias veces un dado con modificadores
-    def tirada(msj)
-        texto = "#{msj&.text}."
+    def tirada(msj, params)
+        return if parámetros_inválidos(msj, params)
 
-        if comprobar_dado(texto)
-            cantidad_dados = get_cantidad_dados(texto)
+        valores = params.split('-')
+        flag = valores.length == 1 ? nil : valores.last.downcase
 
-            # Si es -1, indica que se quizo tirar mas veces de lo permitido
-            if cantidad_dados == '-1'
-                error_code = 'caras'
-                error_flag = 1
-                dado_texto = enviar_mensaje_error(error_code)
-            else
+        return if flag_inválido(msj, flag)
 
-                number_string = get_cantidad_caras(texto)
-                modificador = ''
-                # El texto puede no tener modificadores, por eso hay que comprobarlo
-                modificador = get_modificador(texto) if texto[$indice] == '+'
+        # La cantidad de tiradas es N si es que vino en los params, si no es 1
+        valores = valores.first.split('d')
+        cant_tiradas = valores.first.empty? ? 1 : valores.first.to_i
 
-                # Si se produce un modificador mas alto de lo aceptado
-                if modificador == '-1'
-                    error_code = 'modificador'
-                    error_flag = 1
-                    dado_texto = enviar_mensaje_error(error_code)
+        return if cero_tiradas(msj, cant_tiradas)
 
-                else
-                    dado_completo = dado_completo_string(texto)
-                    dado_texto = conseguir_valor_dado(number_string,
-                                                      cantidad_dados, modificador)
-                    dado_texto = "#{dado_completo}\n#{dado_texto}"
+        valores = valores.last.split('+')
+        rango = valores.first.strip.to_i
+        suma = valores.length == 1 ? 0 : valores.last.strip.to_i
 
-                end
-            end
-        else
-            dado_texto = 'Kpo, no sabes jugar D&D? El comando es /tirada <NdR+M> donde N es el numero de tiradas y R son las caras usadas que solo pueden ser 4, 6, 8, 10, 12, 20. Si solo esta el rango, devuelve una sola tirada. M es un modificador que aumenta el valor de tus tiros, puede no estar'
+        return if rango_inválido(msj, rango)
+        return if suma_inválida(msj, suma)
+        return if resultado_muy_grande(msj, cant_tiradas, rango, suma, flag)
+
+        tirar(msj, cant_tiradas, rango, suma, flag)
+    end
+
+    private
+
+    def parámetros_inválidos(msj, params)
+        unless !params.nil? && formato_correcto(params)
+            error = 'Se usa como /tirada NdR + M donde N es la cantidad de tiradas, R '\
+                    'los valores posibles y M la suma al resultado de cada tirada. N '\
+                    'y M son opcionales. Si hay M, podés hacer '\
+                    '/tirada NdR + M -acumular si querés que se muestre el resultado '\
+                    'de la suma.'
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                text: error,
+                reply_to_message_id: msj.message_id
+            )
+            return true
         end
-        $indice = 8
-
-        @tg.send_message(chat_id: msj.chat.id, text: dado_texto)
+        false
     end
 
-    def dado_completo_string(texto)
-        dado_completo = ''
-        $indice = 8
-        while texto[$indice] != '.'
-            dado_completo += texto[$indice]
-            $indice = $indice + 1
+    # Comprueba que sea un texto valido para el comando
+    def formato_correcto(texto)
+        /\A[0-9]*d[0-9]+( *\+ *[0-9]+( *-[a-zA-Z]+)?)?\z/.match?(texto)
+    end
+
+    def flag_inválido(msj, flag)
+        if flag && flag != 'acumular'
+            error = 'Parámetro inválido, si querés que se acumulen los resultados '\
+                    'acompañá el comando con -acumular'
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                text: error,
+                reply_to_message_id: msj.message_id
+            )
+            return true
         end
-        dado_completo
-    end
-end
-
-class Dado
-    def initialize(cantidad_caras)
-        @caras = cantidad_caras - 1
+        false
     end
 
-    def tirar_dado
-        @valor_tirada = Random.rand @caras
-        @valor_tirada + 1
+    def cero_tiradas(msj, cant_tiradas)
+        if cant_tiradas.zero?
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                text: 'No puedo tirar 0 veces.',
+                reply_to_message_id: msj.message_id
+            )
+            return true
+        end
+        false
+    end
+
+    def rango_inválido(msj, rango)
+        if rango < 2
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                text: "El rango tiene que ser 2 o más #{TROESMAS.sample}.",
+                reply_to_message_id: msj.message_id
+            )
+            return true
+        end
+        false
+    end
+
+    def suma_inválida(msj, suma)
+        if suma > 666
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                text: 'No podés sumar más de 666.',
+                reply_to_message_id: msj.message_id
+            )
+            return true
+        end
+        false
+    end
+
+    # Se fija que no haya una cantidad de tiradas y un rango que en combinación
+    # hagan que el resultado sea un mensaje inmenso.
+    def resultado_muy_grande(msj, cant_tiradas, rango, suma, flag)
+        # El tamaño de "<code>" y "</code>"
+        tam_html = 13
+
+        # Si tenés el flag activado la parte de "+M" no se muestra, lo mismo si la
+        # M es 0
+        long_suma = flag || suma.zero? ? 0 : suma.digits.length + 1
+
+        # Si está el flag activado entonces el resultado que se muestra es el de
+        # la tirada + la suma, asumiendo que sale el número más grande posible
+        # en la tirada (que es el que puede tener más dígitos) se le suma M para
+        # ver si se agregan más dígitos o no, si no está activado el flag, no hay que
+        # sumar nada (o bueno sumar 0 como hago acá para tener todo en una línea)
+        max_digitos_tirada = (rango + (flag ? 0 : suma)).digits.length
+
+        # A max_digitos_tirada se le suma 1 porque despues de poner el resultado
+        # de cada tirada hay que poner un espacio (para separarlo del siguiente),
+        # salvo en el últmo que no hay que poner espacio y por eso hay un -1 al final
+        tamaño = tam_html + cant_tiradas * (max_digitos_tirada + long_suma + 1) - 1
+
+        # 4096 es la longitud máxima de caracteres por mensaje que se pueden mandar
+        if tamaño > 4096
+            error = "Números muy grandes, #{TROESMAS.sample}. Probá con menos tiradas "\
+                    'o un rango más chico uwu'
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                text: error,
+                reply_to_message_id: msj.message_id
+            )
+            return true
+        end
+        false
+    end
+
+    def tirar(msj, cant_tiradas, rango, suma, flag)
+        # Líneas místicas, en la primera se calcula el resultado que se va a mostrar
+        # en el mensaje, se suma 'suma' si el flag está activado.
+        # La segunda línea es para ver si al resultado hay que agregarle '+M'
+        # Si el flag está activado o si 'suma' == 0 entonces NO hay que mostrarla,
+        # en otro caso sí.
+        valores = Array.new(cant_tiradas) do
+            resultado = rand(1..rango) + (flag ? suma : 0)
+            resultado.to_s + (flag || suma.zero? ? '' : "+#{suma}")
+        end
+
+        @tg.send_message(
+            chat_id: msj.chat.id,
+            text: "<code>#{valores.join(' ')}</code>",
+            parse_mode: :html
+        )
     end
 end
