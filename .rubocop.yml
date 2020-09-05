@@ -2,6 +2,9 @@ AllCops:
     NewCops: enable
     TargetRubyVersion: 2.6
 
+Documentation:
+    Enabled: false
+
 Layout/IndentationWidth:
     Width: 4
 

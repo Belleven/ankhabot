@@ -217,7 +217,7 @@ class Dankie
 
         # Info del usuario original
         if msj.forward_from
-            texto << "#{tab} Cuenta oculta:<code>No</code>"
+            texto << "#{tab} Cuenta oculta: <code>No</code>"
             usuario = obtener_enlace_usuario(msj.forward_from,
                                              msj.chat.id) || '<i>Cuenta eliminada</i>'
             título = "#{tab} Reenviado de: #{usuario}"

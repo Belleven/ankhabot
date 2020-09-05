@@ -127,7 +127,7 @@ class TelegramAPI
     rescue Telegram::Bot::Exceptions::ResponseError => e
         if e.error_code.to_i == 400
             args[:reply_to_message_id] = nil
-            
+
             if e.message.include?('reply message not found')
                 @client.logger.error('No puedo responder a un mensaje '\
                                      "borrado (ID: #{args[:reply_to_message_id]}) "\
@@ -137,11 +137,14 @@ class TelegramAPI
                 id_supergrupo = corte_al_inicio.split('}').first
 
                 @client.logger.error("Error en #{args[:chat_id]}. El grupo se "\
-                                     "actualizó y ahora es unsupergrupo "\
+                                     'actualizó y ahora es unsupergrupo '\
                                      "(#{id_supergrupo}).\n#{e.message}",
                                      al_canal: true)
                 args[:chat_id] = id_supergrupo.to_i
+            else
+                raise
             end
+
             retry
         else
             @excepciones.loggear(e, args)

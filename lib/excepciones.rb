@@ -20,15 +20,22 @@ class ManejoExcepciones
         método = "manejar_error_#{excepción.error_code}".to_sym
 
         chat = if !args.nil? && !args[:chat_id].nil?
-                then "en #{args[:chat_id]}"
-                else "(F en el chat)"
-                end
+               then "en #{args[:chat_id]}"
+               else '(F en el chat)'
+               end
 
-        (excepción.class == Telegram::Bot::Exceptions::ResponseError) &&
-          respond_to?(método) && send(método, excepción.message, chat, args)
+        return false unless excepción.class == Telegram::Bot::Exceptions::ResponseError
+
+        if respond_to?(método)
+            send(método, excepción.message, chat, args)
+        elsif !args.nil? && !args[:chat_id].nil?
+            @logger.warn('chat_id que causa la siguiente excepción '\
+                         "desconocida: #{args[:chat_id]}", al_canal: true)
+            false
+        end
     end
 
-    def manejar_error_400(mensaje_error, chat, args)
+    def manejar_error_400(mensaje_error, chat, _args)
         manejado = true
 
         case mensaje_error
@@ -52,8 +59,8 @@ class ManejoExcepciones
             manejado = false
         when /chat not found/
             @logger.fatal("Quise mandar un mensaje #{chat} pero parece que el "\
-                          "chat no existe o fue brutalmente DOMADO y ULTRAJADO "\
-                          "por telegram", al_canal: true)
+                          'chat no existe o fue brutalmente DOMADO y ULTRAJADO '\
+                          'por telegram', al_canal: true)
             manejado = false
         else
             manejado = false
@@ -61,7 +68,7 @@ class ManejoExcepciones
         manejado
     end
 
-    def manejar_error_403(mensaje_error, chat, args)
+    def manejar_error_403(mensaje_error, chat, _args)
         manejado = true
 
         case mensaje_error
@@ -84,7 +91,7 @@ class ManejoExcepciones
         manejado
     end
 
-    def manejar_error_429(mensaje_error, chat, args)
+    def manejar_error_429(mensaje_error, chat, _args)
         manejado = true
 
         case mensaje_error

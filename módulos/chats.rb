@@ -104,26 +104,26 @@ class Dankie
                              text: 'Sigo estando en ese chat',
                              reply_to_message_id: msj.message_id)
         rescue Telegram::Bot::Exceptions::ResponseError => e
-              texto = case e.to_s
-                      when /chat not found/
-                          "\nNunca estuve en este chat, o no existe"
-                      when /bot was kicked from the (super)?group chat/
-                          "\nMe banearon en ese chat"
-                      when /bot is not a member of the ((super)?group|channel) chat/
-                          "\nNo estoy en ese chat"
-                      when /PEER_ID_INVALID/
-                          "\nEse usuario me tiene bloqueado o nunca iniciamos conversación"
-                      when /bot can't send messages to bots/
-                          "\nEse usuario es un bot, no le puedo hablar"
-                      else
-                          "\nSaltó este otro error y no puedo saber si "\
-                                  "estoy en el chat: #{e}"
-                      end
+            texto = case e.to_s
+                    when /chat not found/
+                        "\nNunca estuve en este chat, o no existe"
+                    when /bot was kicked from the (super)?group chat/
+                        "\nMe banearon en ese chat"
+                    when /bot is not a member of the ((super)?group|channel) chat/
+                        "\nNo estoy en ese chat"
+                    when /PEER_ID_INVALID/
+                        "\nEse usuario me tiene bloqueado o nunca iniciamos conversación"
+                    when /bot can't send messages to bots/
+                        "\nEse usuario es un bot, no le puedo hablar"
+                    else
+                        "\nSaltó este otro error y no puedo saber si "\
+                                "estoy en el chat: #{e}"
+                    end
 
             @logger.info("En el comando /estadochat => #{e}")
             @tg.send_message(chat_id: msj.chat.id,
-                              text: texto,
-                              reply_to_message_id: msj.message_id)
+                             text: texto,
+                             reply_to_message_id: msj.message_id)
         end
     end
 end

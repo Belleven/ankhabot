@@ -103,7 +103,7 @@ class Dankie
             end
         end
     rescue StandardError => e
-        manejar_excepción_asesina(e, msj)
+        manejar_excepción_asesina(e)
         retry
     end
 
@@ -129,16 +129,15 @@ class Dankie
         manejar_excepción_asesina(e, msj)
     end
 
-    def manejar_excepción_asesina(e, msj)
-        begin
-            @logger.loggear_hora_excepción(msj, @tz.utc_offset, @tz.now)
-            return if @tg.capturar(e)
-            texto, backtrace = @logger.excepcion_texto(e)
-            @logger.fatal texto, al_canal: true, backtrace: backtrace
-        rescue StandardError => e
-            @logger.fatal "EXCEPCIÓN: #{e}\nLEYENDO LA EXCEPCIÓN: #{e}\n\n"\
-                          "#{@logger.excepcion_texto(e).last}", al_canal: true
-        end
+    def manejar_excepción_asesina(e, msj = nil)
+        @logger.loggear_hora_excepción(msj, @tz.utc_offset, @tz.now) unless msj.nil?
+        return if @tg.capturar(e)
+
+        texto, backtrace = @logger.excepcion_texto(e)
+        @logger.fatal texto, al_canal: true, backtrace: backtrace
+    rescue StandardError => e
+        @logger.fatal "EXCEPCIÓN: #{e}\nLEYENDO LA EXCEPCIÓN: #{e}\n\n"\
+                      "#{@logger.excepcion_texto(e).last}", al_canal: true
     end
 
     # Permite iterar sobre los comandos del bot, y sus descripciones
