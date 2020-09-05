@@ -193,7 +193,7 @@ class Dankie
     def datos_tema(tema)
         texto = "\u{1F3B5} "
 
-        texto << if (nombre = tema.dig('name')) && !nombre.empty?
+        texto << if (nombre = tema['name']) && !nombre.empty?
                      html_parser nombre
                  else
                      'Sin nombre'
@@ -216,7 +216,7 @@ class Dankie
     def datos_tema_compacto(tema)
         texto = ''
 
-        texto << if (nombre = tema.dig('name')) && !nombre.empty?
+        texto << if (nombre = tema['name']) && !nombre.empty?
                      nombre
                  else
                      'Sin nombre'

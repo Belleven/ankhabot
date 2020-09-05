@@ -12,7 +12,7 @@ class Dankie
     def stats_básicas(msj)
         # Mensajes recibidos por día
         # ejemplo: msj_recibidos:-2020-12-25
-        Stats.incr('msj_recibidos:' + Time.now.strftime('%Y-%m-%d'))
+        Stats.incr("msj_recibidos:#{Time.now.strftime('%Y-%m-%d')}")
 
         # Mensajes recibidos por día por grupo
         # ejemplo: msj_recibidos:-10000000:2020-12-25
@@ -202,7 +202,7 @@ class Dankie
 
     # Método que toma un hasha de labels y les da formato bonito para la imagen.
     def filtrar_hash_labels(hash)
-        hash.filter! { |k, _v| k % 7 == 0 }
+        hash.filter! { |k, _v| (k % 7).zero? }
 
         hash.each_value do |v|
             v.sub!(/^\d{4}-(\d{2})-(\d{2})/, '\2/\1')

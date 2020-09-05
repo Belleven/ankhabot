@@ -15,7 +15,7 @@ class Dankie
         @juegos ||= {}
         @juegos[msj.chat.id] ||= Tambor.new
 
-        if @juegos[msj.chat.id].cargadas > 0
+        if @juegos[msj.chat.id].cargadas.positive?
             @tg.send_message(chat_id: msj.chat.id,
                              reply_to_message_id: msj.message_id,
                              text: "Ya hay una bala cargada, #{TROESMAS.sample}.")

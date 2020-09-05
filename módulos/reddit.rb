@@ -56,7 +56,7 @@ class Dankie
             # caracteres, corto el post para que no lo haga y le agrego tres puntos
             # para que se sepa que continúa
             texto_post = if post.selftext.length + longitud_otros > 4096
-                             post.selftext[0..(4092 - longitud_otros)] + '...'
+                             "#{post.selftext[0..(4092 - longitud_otros)]}..."
                          else
                              post.selftext
                          end

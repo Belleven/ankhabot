@@ -1,5 +1,7 @@
 2.0
     -estadísticas de uso del bot graficadas con /stats_bot
+    -comando xkcd
+    -comando roll
 
 1.2
     -implementación básica de estadísticas de uso (sin visualización)

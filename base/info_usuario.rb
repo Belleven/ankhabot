@@ -140,7 +140,7 @@ class Dankie
                       else
                           'Apodo en el grupete: '\
                                                                 "<b>#{html_parser(apodo)}</b>\n"
-end)
+                      end)
         respuesta << (lastfm.nil? ? '' : "Cuenta de LastFM: <b>#{lastfm}</b>")
 
         @tg.send_message(chat_id: msj.chat.id,

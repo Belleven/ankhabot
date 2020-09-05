@@ -2,7 +2,7 @@ require 'telegram/bot'
 require 'httpclient'
 
 class TelegramAPI
-    attr_reader :client, :token
+    attr_reader :client, :token, :ultima_excepción_data
 
     # token es String, logger es Logger
     def initialize(token, logger)
@@ -11,6 +11,11 @@ class TelegramAPI
         end
         @client = Telegram::Bot::Client.new token, logger: logger
         @token = token
+        @excepciones = ManejoExcepciones.new @logger
+    end
+
+    def capturar(e)
+        @excepciones.capturar e
     end
 
     def send_message(args)
@@ -108,118 +113,38 @@ class TelegramAPI
         if acción
             @client.api.send_chat_action(chat_id: args[:chat_id],
                                          action: acción)
-
-            # Como los métodos que tienen acción son los que envían mensajes,
-            # voy a aumentar las stats de mensajes enviados acá.
-            Stats.incr('msj_enviados:' + Time.now.strftime('%Y-%m-%d'))
         end
 
-        # TODO: meter delay para no sobrepasar los
-        # límites de flood de telegram
-
         # Mando el mensaje (de texto, sticker, lo que sea)
-        @client.api.send(función_envío, args)
+        enviado = @client.api.send(función_envío, args)
+        # Como los métodos que tienen acción son los que envían mensajes,
+        # voy a aumentar las stats de mensajes enviados acá.
+        Stats.incr("msj_enviados:#{Time.now.strftime('%Y-%m-%d')}")
+        enviado
 
-    # Si hay error de conexión, lo reintento
-    rescue Faraday::ConnectionFailed, Faraday::TimeoutError,
-           HTTPClient::ReceiveTimeoutError, Net::OpenTimeout => e
-        retry
     # Si hay un error de telegram, loggeo si es conocido,
     # si no lo vuelvo a lanzar
     rescue Telegram::Bot::Exceptions::ResponseError => e
-        case e.to_s
-
-        when /Too Many Requests: retry after/
-            @client.logger.error('Por un tiempo no puedo mandar mensajes '\
-                                 "en #{args[:chat_id]}\n#{e}")
-
-        when /have no rights to send a message/
-            @client.logger.error("Me restringieron los mensajes en #{args[:chat_id]}")
-
-        when /reply message not found/
-            @client.logger.error('No puedo responder a un mensaje '\
-                                 "borrado (ID: #{args[:reply_to_message_id]}) "\
-                                 "en #{args[:chat_id]}",
-                                 al_canal: true)
+        if e.error_code.to_i == 400
             args[:reply_to_message_id] = nil
+            
+            if e.message.include?('reply message not found')
+                @client.logger.error('No puedo responder a un mensaje '\
+                                     "borrado (ID: #{args[:reply_to_message_id]}) "\
+                                     "en #{args[:chat_id]}. Error:\n#{e.message}")
+            elsif e.message.include?('group chat was upgraded to a supergroup chat')
+                corte_al_inicio = e.message.split('{"migrate_to_chat_id"=>').last
+                id_supergrupo = corte_al_inicio.split('}').first
+
+                @client.logger.error("Error en #{args[:chat_id]}. El grupo se "\
+                                     "actualizó y ahora es unsupergrupo "\
+                                     "(#{id_supergrupo}).\n#{e.message}",
+                                     al_canal: true)
+                args[:chat_id] = id_supergrupo.to_i
+            end
             retry
-
-        when /bot was kicked from the (super)?group chat/
-            @client.logger.fatal("Me echaron de este grupete: #{args[:chat_id]}, "\
-                                 'y no puedo mandar mensajes')
-            raise
-
-        when /Forbidden: bot is not a member of the (super)?group chat/
-            @client.logger.fatal("Me fui de este grupete: #{args[:chat_id]}, "\
-                                 'y no puedo mandar mensajes')
-            raise
-
-        when /Forbidden: bot can't initiate conversation with a user/
-            @client.logger.fatal("Me fui de este grupete: #{args[:chat_id]}, "\
-                                 'y no puedo mandar mensajes')
-            raise
-
-        when /USER_IS_BOT/
-            texto, backtrace = @client.logger.excepcion_texto(e)
-            texto << "\nLe quise mandar un mensaje privado a "\
-                     "este bot: #{args[:chat_id]}"
-            @client.logger.fatal(texto, al_canal: true, backtrace: backtrace)
-            raise
-
-        when /chat not found/
-            @client.logger.fatal("Chat inválido: #{args[:chat_id]}", al_canal: true)
-            # Relanzo excepción
-            raise
-
-        when /message text is empty/
-            @client.logger.fatal('Quise mandar un mensaje '\
-                                 "vacío en el chat: #{args[:chat_id]}",
-                                 al_canal: true)
-
-        when /message is too long/
-            @client.logger.fatal('Quise mandar un mensaje '\
-                                 "muy largo en el chat: #{args[:chat_id]}",
-                                 al_canal: true)
-            args[:text] = args[:text][0..4095]
-            retry
-
-        when /PEER_ID_INVALID/
-            @client.logger.error('Le quise mandar un mensaje privado a '\
-                                 'alguien que no me habló primero o me '\
-                                 "bloqueó (ID: #{args[:chat_id]}")
-            # Vuelvo a relanzar la excepción (esto fue solo para registral la id)
-            raise
-
-        when %r{(?-x:wrong file identifier/HTTP URL specified)|
-                (?-x:wrong type of the web page content)}x
-            @client.logger.error('Error al mandar archivo al '\
-                                 "chat (ID: #{args[:chat_id]})")
-
-        when /(?-x:not enough rights to send )
-                (?-x:(photo|document|video|audio|v(oice|ideo) note)s to the chat)/x
-            @client.logger.error("Me restringieron la multimedia en #{args[:chat_id]}")
-
-        when /not enough rights to send (sticker|animation)s to the chat/
-            @client.logger.error("Me restringieron stickers/gifs en #{args[:chat_id]}")
-
-        when /CHAT_SEND_GIFS_FORBIDDEN/
-            @client.logger.error("Me restringieron los gifs en #{args[:chat_id]}")
-
-        when /CHAT_SEND_STICKERS_FORBIDDEN/
-            @client.logger.error("Me restringieron los stickers en #{args[:chat_id]}")
-
-        when /CHAT_SEND_MEDIA_FORBIDDEN/
-            @client.logger.error("Me restringieron la multimedia en #{args[:chat_id]}")
-
-        when /CHAT_WRITE_FORBIDDEN/
-            @client.logger.error("Me restringieron los mensajes en #{args[:chat_id]}")
-
-        when /group chat was upgraded to a supergroup chat/
-            @client.logger.error("#{args[:chat_id]} migró a otra id, pronto va a "\
-                                 'llegar el update sobre eso y ahí actualizo las '\
-                                 'claves de la base de datos')
-
         else
+            @excepciones.loggear(e, args)
             raise
         end
     end
@@ -228,20 +153,10 @@ class TelegramAPI
     def method_missing(method_name, *args)
         super unless @client.api.respond_to?(method_name)
         @client.api.send(method_name, *args)
-        #    rescue Faraday::ConnectionFailed, Faraday::TimeoutError,
-        #           HTTPClient::ReceiveTimeoutError, Net::OpenTimeout => e
-        #        texto, backtrace = @client.logger.excepcion_texto(e)
-        #        @client.logger.error texto, backtrace: backtrace
-        #        retry
-        #    rescue Telegram::Bot::Exceptions::ResponseError => e
-        #        texto, backtrace = @client.logger.excepcion_texto(e)
-        #
-        #        if !texto.include?('wrong user_id specified') ||
-        #           !backtrace.include?('obtener_enlace_usuario')
-        #            @client.logger.error texto, backtrace: backtrace
-        #        end
-        #
-        #        raise e
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        # Si la excepción fue manejada entonces no hay que loggear
+        @excepciones.loggear(e, args)
+        raise
     end
 
     def respond_to_missing?(method_name)

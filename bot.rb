@@ -3,8 +3,8 @@ require 'yaml'
 # Esto prepara a Dankie
 require_relative 'lib/dankie'
 # Esto carga todos los plugins del bot
-Dir[File.dirname(__FILE__) + '/base/*.rb'].each { |file| require_relative file }
-Dir[File.dirname(__FILE__) + '/módulos/*.rb'].each { |file| require_relative file }
+Dir["#{File.dirname(__FILE__)}/base/*.rb"].each { |file| require_relative file }
+Dir["#{File.dirname(__FILE__)}/módulos/*.rb"].each { |file| require_relative file }
 
 # pongo Dir en la raíz del projecto
 Dir.chdir File.dirname($PROGRAM_NAME)

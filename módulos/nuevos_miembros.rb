@@ -4,42 +4,51 @@ class Dankie
                                           tipos: [:new_chat_members])
 
     def nuevos_miembros(msj)
+        cantidad_miembros = msj.new_chat_members.size
+
         if msj.new_chat_members.any? { |miembro| miembro.id == @user.id }
+
             nombre_bot = primer_nombre(@user)
             saludo = "yoroshikune soy #{nombre_bot} nwn arigato x meterme al grupete"
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: saludo,
-                             reply_to_message_id: msj.message_id)
 
-        elsif msj.new_chat_members.size == 1
-            saludo = ['Bienvenido ', 'Hola ', 'Buenas ', 'Que onda '].sample
+        elsif cantidad_miembros == 1
+
+            saludo_un_miembro = ['Bienvenido ', 'Hola ', 'Buenas ', 'Que onda ']
+            extra_un_miembro  = [', pasá y sentate al fondo.', ', ponete cómodo.',
+                                 ', querés bizcochitos?', ', qué te trae por acá?']
+
             nombre = primer_nombre(msj.new_chat_members[0])
-            extra = [', pasá y sentate al fondo.', ', ponete cómodo.',
-                     ', querés bizcochitos?', ', qué te trae por acá?'].sample
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: saludo + nombre + extra,
-                             reply_to_message_id: msj.message_id)
+            saludo = saludo_un_miembro.sample + nombre + extra_un_miembro.sample
 
-        elsif msj.new_chat_members.size >= 2
-            texto = ['Bienvenidos ', 'Hola ', 'Buenas ', 'Que onda '].sample
+        elsif cantidad_miembros >= 2
 
-            índice = 0
-            msj.new_chat_members.each do |nuevo_miembro|
-                texto << primer_nombre(nuevo_miembro)
+            saludo_varios_miembros =  ['Bienvenidos ', 'Hola ', 'Buenas ', 'Que onda ']
+            extra_varios_miembros =   [', pónganse cómodos.', ', quieren bizcochitos?',
+                                       ', qué los trae por acá?',
+                                       ', pasen y siéntense al fondo.']
 
-                if índice < msj.new_chat_members.size - 2
-                    texto << ', '
-                elsif índice == msj.new_chat_members.size - 2
-                    texto << ' y '
-                end
-                índice += 1
-            end
+            texto = concatenarSaludos(msj, saludo_varios_miembros.sample)
+            saludo = texto + extra_varios_miembros.sample
 
-            extra = [', pasen y siéntense al fondo.', ', pónganse cómodos.',
-                     ', quieren bizcochitos?', ', qué los trae por acá?'].sample
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: texto + extra,
-                             reply_to_message_id: msj.message_id)
         end
+
+        @tg.send_message(chat_id: msj.chat.id,
+                         text: saludo,
+                         reply_to_message_id: msj.message_id)
+    end
+
+    def concatenarSaludos(msj, texto)
+        cantidad_miembros = msj.new_chat_members.size
+        # Saluda a varios usuarios nuevas
+        msj.new_chat_members.each_with_index do |nuevo_miembro, índice|
+            texto << primer_nombre(nuevo_miembro)
+            if índice < cantidad_miembros - 2
+                texto << ', '
+            elsif índice == cantidad_miembros - 2
+                texto << ' y '
+            end
+        end
+
+        texto
     end
 end

@@ -65,10 +65,11 @@ class Dankie
         @redis.set "pole:#{id_chat}:próxima", próx_pole.to_i
 
         hoy = Time.at(msj.date)
-        if [hoy.month, hoy.day] == [12, 25] # Navidad
+        case [hoy.month, hoy.day]
+        when [12, 25] # Navidad
             @redis.zincrby("pole:#{id_chat}", 5, id_usuario)
             tipo_de_pole = 'nisman navideña, +5'
-        elsif [hoy.month, hoy.day] == [1, 1] # Año nuevo
+        when [1, 1] # Año nuevo
             @redis.zincrby("pole:#{id_chat}", 2, id_usuario)
             tipo_de_pole = 'primer nisman del año, +2'
         else # Despues se podría añadir otro tipo de eventos, ej cumpleaños

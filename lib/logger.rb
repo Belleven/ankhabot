@@ -40,7 +40,7 @@ class DankieLogger
     def excepcion_texto(excepcion)
         texto_excepcion = excepcion.to_s
         texto = if !(texto_excepcion.nil? || texto_excepcion.empty?)
-                    '(' + excepcion.class.to_s + ') ' + texto_excepcion
+                    "(#{excepcion.class}) #{texto_excepcion}"
                 else
                     'EXCEPCIÓN SIN NOMBRE'
                 end
@@ -52,6 +52,20 @@ class DankieLogger
         # [^/]+ es para que detecte todos los caracteres que no sean "/" =>
         # /home/user/dankie/... queda como /dankie/...
         [texto, excepcion.backtrace.join("\n").gsub(%r{/home/[^/]+}, '~')]
+    end
+
+    def loggear_hora_excepción(msj, desplazamiento_utc, actual)
+        fecha = Time.at(msj.date, in: desplazamiento_utc).to_datetime
+        fecha = fecha.strftime('%d/%m/%Y %T %Z')
+
+        puts actual
+        # actual = Time.new(tz: período).to_datetime.strftime('%d/%m/%Y %T %Z')
+
+        texto = 'Fecha y hora del mensaje original que '\
+                "hizo saltar la excepción: #{fecha}\n"\
+                "Fecha y hora actual: #{actual}"
+
+        log(Logger::WARN, texto, true, nil, false, nil)
     end
 
     private

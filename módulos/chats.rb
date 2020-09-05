@@ -97,34 +97,33 @@ class Dankie
                                        text: 'Mensaje para ver si sigo en el grupo')
             return unless mensaje && mensaje['ok']
 
-            añadir_a_cola_spam(id_chat, mensaje.dig('result', 'message_id').to_i)
+            @tg.delete_message(chat_id: id_chat,
+                               message_id: mensaje.dig('result', 'message_id').to_i)
 
             @tg.send_message(chat_id: msj.chat.id,
                              text: 'Sigo estando en ese chat',
                              reply_to_message_id: msj.message_id)
         rescue Telegram::Bot::Exceptions::ResponseError => e
-            texto << case e.to_s
-                     when /chat not found/
-                         "\nNunca estuve en este chat, o no existe"
-                     when /bot was kicked from the (super)?group chat/
-                         "\nMe banearon en ese chat"
-                     when /Forbidden: bot is not a member of the (super)?group chat/
-                         "\nMe fui de ese supergrupo"
-                     when /Forbidden: bot can't initiate conversation with a user/
-                         "\nMe fui de ese grupo"
-                     when /PEER_ID_INVALID/
-                         "\nEse usuario me tiene bloqueado"
-                     when /USER_IS_BOT/
-                         "\nEse usuario es un bot, no le puedo hablar"
-                     else
-                         "\nSaltó este otro error y no puedo saber si "\
+              texto = case e.to_s
+                      when /chat not found/
+                          "\nNunca estuve en este chat, o no existe"
+                      when /bot was kicked from the (super)?group chat/
+                          "\nMe banearon en ese chat"
+                      when /bot is not a member of the ((super)?group|channel) chat/
+                          "\nNo estoy en ese chat"
+                      when /PEER_ID_INVALID/
+                          "\nEse usuario me tiene bloqueado o nunca iniciamos conversación"
+                      when /bot can't send messages to bots/
+                          "\nEse usuario es un bot, no le puedo hablar"
+                      else
+                          "\nSaltó este otro error y no puedo saber si "\
                                   "estoy en el chat: #{e}"
-                     end
+                      end
 
             @logger.info("En el comando /estadochat => #{e}")
             @tg.send_message(chat_id: msj.chat.id,
-                             text: texto,
-                             reply_to_message_id: msj.message_id)
+                              text: texto,
+                              reply_to_message_id: msj.message_id)
         end
     end
 end

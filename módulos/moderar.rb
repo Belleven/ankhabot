@@ -24,13 +24,14 @@ class Dankie
                 (miembro.status == 'restricted' && !miembro.is_member)
         end
         # Función para moderar el grupete
-        if msj.chat.type == 'supergroup'
+        case msj.chat.type
+        when 'supergroup'
             func_moderadora = proc do |chat_id, id_afectada|
                 # Por alguna razón misteriosa la función unban_chat_member
                 # kickea en supergrupos
                 @tg.unban_chat_member(chat_id: chat_id, user_id: id_afectada)
             end
-        elsif msj.chat.type == 'group'
+        when 'group'
             func_moderadora = proc do |chat_id, id_afectada|
                 # Por alguna razón misteriosa esta función solo kickea
                 # en grupos normales
@@ -101,12 +102,12 @@ class Dankie
                 razón = if razón.nil?
                             ''
                         else
-                            ".\nRazón: " + razón + (razón[-1] == '.' ? '' : '.')
-end
+                            ".\nRazón: #{razón}#{(razón[-1] == '.' ? '' : '.')}"
+                        end
                 nombre = obtener_enlace_usuario(miembro.user,
                                                 msj.chat.id) || 'Usuario eliminado'
 
-                texto = msj_final + ' ' + nombre + razón
+                texto = "#{msj_final} #{nombre}#{razón}"
                 @tg.send_message(chat_id: msj.chat.id,
                                  text: texto,
                                  parse_mode: :html,

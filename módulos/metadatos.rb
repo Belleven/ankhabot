@@ -299,7 +299,7 @@ class Dankie
         long = texto_msj.length
 
         # Agrego el texto
-        texto_msj = (texto_msj[0..200] + '...') if long > 200
+        texto_msj = "#{texto_msj[0..200]}..." if long > 200
         respuesta << "\n\n - #{título} <code>#{html_parser(texto_msj)}</code>"
         respuesta << "\n - Longitud: <code>#{long}</code>"
 
@@ -620,7 +620,7 @@ class Dankie
                  "#{tab} Código de Divisa: <code>#{factura.currency}</code>"
 
         total = factura.currency.to_s
-        total = total[0..-3] + ',' + total[-2..]
+        total = "#{total[0..-3]},#{total[-2..]}"
 
         texto << "#{tab} Total facturado: <code>#{total}</code>"
     end
@@ -635,7 +635,7 @@ class Dankie
         texto << "#{tab} Código de divisa: <code>#{pago_exitoso.currency}</code>"
 
         total = pago_exitoso.currency.to_s
-        total = total[0..-3] + ',' + total[-2..]
+        total = "#{total[0..-3]},#{total[-2..]}"
         texto << "#{tab} Total facturado: <code>#{total}</code>"
 
         factura = html_parser(pago_exitoso.invoice_payload)

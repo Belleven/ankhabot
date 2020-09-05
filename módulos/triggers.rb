@@ -1,4 +1,3 @@
-# coding: utf-8
 require 'concurrent-ruby'
 require 'byebug'
 
@@ -152,7 +151,7 @@ class Dankie
 
     def callback_set_trigger_global(callback)
         # Valido usuario
-        
+
         unless DEVS.member? callback.from.id
             @tg.answer_callback_query(callback_query_id: callback.id,
                                       text: 'Solo devs pueden usar esto')
@@ -448,7 +447,7 @@ class Dankie
         # Tremenda virgueada esto, pero no queda otra papá, por lo menos
         # no con como tenemos las claves ahora y no pienso cambiar el diseño
         # de la bbdd porque me da paja pelearme con el luke soladri por eso
-        @redis.each_key do |clave|
+        @redis.keys('*').each do |clave|
             next unless clave.start_with?('triggers:settrigger:') ||
                         clave.start_with?('triggers:deltrigger:')
             next unless @redis.hget(clave, 'id_grupo') == msj.migrate_from_chat_id.to_s
@@ -719,23 +718,23 @@ class Trigger
 
         @caption = trigger['caption']
         @regexp = regexp
-        @contador = self.class.redis.hget @clave + ':metadata', 'contador'
-        @creador = self.class.redis.hget @clave + ':metadata', 'creador'
-        @fecha = Time.at self.class.redis.hget(@clave + ':metadata', 'fecha').to_i
+        @contador = self.class.redis.hget "#{@clave}:metadata", 'contador'
+        @creador = self.class.redis.hget "#{@clave}:metadata", 'creador'
+        @fecha = Time.at self.class.redis.hget("#{@clave}:metadata", 'fecha').to_i
     end
 
     def aumentar_contador
-        self.class.redis.hincrby @clave + ':metadata', 'contador', 1
+        self.class.redis.hincrby "#{@clave}:metadata", 'contador', 1
     end
 
     # Método que devuelve la fecha del último envío del trigger en un grupo
     # en unix time
     def último_envío(id_grupo)
-        self.class.redis.hget(@clave + ':último_envío', id_grupo).to_i
+        self.class.redis.hget("#{@clave}:último_envío", id_grupo).to_i
     end
 
     def actualizar_último_envío(id_grupo)
-        self.class.redis.hset @clave + ':último_envío', id_grupo, Time.now.to_i
+        self.class.redis.hset "#{@clave}:último_envío", id_grupo, Time.now.to_i
     end
 
     # Con esto meto redis en la clase Trigger para no pasarlo a cada rato

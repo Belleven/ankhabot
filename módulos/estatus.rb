@@ -80,7 +80,8 @@ class Dankie
     end
 
     def agregar_cualidades(miembro, texto)
-        if miembro.status == 'administrator'
+        case miembro.status
+        when 'administrator'
             texto << "\n\nCon las siguientes características:"
 
             agr_cualidades_admin_restr(miembro, texto)
@@ -109,7 +110,7 @@ class Dankie
                          "\n❌ No puede agregar nuevos admins."
                      end
 
-        elsif miembro.status == 'restricted'
+        when 'restricted'
             texto << "\n\nCon las siguientes restricciones:"
             agr_cualidades_ban_restr(miembro, texto, 'Restringido')
             agr_cualidades_admin_restr(miembro, texto)
@@ -121,7 +122,7 @@ class Dankie
                      end
             agr_cualidades_generales(miembro, texto)
 
-        elsif miembro.status == 'kicked'
+        when 'kicked'
             agr_cualidades_ban_restr(miembro, texto, 'Baneado')
         end
     end
