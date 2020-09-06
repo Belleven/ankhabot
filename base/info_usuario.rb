@@ -139,7 +139,7 @@ class Dankie
                           ''
                       else
                           'Apodo en el grupete: '\
-                                                                "<b>#{html_parser(apodo)}</b>\n"
+                         "<b>#{html_parser(apodo)}</b>\n"
                       end)
         respuesta << (lastfm.nil? ? '' : "Cuenta de LastFM: <b>#{lastfm}</b>")
 
@@ -170,7 +170,7 @@ class Dankie
                 contador = 0
             end
 
-            unless enlace_usuario = obtener_enlace_usuario(apodo.first, msj.chat.id)
+            unless (enlace_usuario = obtener_enlace_usuario(apodo.first, msj.chat.id))
                 @redis.hdel("apodo:#{msj.chat.id}", apodo.first.to_s)
             end
 

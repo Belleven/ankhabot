@@ -2,7 +2,8 @@
 class Dankie
     add_handler Handler::Comando.new(:configuraciones, :configuraciones,
                                      chats_permitidos: %i[group supergroup],
-                                     descripción: 'Te muestro las configuraciones del grupete')
+                                     descripción: 'Te muestro las configuraciones' \
+                                     'del grupete')
 
     add_handler Handler::CallbackQuery.new(:callback_config_seleccionada,
                                            'config_seleccionada')
