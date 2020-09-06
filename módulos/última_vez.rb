@@ -80,7 +80,8 @@ class Dankie
             fecha = Time.at(elemento[1].to_i, in: @tz.utc_offset)
             fecha = fecha.strftime('%d/%m/%Y %T')
             # Armo la línea
-            unless enlace_usuario = obtener_enlace_usuario(id_usuario, msj.chat.id)
+            enlace_usuario = obtener_enlace_usuario(id_usuario, msj.chat.id)
+            unless enlace_usuario
                 @redis.hdel("último_mensaje:#{msj.chat.id}", id_usuario)
             end
             "\n- #{enlace_usuario || 'Usuario eliminado'} (#{fecha})"

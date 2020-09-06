@@ -31,10 +31,12 @@ class Dankie
 
         @redis.zincrby("pole:#{mensaje.chat.id}", 1, id)
         @logger.info("#{nombre} hizo la nisman en #{mensaje.chat.id}", al_canal: false)
-        @tg.send_message(chat_id: mensaje.chat.id,
-                         parse_mode: :html,
-                         reply_to_message_id: mensaje.message_id,
-                         text: "<b>#{nombre}</b> hizo la Nisman")
+        @tg.send_message(
+            chat_id: mensaje.chat.id,
+            parse_mode: :html,
+            reply_to_message_id: mensaje.message_id,
+            text: "<b>#{nombre}</b> hizo la Nisman"
+        )
     end
 
     def pole(msj)
@@ -84,18 +86,23 @@ class Dankie
                  end
 
         @logger.info("#{nombre} hizo la nisman en #{id_chat}", al_canal: false)
-        @tg.send_message(chat_id: id_chat, parse_mode: :html,
-                         reply_to_message_id: msj.message_id,
-                         text: "<b>#{nombre}</b> hizo la #{tipo_de_pole}.")
+        @tg.send_message(
+            chat_id: id_chat,
+            parse_mode: :html,
+            reply_to_message_id: msj.message_id,
+            text: "<b>#{nombre}</b> hizo la #{tipo_de_pole}."
+        )
     end
 
     def enviar_ranking_pole(msj)
         poles = @redis.zrevrange("pole:#{msj.chat.id}", 0, -1, with_scores: true)
 
         if poles.nil?
-            @tg.edit_message_text(chat_id: id_chat,
-                                  text: 'No hay poles en este grupo.',
-                                  message_id: enviado.message_id)
+            @tg.edit_message_text(
+                chat_id: id_chat,
+                text: 'No hay poles en este grupo.',
+                message_id: enviado.message_id
+            )
             return
         end
 
@@ -128,11 +135,13 @@ class Dankie
         # Armo botonera y envío
         opciones = armar_botonera 0, arr.size, msj.from.id, true
 
-        respuesta = @tg.send_message(chat_id: msj.chat.id, text: arr.first,
-                                     reply_markup: opciones, parse_mode: :html,
-                                     reply_to_message_id: msj.message_id,
-                                     disable_web_page_preview: true,
-                                     disable_notification: true)
+        respuesta = @tg.send_message(
+            chat_id: msj.chat.id, text: arr.first,
+            reply_markup: opciones, parse_mode: :html,
+            reply_to_message_id: msj.message_id,
+            disable_web_page_preview: true,
+            disable_notification: true
+        )
         return unless respuesta
 
         respuesta = Telegram::Bot::Types::Message.new respuesta['result']

@@ -46,53 +46,6 @@ class Dankie
                                           tipos: [:migrate_from_chat_id],
                                           chats_permitidos: %i[supergroup])
 
-    # Método que mete un mensaje en la cola de mensajes a procesar por los triggers.
-    def despachar_mensaje_a_trigger(msj)
-        puts 'entra a función'
-        @cola_triggers ||= Concurrent::Array.new
-        @cola_triggers << msj
-        @hilo_triggers_creado ||= false
-
-        unless @hilo_triggers_creado
-            $hilo_triggers = Thread.new { loop_hilo_triggers }
-            $hilo_triggers.abort_on_exception = true
-            @hilo_triggers_creado = true
-        end
-        puts 'fuera de hilos'
-
-        # por las dudas que esto se ejecute antes que el otro bloque
-        $hilo_triggers[:hora] ||= Concurrent::AtomicFixnum.new
-
-        if $hilo_triggers[:hora].value.positive? &&
-           (Time.now.to_i - $hilo_triggers[:hora].value) > 10
-
-            puts 'por matar el hilo'
-            $hilo_triggers.kill
-            puts 'hilo matado'
-            $hilo_triggers_creado = false
-            @logger.info('triggers colgados en algún grupo', al_canal: true)
-        end
-        puts 'termina'
-    end
-
-    def loop_hilo_triggers
-        puts 'hilo creado'
-        Thread.current[:hora] ||= Concurrent::AtomicFixnum.new
-
-        loop do
-            puts 'en el loop'
-            Thread.current[:hora].value = Time.now.to_i
-
-            if @cola_triggers.empty?
-                sleep(0.200)
-                next
-            end
-            puts "mensaje: #{@cola_triggers.first&.text}"
-
-            chequear_triggers @cola_triggers.shift
-        end
-    end
-
     def chequear_triggers(msj)
         return unless (texto = msj.text || msj.caption)
 

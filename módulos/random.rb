@@ -1,10 +1,18 @@
 require 'telegram/bot'
 
 class Dankie
-    add_handler Handler::Comando.new(:tirada, :tirada, permitir_params: true,
-                                                       descripción: 'Un dado de dragones y mazmorras')
-    add_handler Handler::Comando.new(:roll, :tirada, permitir_params: true,
-                                                     descripción: 'Un dado de dragones y mazmorras')
+    add_handler Handler::Comando.new(
+        :tirada,
+        :tirada,
+        permitir_params: true,
+        descripción: 'Un dado de dragones y mazmorras'
+    )
+    add_handler Handler::Comando.new(
+        :roll,
+        :tirada,
+        permitir_params: true,
+        descripción: 'Un dado de dragones y mazmorras'
+    )
 
     # Funcion que tira varias veces un dado con modificadores
     def tirada(msj, params)
