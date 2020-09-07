@@ -58,9 +58,6 @@ class DankieLogger
         fecha = Time.at(msj.date, in: desplazamiento_utc).to_datetime
         fecha = fecha.strftime('%d/%m/%Y %T %Z')
 
-        puts actual
-        # actual = Time.new(tz: período).to_datetime.strftime('%d/%m/%Y %T %Z')
-
         texto = 'Fecha y hora del mensaje original que '\
                 "hizo saltar la excepción: #{fecha}\n"\
                 "Fecha y hora actual: #{actual}"
@@ -132,8 +129,8 @@ class DankieLogger
             texto_excepcion << "\n#{lineas}#{lineas}#{e.backtrace.join("\n")}\n"\
                                "#{lineas}#{lineas}\n"
             @logger.fatal(texto_excepcion)
-        rescue StandardError
-            puts "\nFATAL, múltiples excepciones.\n"
+        rescue StandardError => e
+            puts "\nFATAL, múltiples excepciones.\n#{e}"
         end
     end
 

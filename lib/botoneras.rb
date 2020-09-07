@@ -140,16 +140,17 @@ class Dankie
         página_actual = [página_actual, tamaño_máximo - 1].min # valido el rango
 
         arr = [[]]
-        botones_abajo = [Telegram::Bot::Types::InlineKeyboardButton.new(
-            text: (editable ? "\u{1F513}" : "\u{1F512}"),
-            callback_data: "opcioneslista:#{id_usuario}:#{página_actual}:"\
-                           "#{editable ? 'noedit' : 'edit'}"
-        ),
-                         Telegram::Bot::Types::InlineKeyboardButton.new(
-                             text: "\u274C",
-                             callback_data: "opcioneslista:#{id_usuario}:#{página_actual}:"\
-                                            'borrar'
-                         )]
+        botones_abajo = [
+            Telegram::Bot::Types::InlineKeyboardButton.new(
+                text: (editable ? "\u{1F513}" : "\u{1F512}"),
+                callback_data: "opcioneslista:#{id_usuario}:#{página_actual}:"\
+                               "#{editable ? 'noedit' : 'edit'}"
+            ),
+            Telegram::Bot::Types::InlineKeyboardButton.new(
+                text: "\u274C",
+                callback_data: "opcioneslista:#{id_usuario}:#{página_actual}:borrar"
+            )
+        ]
 
         if tamaño_máximo <= 5
             tamaño_máximo.times do |i|
