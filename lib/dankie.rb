@@ -102,9 +102,9 @@ class Dankie
                 loop_principal(msj)
             end
         end
-        rescue StandardError => e
-            manejar_excepción_asesina(e)
-            retry
+    rescue StandardError => e
+        manejar_excepción_asesina(e)
+        retry
     end
 
     def loop_principal(msj)
