@@ -14,8 +14,8 @@ class TelegramAPI
         @excepciones = ManejoExcepciones.new @logger
     end
 
-    def capturar(e)
-        @excepciones.capturar e
+    def capturar(excepción)
+        @excepciones.capturar excepción
     end
 
     def send_message(args)

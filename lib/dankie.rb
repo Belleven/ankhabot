@@ -129,14 +129,14 @@ class Dankie
         manejar_excepción_asesina(e, msj)
     end
 
-    def manejar_excepción_asesina(e, msj = nil)
+    def manejar_excepción_asesina(excepción, msj = nil)
         @logger.loggear_hora_excepción(msj, @tz.utc_offset, @tz.now) unless msj.nil?
-        return if @tg.capturar(e)
+        return if @tg.capturar(excepción)
 
         texto, backtrace = @logger.excepcion_texto(e)
         @logger.fatal texto, al_canal: true, backtrace: backtrace
     rescue StandardError => e
-        @logger.fatal "EXCEPCIÓN: #{e}\nLEYENDO LA EXCEPCIÓN: #{e}\n\n"\
+        @logger.fatal "EXCEPCIÓN: #{excepción}\nLEYENDO LA EXCEPCIÓN: #{e}\n\n"\
                       "#{@logger.excepcion_texto(e).last}", al_canal: true
     end
 
@@ -288,7 +288,8 @@ class Dankie
         else
             usuario = @tg.get_chat_member(chat_id: id_chat, user_id: usuario)
             usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
-            alias_usuario = usuario.username
+            # Lo comente porque no se usa
+            # alias_usuario = usuario.username
 
             redis_actualizar_datos usuario
             if usuario.first_name.empty?
@@ -440,7 +441,8 @@ class Dankie
                         # La entidad arranca con un @, por eso el + 1
                         alias_usuario = texto[(entidad.offset + 1)..(fin - 1)].strip
                         id_afectada = obtener_id_de_alias(alias_usuario)
-                    # Me fijo si esa entidad efectivamente era una mención de usuario sin alias
+                    # Me fijo si esa entidad efectivamente
+                    # era una mención de usuario sin alias
                     when 'text_mention'
                         id_afectada = entidad.user.id
                     end

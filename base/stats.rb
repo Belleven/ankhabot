@@ -5,7 +5,8 @@ class Dankie
     #    add_handler Handler::Comando.new(:stats, :enviar_stats_grupo,
     #                                     permitir_params: true,
     #                                     chats_permitidos: %i[group supergroup],
-    #                                     descripción: 'Te digo cuanto me usan en el grupo 7u7')
+    #                                     descripción: 'Te digo cuanto me usan '\
+    #                                     'en el grupo 7u7')
     add_handler Handler::Comando.new(:stats_bot, :enviar_stats_bot,
                                      permitir_params: true)
 
@@ -20,7 +21,8 @@ class Dankie
 
         # Mensajes recibidos por día por grupo por usuario
         # ejemplo: msj_recibidos:<group_id>:<user_id>:2020-12-25
-        Stats.incr "msj_recibidos:#{msj.chat.id}:#{msj.from.id}:#{Time.now.strftime '%Y-%m-%d'}"
+        Stats.incr "msj_recibidos:#{msj.chat.id}:#{msj.from.id}"\
+                   ":#{Time.now.strftime '%Y-%m-%d'}"
 
         # Chats con los que el bot interactúa cada día, según su tipo
         # ejemplo: chats:supergroup:2020-12-25
@@ -181,8 +183,8 @@ class Dankie
 
         gráfico.labels = filtrar_hash_labels etiquetas
         gráfico.data 'Tiempo de procesado (ms)', tiempos
-        gráfico.data '+error', tiempos.map.with_index { |t, i| t + desviaciones[i] }
-        gráfico.data '-error', tiempos.map.with_index { |t, i| t - desviaciones[i] }
+        gráfico.data '+error', (tiempos.map.with_index { |t, i| t + desviaciones[i] })
+        gráfico.data '-error', (tiempos.map.with_index { |t, i| t - desviaciones[i] })
 
         gráfico.write nombre
         nombre
@@ -194,7 +196,8 @@ class Dankie
         etiquetas = {}
 
         tiempo.times do |n|
-            etiquetas[tiempo - n - 1] = (Time.now - (n + 1) * 24 * 60 * 60).strftime('%Y-%m-%d')
+            etiquetas[tiempo - n - 1] = (Time.now - (n + 1) * 24 * 60 * 60)
+                                        .strftime('%Y-%m-%d')
         end
 
         etiquetas
