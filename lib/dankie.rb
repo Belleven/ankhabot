@@ -101,10 +101,10 @@ class Dankie
             Stats.time("tiempo_procesado_loop:#{Time.now.strftime('%Y-%m-%d')}") do
                 loop_principal(msj)
             end
+        rescue StandardError => e
+            manejar_excepción_asesina(e)
+            retry
         end
-    rescue StandardError => e
-        manejar_excepción_asesina(e)
-        retry
     end
 
     def loop_principal(msj)
