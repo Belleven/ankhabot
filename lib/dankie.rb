@@ -133,10 +133,10 @@ class Dankie
         @logger.loggear_hora_excepción(msj, @tz.utc_offset, @tz.now) unless msj.nil?
         return if @tg.capturar(excepción)
 
-        texto, backtrace = @logger.excepcion_texto(e)
+        texto, backtrace = @logger.excepcion_texto(excepción)
         @logger.fatal texto, al_canal: true, backtrace: backtrace
     rescue StandardError => e
-        @logger.fatal "EXCEPCIÓN: #{excepción}\nLEYENDO LA EXCEPCIÓN: #{e}\n\n"\
+        @logger.fatal "EXCEPCIÓN: #{e}\nLEYENDO LA EXCEPCIÓN: #{excepción}\n\n"\
                       "#{@logger.excepcion_texto(e).last}", al_canal: true
     end
 
