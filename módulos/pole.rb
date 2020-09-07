@@ -10,35 +10,6 @@ class Dankie
                                      chats_permitidos: %i[group supergroup],
                                      descripción: 'Muestro el ranking de Nisman')
 
-    # TODO: Ponerle algún flag de solo test a este comando
-    # add_handler Handler::Comando.new(:darnisman, :_test_dar_pole)
-    # add_handler Handler::Comando.new(:reiniciar_nisman, :_test_reiniciar_pole)
-
-    def _test_reiniciar_pole(msj)
-        @redis.set "pole:#{msj.chat.id}:próxima", msj.date
-        @tg.send_message(chat_id: msj.chat.id, text: 'Borré la clave pa')
-    end
-
-    def _test_dar_pole(msj)
-        id = msj.reply_to_message ? msj.reply_to_message.from.id : msj.from.id
-        mensaje = msj.reply_to_message || msj
-
-        nombre = if mensaje.from.first_name.empty?
-                     mensaje.from.id.to_s
-                 else
-                     html_parser(mensaje.from.first_name)
-                 end
-
-        @redis.zincrby("pole:#{mensaje.chat.id}", 1, id)
-        @logger.info("#{nombre} hizo la nisman en #{mensaje.chat.id}", al_canal: false)
-        @tg.send_message(
-            chat_id: mensaje.chat.id,
-            parse_mode: :html,
-            reply_to_message_id: mensaje.message_id,
-            text: "<b>#{nombre}</b> hizo la Nisman"
-        )
-    end
-
     def pole(msj)
         id_chat = msj.chat.id
         id_usuario = msj.from.id
