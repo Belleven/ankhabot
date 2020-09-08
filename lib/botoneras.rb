@@ -55,8 +55,10 @@ class Dankie
                                      reply_markup: opciones)
         else
             @tg.edit_message_media(chat_id: id_chat, message_id: id_mensaje,
-                                   media: { type: metadatos[:tipo],
-                                            media: valor }.to_json,
+                                   media: {
+                                       type: metadatos[:tipo],
+                                       media: valor
+                                   }.to_json,
                                    reply_markup: opciones)
         end
     rescue Telegram::Bot::Exceptions::ResponseError => e

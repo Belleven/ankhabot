@@ -94,8 +94,8 @@ class Dankie
                 contador = 0
             end
 
-            unless enlace_usuario = obtener_enlace_usuario(pole[0], msj.chat.id)
-                @redis.zrem "pole:#{msj.chat.id}", pole[0]
+            unless enlace_usuario = obtener_enlace_usuario(pole.first, msj.chat.id)
+                @redis.zrem "pole:#{msj.chat.id}", pole.first
             end
 
             arr.last << "\n<code>#{format("%#{dígitos}d", pole[1].to_i)}</code> "

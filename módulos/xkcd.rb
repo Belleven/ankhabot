@@ -1,3 +1,5 @@
+require 'net/http'
+
 class Dankie
     add_handler Handler::Comando.new(:xkcd,
                                      :xkcd,
@@ -17,7 +19,6 @@ class Dankie
 
         entrada = entrada.to_i
         return if número_inválido(msj, entrada)
-        return if fuera_de_rango(msj, entrada)
 
         mandar_comic(msj, entrada)
     end
@@ -25,24 +26,30 @@ class Dankie
     private
 
     def numero_comic_random
-        nro = rand(1..último_XKCD)
-        nro = último_XKCD if nro == 404
+        último_comic = último_XKCD['num']
+        nro = rand(1..último_comic)
+        nro = último_comic if nro == 404
         nro
     end
 
     def mandar_comic(msj, nro_comic)
         link = "https://xkcd.com/#{nro_comic}"
-        comic = JSON.parse(open("#{link}/info.0.json").read)
 
-        título = comic['alt']
-        imagen = comic['img']
+        respuesta = Net::HTTP.get_response(URI("#{link}/info.0.json"))
+        return mandar_error_nro(msj) if respuesta.code == '404'
 
-        caption = "<b>#{html_parser(título)} [</b><a href=\"#{link}\">link</a><b>]</b>"
+        comic = JSON.parse(respuesta.body)
+
+        título = "<b>#{html_parser(comic['title'])}</b>"
+        descripción = html_parser(comic['alt'])
+
+        texto = "#{título} (#{comic['num']})\n#{descripción}"
+        caption = "#{texto} <b>[</b><a href=\"#{link}\">link</a><b>]</b>"
 
         @logger.info("Mandando xkcd #{link}")
         @tg.send_photo(
             chat_id: msj.chat.id,
-            photo: imagen,
+            photo: comic['img'],
             caption: caption,
             parse_mode: :html,
             disable_web_page_preview: true
@@ -70,14 +77,6 @@ class Dankie
         false
     end
 
-    def fuera_de_rango(msj, entrada)
-        if entrada > último_XKCD
-            mandar_error_nro(msj)
-            return true
-        end
-        false
-    end
-
     def mandar_error_nro(msj)
         @tg.send_message(
             chat_id: msj.chat.id,
@@ -87,6 +86,7 @@ class Dankie
     end
 
     def último_XKCD
-        JSON.parse(open('https://xkcd.com/info.0.json').read)['num']
+        respuesta = Net::HTTP.get_response(URI('https://xkcd.com/info.0.json'))
+        JSON.parse(respuesta.body)
     end
 end
