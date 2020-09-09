@@ -2,7 +2,7 @@ AllCops:
     NewCops: enable
     TargetRubyVersion: 2.6
 
-Documentation:
+Style/Documentation:
     Enabled: false
 
 Layout/IndentationWidth:
@@ -11,10 +11,6 @@ Layout/IndentationWidth:
 Layout/LineLength:
     Max: 89
     AutoCorrect: true
-
-# Desactivo este porque parece que rubocop tiene un bug
-Lint/MixedRegexpCaptureTypes:
-    Enabled: false
 
 Metrics/AbcSize:
     Max: 30
