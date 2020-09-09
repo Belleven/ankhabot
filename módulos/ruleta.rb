@@ -41,7 +41,8 @@ class Dankie
 
         if @juegos[msj.chat.id].gatillar
             emojis = "\u{1F635}\u{1F4A5}\u{1F52B}"
-            texto = "Te Nismaneaste, #{TROESMAS.sample}.\nTiren /recarga para seguir jugando."
+            texto = "Te Nismaneaste, #{TROESMAS.sample}.\n"\
+                    'Tiren /recarga para seguir jugando.'
             @juegos.delete msj.chat.id
         else
             emojis = "\u{1F605}\u{2601}\u{FE0F}\u{1F52B}"

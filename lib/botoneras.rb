@@ -40,11 +40,12 @@ class Dankie
 
         case metadatos[:tipo]
         when 'texto'
+            # TODO: ver como permitir que los dos disable sean variables ???
             @tg.edit_message_text(chat_id: id_chat,
                                   parse_mode: :html,
                                   message_id: id_mensaje,
                                   disable_web_page_preview: true,
-                                  disable_notification: true, # TODO: ver como permitir que estos dos sean variables ???
+                                  disable_notification: true,
                                   text: valor,
                                   reply_markup: opciones)
         when 'caption'

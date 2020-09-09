@@ -130,8 +130,8 @@ class Dankie
 
         # Agrego usuario
         if msj.from
-            usuario = obtener_enlace_usuario(msj.from,
-                                             msj.chat.id) || '<code>cuenta eliminada</code>'
+            cuenta_eliminada = '<code>cuenta eliminada</code>'
+            usuario = obtener_enlace_usuario(msj.from, msj.chat.id) || cuenta_eliminada
             título = "\n\n - Enviado por: #{usuario}"
             agregar_usuario(texto, msj.from, título, nivel + 1)
         end

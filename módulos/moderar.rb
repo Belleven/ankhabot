@@ -182,7 +182,8 @@ class Dankie
         resultado = false
         miembro = nil
 
-        # Chequeo que quien llame al comando sea admin y tenga permisos para restringir usuarios
+        # Chequeo que quien llame al comando sea admin y
+        # tenga permisos para restringir usuarios
         if tiene_permisos(msj, msj.from.id, :can_restrict_members, 'Tenés que',
                           'No tenés permisos para restringir/suspender usuarios')
 
@@ -190,15 +191,16 @@ class Dankie
 
             if miembro
                 # Chequeo si a quien le afecta el comando es admin
-                if para_aplicar_restricción && (miembro.status == 'administrator' || miembro.status == 'creator')
+                if para_aplicar_restricción && (miembro.status == 'administrator' ||
+                    miembro.status == 'creator')
                     @tg.send_message(chat_id: msj.chat.id,
                                      text: 'No podés usar este comando contra un admin',
                                      reply_to_message_id: msj.message_id)
                 elsif alias_id && (!miembro.user.username ||
                         miembro.user.username != alias_id)
                     @tg.send_message(chat_id: msj.chat.id,
-                                     text: 'No reconozco ese alias, lo más probable es que '\
-                                            'haya sido cambiado recientemente',
+                                     text: 'No reconozco ese alias, lo más probable '\
+                                           'es que haya sido cambiado recientemente',
                                      reply_to_message_id: msj.message_id)
                 else
                     resultado = true

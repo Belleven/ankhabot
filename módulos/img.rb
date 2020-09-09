@@ -36,7 +36,7 @@ class Dankie
                     rescue Telegram::Bot::Exceptions::ResponseError => e
                         e = e.to_s
 
-                        log = if e.include?('Bad Request: failed to get HTTP URL content')
+                        log = if e.include?('failed to get HTTP URL content')
                                   "Error al querer mandar este link: #{enlace.link}"
                               else
                                   "Error desconocido: #{e}"

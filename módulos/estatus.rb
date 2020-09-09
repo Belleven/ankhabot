@@ -23,8 +23,8 @@ class Dankie
                          traducción[miembro.status]
                      end
 
-            usuario = obtener_enlace_usuario(miembro.user,
-                                             msj.chat.id) || '<code>Usuario eliminado</code>'
+            eliminado = '<code>Usuario eliminado</code>'
+            usuario = obtener_enlace_usuario(miembro.user, msj.chat.id) || eliminado
 
             texto = "Estatus de #{usuario}"\
                     ": #{estado}"
