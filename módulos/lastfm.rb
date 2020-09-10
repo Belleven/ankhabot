@@ -1,16 +1,28 @@
 class Dankie
-    add_handler Handler::Comando.new(:usuariolastfm, :usuario_last_fm,
-                                     permitir_params: true,
-                                     descripción: 'Guardo o muestro tu '\
-                                                  'usuario de last.fm')
-    add_handler Handler::Comando.new(:borrarlastfm, :borrar_usuario_last_fm,
-                                     descripción: 'Borro tu usuario de last.fm')
-    add_handler Handler::Comando.new(:escuchando, :escuchando, permitir_params: true,
-                                                               descripción: 'Lo que estás escuchando ahora o '\
-                                                  'lo último que escuchaste.')
-    add_handler Handler::Comando.new(:recientes, :recientes, permitir_params: true,
-                                                             descripción: 'Lista de los últimos temas que '\
-                                                  'escuchaste')
+    add_handler Handler::Comando.new(
+        :usuariolastfm,
+        :usuario_last_fm,
+        permitir_params: true,
+        descripción: 'Guardo o muestro tu usuario de last.fm'
+    )
+
+    add_handler Handler::Comando.new(
+        :borrarlastfm, :borrar_usuario_last_fm,
+        descripción: 'Borro tu usuario de last.fm'
+    )
+    add_handler Handler::Comando.new(
+        :escuchando,
+        :escuchando,
+        permitir_params: true,
+        descripción: 'Lo que estás escuchando ahora o lo último que escuchaste.'
+    )
+
+    add_handler Handler::Comando.new(
+        :recientes,
+        :recientes,
+        permitir_params: true,
+        descripción: 'Lista de los últimos temas que escuchaste'
+    )
 
     def usuario_last_fm(msj, params)
         # Sin parámetros mando la info actual.
@@ -95,8 +107,10 @@ class Dankie
         imágen = imágen.empty? ? 'https://i.imgur.com/fwu2ESz.png' : imágen
         texto = '<a href="' << html_parser(imágen) << '">' << "\u200d</a>"
 
-        texto << (args || obtener_enlace_usuario(msj.from.id,
-                                                 msj.chat.id) || 'si salta este texto estamos mal')
+        nombre = args || obtener_enlace_usuario(msj.from.id, msj.chat.id)
+        nombre ||= 'si salta este texto estamos mal'
+
+        texto << nombre
         texto << if temazo.dig('@attr', 'nowplaying')
                      " está escuchando\n\n"
                  else
@@ -146,9 +160,11 @@ class Dankie
             return
         end
 
+        nombre = obtener_enlace_usuario(msj.from.id, msj.chat.id)
+        nombre ||= 'COMO CARAJOS BORRÁS EL USUARIO despues DE MANDAR ESTE COMANDO LOCO'
+
         título = 'Canciones recientes de '
-        título << "#{obtener_enlace_usuario(msj.from.id,
-                                            msj.chat.id) || 'COMO CARAJOS BORRÁS EL USUARIO despues DE MANDAR ESTE COMANDO LOCO'}:\n"
+        título << "#{nombre}:\n"
 
         arr = [título.dup]
 
