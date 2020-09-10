@@ -436,32 +436,8 @@ class Dankie
 
     # Función para poner triggers de grupo o globales
     def poner_trigger(regexp, msj, id_grupo, id_usuario, id_msj)
-        data = { caption: msj.caption }
-
-        if !msj.photo.empty?
-            data[:photo] = msj.photo.first.file_id
-        elsif msj.text
-            data[:text] = msj.text
-        else
-            trigger_media = nil
-            (TIPOS_MMEDIA.keys - %i[photo text]).each do |media|
-                next unless msj.send(media)
-
-                data[media] = msj.send(media).file_id
-                trigger_media = media
-                break
-            end
-
-            # Si el mensaje no contenía algo que pueda ser un trigger, aviso
-            if trigger_media.nil?
-                texto = 'Ese tipo de mensaje no está soportado '
-                texto << "como trigger, #{TROESMAS.sample}."
-                @tg.send_message(chat_id: msj.chat.id,
-                                 reply_to_message_id: id_msj,
-                                 text: texto)
-                return nil
-            end
-        end
+        data = data_msj(msj, id_msj)
+        return unless data
 
         # El .to_s es porque id_grupo puede ser :global y hay que castearlo a string
         Trigger.poner_trigger(id_grupo.to_s, id_usuario, regexp, data)
@@ -490,6 +466,36 @@ class Dankie
         contador
     end
 
+    def data_msj(msj, id_msj)
+        data = { caption: msj.caption }
+
+        if !msj.photo.empty?
+            data[:photo] = msj.photo.first.file_id
+        elsif msj.text
+            data[:text] = msj.text
+        else
+            trigger_media = nil
+            (TIPOS_MMEDIA.keys - %i[photo text]).each do |media|
+                next unless msj.send(media)
+
+                data[media] = msj.send(media).file_id
+                trigger_media = media
+                break
+            end
+
+            # Si el mensaje no contenía algo que pueda ser un trigger, aviso
+            if trigger_media.nil?
+                texto = 'Ese tipo de mensaje no está soportado '
+                texto << "como trigger, #{TROESMAS.sample}."
+                @tg.send_message(chat_id: msj.chat.id,
+                                 reply_to_message_id: id_msj,
+                                 text: texto)
+                return nil
+            end
+        end
+        data
+    end
+
     # Función para enviar un mensaje de logging y aceptar o rechazar triggers
     def confirmar_trigger_global(regexp, chat, fecha, id_usuario, id_regexp)
         regexp_sanitizada = html_parser Trigger.regexp_a_str(regexp)
@@ -505,17 +511,8 @@ class Dankie
             )
         ]]
 
-        # Aviso que quieren poner un gatillo
-        fecha = Time.at(fecha, in: @tz.utc_offset)
+        texto = crear_texto_msj_log(fecha, id_usuario, chat, regexp_sanitizada)
 
-        texto = fecha.strftime("<code>[%d/%m/%Y %T]</code>\n")
-        texto << 'Usuario '
-        texto << obtener_enlace_usuario(id_usuario, chat.id,
-                                        con_apodo: false) || 'eliminado'
-        texto << " (#{id_usuario}) en el chat "
-        texto << "#{html_parser(chat&.title || chat&.username)} (#{chat.id}) "
-        texto << 'quiere añadir el trigger: '
-        texto << "<code>#{regexp_sanitizada}</code>\n"
         msj_log = @tg.send_message(chat_id: @canal, parse_mode: :html, text: texto,
                                    disable_web_page_preview: true,
                                    disable_notification: true)
@@ -551,17 +548,8 @@ class Dankie
             )
         ]]
 
-        # Aviso que quieren borrar un gatillo
-        fecha = Time.at(fecha, in: @tz.utc_offset)
+        texto = crear_texto_msj_log(fecha, id_usuario, chat, regexp_sanitizada)
 
-        texto = fecha.strftime("<code>[%d/%m/%Y %T]</code>\n")
-        texto << 'Usuario '
-        texto << obtener_enlace_usuario(id_usuario, chat.id,
-                                        con_apodo: false) || 'eliminado'
-        texto << " (#{id_usuario}) en el chat "
-        texto << "#{html_parser(chat&.title || chat&.username)} (#{chat.id}) "
-        texto << 'quiere borrar el trigger: '
-        texto << " <code>#{regexp_sanitizada}</code>\n"
         msj_log = @tg.send_message(chat_id: @canal, parse_mode: :html, text: texto,
                                    disable_web_page_preview: true,
                                    disable_notification: true)
@@ -674,6 +662,21 @@ class Dankie
             return true
         end
         false
+    end
+
+    def crear_texto_msj_log(fecha, id_usuario, chat, regexp_sanitizada)
+        # Aviso que quieren borrar un gatillo
+        fecha = Time.at(fecha, in: @tz.utc_offset)
+
+        nombre = obtener_enlace_usuario(id_usuario, chat.id, con_apodo: false)
+        nombre ||= 'eliminado'
+
+        texto = fecha.strftime("<code>[%d/%m/%Y %T]</code>\n")
+        texto << "Usuario #{nombre} (#{id_usuario}) en el chat "
+        texto << "#{html_parser(chat&.title || chat&.username)} (#{chat.id}) "
+        texto << 'quiere borrar el trigger: '
+        texto << " <code>#{regexp_sanitizada}</code>\n"
+        texto
     end
 end
 
