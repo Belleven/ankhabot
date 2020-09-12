@@ -26,8 +26,13 @@ class Dankie
             eliminado = '<code>Usuario eliminado</code>'
             usuario = obtener_enlace_usuario(miembro.user, msj.chat.id) || eliminado
 
-            texto = "Estatus de #{usuario}"\
-                    ": #{estado}"
+            texto = "Estatus de #{usuario}: #{estado}"
+
+            if miembro.custom_title &&
+               (miembro.status == 'administrator' || miembro.status == 'creator')
+                texto << "\nTítulo: <b>#{html_parser miembro.custom_title}</b>"
+            end
+
             agregar_cualidades(miembro, texto) unless miembro.user.first_name.empty?
 
             texto << "\n\nPermisos de los miembros comunes en este chat:"
