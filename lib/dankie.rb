@@ -606,22 +606,13 @@ class Dankie
     # Método que mete un id_mensaje en una cola de mensajes que
     # son borrados despues de cierto límite, para evitar el spam.
     def añadir_a_cola_spam(id_chat, id_mensaje)
+        borrado = nil
         @redis.rpush "spam:#{id_chat}", id_mensaje
         if @redis.llen("spam:#{id_chat}") > 24
             id_mensaje = @redis.lpop("spam:#{id_chat}").to_i
-            @tg.delete_message(chat_id: id_chat, message_id: id_mensaje)
+            borrado = @tg.delete_message(chat_id: id_chat, message_id: id_mensaje)
         end
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        case e.to_s
-        when /message to delete not found/
-            @logger.error("Traté de borrar un mensaje (id mensaje: #{id_mensaje}) "\
-                          "muy viejo (id chat: #{id_chat}).",
-                          al_canal: false)
-        when /message can't be deleted/
-            @logger.error("No pude borrar un mensaje (id mensaje: #{id_mensaje}) "\
-                          "(id chat: #{id_chat}).",
-                          al_canal: false)
-        end
+        borrado
     end
 
     # Función que recibe un arreglo de Time o unix-time y verifica si se mandaron

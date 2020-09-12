@@ -103,6 +103,15 @@ class Dankie
         fecha = Time.at(msj.date, in: @tz.utc_offset).to_datetime
         texto << "\n - Fecha envío: <code>#{fecha.strftime('%d/%m/%Y %T %Z')}</code>"
 
+        agregar_datos_opcionales_msj(texto, msj, nivel)
+
+        # Agrego chat
+        agregar_chat(texto, msj.chat, "\n\n -Chat:", nivel + 1)
+        # Agregar info reenvío
+        agregar_info_reenvío(texto, msj, nivel + 1) if msj.forward_date
+    end
+
+    def agregar_datos_opcionales_msj(texto, msj, nivel)
         # Fecha de última edición del mensaje
         if msj.edit_date
             fecha_edición = Time.at(msj.edit_date, in: @tz.utc_offset).to_datetime
@@ -129,17 +138,12 @@ class Dankie
         end
 
         # Agrego usuario
-        if msj.from
-            cuenta_eliminada = '<code>cuenta eliminada</code>'
-            usuario = obtener_enlace_usuario(msj.from, msj.chat.id) || cuenta_eliminada
-            título = "\n\n - Enviado por: #{usuario}"
-            agregar_usuario(texto, msj.from, título, nivel + 1)
-        end
+        return unless msj.from
 
-        # Agrego chat
-        agregar_chat(texto, msj.chat, "\n\n -Chat:", nivel + 1)
-        # Agregar info reenvío
-        agregar_info_reenvío(texto, msj, nivel + 1) if msj.forward_date
+        cuenta_eliminada = '<code>cuenta eliminada</code>'
+        usuario = obtener_enlace_usuario(msj.from, msj.chat.id) || cuenta_eliminada
+        título = "\n\n - Enviado por: #{usuario}"
+        agregar_usuario(texto, msj.from, título, nivel + 1)
     end
 
     def agregar_usuario(texto, usuario, título, nivel)
@@ -272,7 +276,7 @@ class Dankie
         agregar_video(respuesta, msj.video, nivel) if msj.video
         agregar_nota_video(respuesta, msj.video_note, nivel) if msj.video_note
         agregar_documento(respuesta, msj.document, nivel) if msj.document && !gif
-        agregar_encuesta(respuesta, msj.poll, nivel) if msj.poll
+        agregar_encuesta(respuesta, msj.poll, nivel, pasar_entidades) if msj.poll
 
         if msj.location
             agregar_ubicación(respuesta, msj.location, "\n\n - Ubicación:", nivel)
@@ -316,13 +320,18 @@ class Dankie
         entidades.each_with_index do |entidad, índice|
             # Nro entidad
             respuesta << "#{tab1} Entidad <b>#{índice + 1}</b>:"\
-                        "#{tab2} Tipo: <code>#{entidad.type}</code>"\
-                        "#{tab2} Desfasaje: <code>#{entidad.offset}</code>"\
-                        "#{tab2} Longitud: <code>#{entidad.length}</code>"
+                         "#{tab2} Tipo: <code>#{entidad.type}</code>"\
+                         "#{tab2} Desfasaje: <code>#{entidad.offset}</code>"\
+                         "#{tab2} Longitud: <code>#{entidad.length}</code>"
 
             if entidad.url
-                respuesta << "#{tab2} Enlace:"\
-                         " <code>#{html_parser(entidad.url)}</code>"
+                respuesta << "#{tab2} Enlace: "\
+                             "<code>#{html_parser(entidad.url)}</code>"
+            end
+
+            if entidad.language
+                respuesta << "#{tab2} Lenguaje de programación: "\
+                             "<code>#{entidad.language}</code>"
             end
 
             next unless entidad.user
@@ -338,7 +347,8 @@ class Dankie
         # Agrego datos que seguro aparecen
         texto << "\n\n - Audio:"\
                  "#{tab} ID: <code>#{audio.file_id}</code>"\
-                 "#{tab} Duración: <code>#{duracion_entera(audio.duration)}</code>"
+                 "#{tab} Id único: <code>#{audio.file_unique_id}</code>"\
+                 "#{tab} Duración: <code>#{duración_entera(audio.duration)}</code>"
 
         # Agrego datos opcionales
         if audio.performer
@@ -364,7 +374,8 @@ class Dankie
 
         # Agrego datos que seguro aparecen
         texto << "\n\n - Documento:"\
-                 "#{tab} ID: <code>#{doc.file_id}</code>"
+                 "#{tab} ID: <code>#{doc.file_id}</code>"\
+                 "#{tab} Id único: <code>#{doc.file_unique_id}</code>"
 
         # Agrego datos opcionales
         if doc.file_name
@@ -386,11 +397,12 @@ class Dankie
 
         # Agrego datos que seguro aparecen
         texto << "#{título}"\
-                 "#{tab} ID: <code>#{animación.file_id}</code>"
+                 "#{tab} ID: <code>#{animación.file_id}</code>"\
+                 "#{tab} Id único: <code>#{animación.file_unique_id}</code>"
 
         # Agrego datos opcionales
         if animación.respond_to?(:duration) && animación.duration
-            duración = duracion_entera(animación.duration)
+            duración = duración_entera(animación.duration)
             texto << "#{tab} Duración: <code>#{duración}</code>"
         end
 
@@ -454,6 +466,7 @@ class Dankie
         # Agrego datos que siempre aparecen
         texto << "\n\n - Sticker:"
         texto << "#{tab} ID: <code>#{sticker.file_id}</code>"
+        texto << "#{tab} Id único: <code>#{sticker.file_unique_id}</code>"
         texto << "#{tab} Ancho: <code>#{sticker.width} px</code>"
         texto << "#{tab} Alto: <code>#{sticker.height} px</code>"
         texto << "#{tab} Animado: <code>#{sticker.is_animated ? 'Sí' : 'No'}</code>"
@@ -478,9 +491,10 @@ class Dankie
         # Agrego datos que seguro aparecen
         texto << "\n\n - Video:"\
                  "#{tab} ID: <code>#{video.file_id}</code>"\
-                 "#{tab} Duración: <code>#{duracion_entera(video.duration)}</code>"\
-                 "#{tab} Ancho: <code>#{video.width} px</code>"\
-                 "#{tab} Alto: <code>#{video.height} px</code>"
+                 "#{tab} Id único: <code>#{video.file_unique_id}</code>"
+        "#{tab} Duración: <code>#{duración_entera(video.duration)}</code>"\
+        "#{tab} Ancho: <code>#{video.width} px</code>"\
+        "#{tab} Alto: <code>#{video.height} px</code>"
 
         # Agrego datos opcionales
         texto << "#{tab} MIME: <code>#{video.mime_type}</code>" if video.mime_type
@@ -499,7 +513,8 @@ class Dankie
         # Agrego datos que seguro aparecen
         texto << "\n\n - Mensaje de voz:"\
                  "#{tab} ID: <code>#{msj_voz.file_id}</code>"\
-                 "#{tab} Duración: <code>#{duracion_entera(msj_voz.duration)}</code>"
+                 "#{tab} Id único: <code>#{msj_voz.file_unique_id}</code>"\
+                 "#{tab} Duración: <code>#{duración_entera(msj_voz.duration)}</code>"
 
         # Agrego datos opcionales
         texto << "#{tab} MIME: <code>#{msj_voz.mime_type}</code>" if msj_voz.mime_type
@@ -511,12 +526,13 @@ class Dankie
 
     def agregar_nota_video(texto, nota_video, nivel)
         tab = crear_tab(nivel)
-        duracion = duracion_entera(nota_video.duration)
+        duración = duración_entera(nota_video.duration)
 
         # Agrego datos que seguro aparecen
         texto << "\n\n - Nota de video:"\
                  "#{tab} ID: <code>#{nota_video.file_id}</code>"\
-                 "#{tab} Duración: <code>#{duracion}</code>"\
+                 "#{tab} Id único: <code>#{nota_video.file_unique_id}</code>"\
+                 "#{tab} Duración: <code>#{duración}</code>"\
                  "#{tab} Ancho: <code>#{nota_video.length} px</code>"\
                  "#{tab} Alto: <code>#{nota_video.length} px</code>"
 
@@ -584,7 +600,7 @@ class Dankie
         agregar_ubicación(texto, venue.location, "#{tab} Ubicación:", nivel + 2)
     end
 
-    def agregar_encuesta(texto, encuesta, nivel, formato = true)
+    def agregar_encuesta(texto, encuesta, nivel, pasar_entidades, formato = true)
         tab = crear_tab(nivel, formato)
 
         inic = formato ? '<code>' : ''
@@ -595,15 +611,54 @@ class Dankie
 
         # Datos que seguro aparecen
         texto << "#{tab} ID:#{inic} #{encuesta.id}#{fin}"\
-                 "#{tab} Pregunta:#{inic} #{html_parser(encuesta.question)}#{fin}"\
-                 "#{tab} Cerrada:#{inic} #{encuesta.is_closed ? 'Sí' : 'No'}#{fin}"
+                 "#{tab} Pregunta:#{inic}#{html_parser(encuesta.question)}#{fin}"\
+                 "#{tab} Cerrada:#{inic}#{encuesta.is_closed ? 'Sí' : 'No'}#{fin}"\
+                 "#{tab} Cantidad de votos: #{inic}#{encuesta.total_voter_count}#{fin}"\
+                 "#{tab} Anónima:#{inic}#{encuesta.is_anonymous ? 'Sí' : 'No'}#{fin}"\
+                 "#{tab} Tipo: #{inic}#{encuesta.type}#{fin}"\
+                 "#{tab} Acepta respuesta múltiple: #{inic}"\
+                 "#{encuesta.allows_multiple_answers ? 'Sí' : 'No'}#{fin}"
+
+        if encuesta.correct_option_id
+            nro = encuesta.correct_option_id + 1
+            texto << "#{tab} Opción correcta: #{inic}#{nro}#{fin}"
+        end
+
+        agregar_texto(
+            texto,
+            'Explicación:',
+            encuesta.explanation,
+            encuesta.explanation_entities,
+            nivel,
+            pasar_entidades
+        )
+
+        if encuesta.explanation
+            exp = html_parser encuesta.explanation
+            texto << "#{tab} Explicación: #{inic}#{exp}#{fin}"
+        end
+
+        if encuesta.open_period
+            texto << "#{tab} Tiempo activo desde la creación: #{inic}"\
+                     "#{duración_entera(encuesta.open_period)}#{fin}"
+        end
+
+        if encuesta.close_date
+            fecha = Time.at(archivo.file_date, in: @tz.utc_offset).to_datetime
+            fecha = fecha.strftime('%d/%m/%Y %T %Z')
+            texto << "#{tab} Fin de encuesta: #{inic}#{fecha}#{fin}"
+        end
+
+        unless encuesta.explanation_entities.length.zero?
+
+        end
 
         # Agrego opciones de la encuesta
-        return if encuesta.options.length.zero?
-
-        texto << "#{tab} Opciones:"
-        agregar_opciones(texto, encuesta.options, nivel + 1,
-                         encuesta.is_closed, formato)
+        unless encuesta.options.length.zero?
+            texto << "#{tab} Opciones:"
+            agregar_opciones(texto, encuesta.options, nivel + 1,
+                             encuesta.is_closed, formato)
+        end
     end
 
     def agregar_factura(texto, factura, nivel)
@@ -816,6 +871,7 @@ class Dankie
 
         # Agrego datos imagen
         texto << "#{tab} ID: <code>#{imagen.file_id}</code>"\
+                 "#{tab} Id único: <code>#{imagen.file_unique_id}</code>"\
                  "#{tab} Ancho: <code>#{imagen.width} px</code>"\
                  "#{tab} Alto: <code>#{imagen.height} px</code>"
 
@@ -837,7 +893,7 @@ class Dankie
                  "#{tab2} Escala: <code>#{máscara.scale}</code>"
     end
 
-    def duracion_entera(seg_totales)
+    def duración_entera(seg_totales)
         # 3600 = 60*60
         horas = seg_totales / 3600
         minutos = (seg_totales / 60) % 60
@@ -924,8 +980,9 @@ class Dankie
         fecha = Time.at(archivo.file_date, in: @tz.utc_offset).to_datetime
 
         texto << "#{tab} ID archivo: <code>#{archivo.file_id}</code>"\
-                 "#{tab} Tamaño: <code>#{tamaño}</code>"\
-                 "#{tab} Fecha subida: <code>#{fecha.strftime('%d/%m/%Y %T %Z')}</code>"
+                 "#{tab} Id único: <code>#{archivo.file_unique_id}</code>"
+        "#{tab} Tamaño: <code>#{tamaño}</code>"\
+        "#{tab} Fecha subida: <code>#{fecha.strftime('%d/%m/%Y %T %Z')}</code>"
     end
 
     def agregar_botón(texto, botón, nivel)

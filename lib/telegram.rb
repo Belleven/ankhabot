@@ -11,7 +11,7 @@ class TelegramAPI
         end
         @client = Telegram::Bot::Client.new token, logger: logger
         @token = token
-        @excepciones = ManejoExcepciones.new @logger
+        @excepciones = ManejoExcepciones.new logger
     end
 
     def capturar(excepción)
@@ -153,13 +153,12 @@ class TelegramAPI
     end
 
     # Tengo acceso a toda la api de telegram (bot.api) desde esta clase
-    def method_missing(method_name, *args)
+    def method_missing(method_name, **args)
         super unless @client.api.respond_to?(method_name)
-        @client.api.send(method_name, *args)
+        @client.api.send(method_name, **args)
     rescue Telegram::Bot::Exceptions::ResponseError => e
         # Si la excepción fue manejada entonces no hay que loggear
-        @excepciones.loggear(e, args)
-        raise
+        raise unless @excepciones.loggear(e, args)
     end
 
     def respond_to_missing?(method_name)

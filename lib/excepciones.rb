@@ -16,26 +16,23 @@ class ManejoExcepciones
     def manejar(excepción, args)
         return unless excepción.respond_to?(:error_code) &&
                       excepción.respond_to?(:message)
-
-        método = "manejar_error_#{excepción.error_code}".to_sym
-
-        chat = if !args.nil? && !args[:chat_id].nil?
-               then "en #{args[:chat_id]}"
-               else '(F en el chat)'
-               end
-
         return false unless excepción.class == Telegram::Bot::Exceptions::ResponseError
 
-        if respond_to?(método)
+        método = "manejar_error_#{excepción.error_code}".to_sym
+        chat = args && args[:chat_id] ? "en #{args[:chat_id]}" : '(F en el chat)'
+
+        if respond_to?(método, true)
             send(método, excepción.message, chat, args)
-        elsif !args.nil? && !args[:chat_id].nil?
+        elsif args && args[:chat_id]
             @logger.warn('chat_id que causa la siguiente excepción '\
                          "desconocida: #{args[:chat_id]}", al_canal: true)
+            false
+        else
             false
         end
     end
 
-    def manejar_error_400(mensaje_error, chat, _args)
+    def manejar_error_400(mensaje_error, chat, args)
         manejado = true
 
         case mensaje_error
@@ -52,6 +49,18 @@ class ManejoExcepciones
               (?-x:(photo|document|video|audio|v(oice|ideo) note)s to the chat)/x
             @logger.error("Me restringieron la multimedia #{chat}"\
                           "\n#{mensaje_error}")
+        when /message to delete not found/
+            @logger.error(
+                "Traté de borrar un mensaje (id mensaje: #{args[:message_id]}) "\
+                "muy viejo (id chat: #{args[:chat_id]}).",
+                al_canal: false
+            )
+        when /message can't be deleted/
+            @logger.error(
+                "No pude borrar un mensaje (id mensaje: #{args[:message_id]}) "\
+                "(id chat: #{args[:chat_id]}).",
+                al_canal: false
+            )
         when /PEER_ID_INVALID/
             @logger.fatal("Le quise mandar un mensaje privado #{chat}"\
                           ' a alguien que no me habló primero o me bloqueó.',
