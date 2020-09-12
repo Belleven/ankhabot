@@ -1,16 +1,0 @@
---2020-09-11 22:37:47--  https://www.google.com/search?hl=EN
-Cargado certificado CA '/etc/ssl/certs/ca-certificates.crt'
-Resolviendo www.google.com (www.google.com)... 216.58.202.36, 2800:3f0:4002:809::2004
-Conectando con www.google.com (www.google.com)[216.58.202.36]:443... conectado.
-Petición HTTP enviada, esperando respuesta... 302 Found
-Localización: https://www.google.com/webhp?hl=EN [siguiendo]
---2020-09-11 22:37:52--  https://www.google.com/webhp?hl=EN
-Reutilizando la conexión con www.google.com:443.
-Petición HTTP enviada, esperando respuesta... 200 OK
-Longitud: no especificado [text/html]
-Grabando a: “search?hl=EN”
-
-search?hl=EN                 [<=>                                ]       0  --.-KB/s               search?hl=EN                 [ <=>                               ]  13,08K  --.-KB/s    en 0,001s  
-
-2020-09-11 22:37:53 (23,5 MB/s) - “search?hl=EN” guardado [13390]
-
