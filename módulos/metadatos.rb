@@ -137,13 +137,21 @@ class Dankie
                      "#{html_parser(msj.author_signature)}"
         end
 
+        if msj.respond_to?(:via_bot) && msj.via_bot
+            agregar_datos_opc_usuario(msj, texto, nivel, '- Vía bot:', msj.via_bot)
+        end
+
         # Agrego usuario
         return unless msj.from
 
+        agregar_datos_opc_usuario(msj, texto, nivel, '- Enviado por:', msj.from)
+    end
+
+    def agregar_datos_opc_usuario(msj, texto, nivel, título_msj, miembro)
         cuenta_eliminada = '<code>cuenta eliminada</code>'
-        usuario = obtener_enlace_usuario(msj.from, msj.chat.id) || cuenta_eliminada
-        título = "\n\n - Enviado por: #{usuario}"
-        agregar_usuario(texto, msj.from, título, nivel + 1)
+        usuario = obtener_enlace_usuario(miembro, msj.chat.id) || cuenta_eliminada
+        título = "\n\n #{título_msj} #{usuario}"
+        agregar_usuario(texto, miembro, título, nivel + 1)
     end
 
     def agregar_usuario(texto, usuario, título, nivel)
@@ -258,6 +266,8 @@ class Dankie
     end
 
     def agregar_contenido(respuesta, msj, nivel, pasar_entidades)
+        agregar_dado(msj.dice, respuesta, nivel) if msj.respond_to?(:dice) && msj.dice
+
         # Agrego texto si hay
         agregar_texto(
             respuesta: respuesta,
@@ -291,6 +301,14 @@ class Dankie
             nivel: nivel,
             pasar_entidades: pasar_entidades
         )
+    end
+
+    def agregar_dado(dado, texto, nivel)
+        tab = crear_tab(nivel)
+
+        texto << "\n\n - Dado:"
+        texto << "#{tab} Emoji: #{dado.emoji}"
+        texto << "#{tab} Valor: <code>#{dato.value}</code>"
     end
 
     def agregar_multimedia(respuesta, msj, nivel)
@@ -667,14 +685,16 @@ class Dankie
             texto << "#{tab} Opción correcta: #{inic}#{nro}#{fin}"
         end
 
-        agregar_texto(
-            respuesta: texto,
-            título: 'Explicación:',
-            texto_msj: encuesta.explanation,
-            entidades: encuesta.explanation_entities,
-            nivel: nivel,
-            pasar_entidades: pasar_entidades
-        )
+        if encuesta.respond_to? :explanation
+            agregar_texto(
+                respuesta: texto,
+                título: 'Explicación:',
+                texto_msj: encuesta.explanation,
+                entidades: encuesta.explanation_entities,
+                nivel: nivel,
+                pasar_entidades: pasar_entidades
+            )
+        end
 
         agregar_extras_encuesta(
             encuesta: encuesta,
@@ -694,7 +714,9 @@ class Dankie
         texto = params[:texto]
         nivel = params[:nivel]
 
-        unless encuesta.explanation_entities.length.zero? || !params[:pasar_entidades]
+        if encuesta.respond_to?(:explanation_entities) && params[:pasar_entidades] &&
+           encuesta.explanation_entities.positive?
+
             agregar_entidades(nivel, encuesta.explanation_entities, texto)
         end
 
@@ -718,17 +740,17 @@ class Dankie
         fin = params[:fin]
         texto = params[:texto]
 
-        if encuesta.explanation
+        if encuesta.respond_to?(:explanation) && encuesta.explanation
             exp = html_parser encuesta.explanation
             texto << "#{tab} Explicación: #{inic}#{exp}#{fin}"
         end
 
-        if encuesta.open_period
+        if encuesta.respond_to?(:open_period) && encuesta.open_period
             texto << "#{tab} Tiempo activo desde la creación: #{inic}"\
                      "#{duración_entera(encuesta.open_period)}#{fin}"
         end
 
-        return unless encuesta.close_date
+        return unless encuesta.respond_to?(:close_date) && encuesta.close_date
 
         fecha = Time.at(encuesta.close_date, in: @tz.utc_offset).to_datetime
         fecha = fecha.strftime('%d/%m/%Y %T %Z')
