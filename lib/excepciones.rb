@@ -72,7 +72,7 @@ class ManejoExcepciones
                           'por telegram', al_canal: true)
             manejado = false
         when /CHANNEL_PRIVATE/
-            @logger.fatal("Error que todavía no se por que pasa pero tengo un "\
+            @logger.fatal('Error que todavía no se por que pasa pero tengo un '\
                           "problema al mandar mensajes (id: #{args[:chat_id]}).")
         else
             manejado = false
