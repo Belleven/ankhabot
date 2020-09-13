@@ -9,42 +9,42 @@ class Dankie
                                                    'miembros comunes del grupete')
 
     def estatus(msj)
-        if (miembro = miembro_válido(msj))
+        return unless (miembro = miembro_válido(msj))
 
-            traducción = { 'member' => 'MIEMBRO COMÚN', 'kicked' => 'BANEADO',
-                           'left' => 'FUERA DEL GRUPO (PUEDE VOLVER CUANDO QUIERA)',
-                           'creator' => 'CREADOR DEL GRUPETE',
-                           'administrator' => 'ADMINISTRADOR',
-                           'restricted' => 'USUARIO RESTRINGIDO' }
+        traducción = { 'member' => 'MIEMBRO COMÚN', 'kicked' => 'BANEADO',
+                       'left' => 'FUERA DEL GRUPO (PUEDE VOLVER CUANDO QUIERA)',
+                       'creator' => 'CREADOR DEL GRUPETE',
+                       'administrator' => 'ADMINISTRADOR',
+                       'restricted' => 'USUARIO RESTRINGIDO' }
 
-            estado = if miembro.user.first_name.empty?
-                         'DESAPARECIDO'
-                     else
-                         traducción[miembro.status]
-                     end
+        estado = if miembro.user.first_name.empty?
+                     'DESAPARECIDO'
+                 else
+                     traducción[miembro.status]
+                 end
 
-            eliminado = '<code>Usuario eliminado</code>'
-            usuario = obtener_enlace_usuario(miembro.user, msj.chat.id) || eliminado
+        eliminado = '<code>Usuario eliminado</code>'
+        usuario = obtener_enlace_usuario(miembro.user, msj.chat.id) || eliminado
 
-            texto = "Estatus de #{usuario}: #{estado}"
+        texto = "Estatus de #{usuario}: #{estado}"
 
-            if miembro.custom_title &&
-               (miembro.status == 'administrator' || miembro.status == 'creator')
-                texto << "\nTítulo: <b>#{html_parser miembro.custom_title}</b>"
-            end
-
-            agregar_cualidades(miembro, texto) unless miembro.user.first_name.empty?
-
-            texto << "\n\nPermisos de los miembros comunes en este chat:"
-            agregar_permisos_chat(msj, texto)
-
-            @tg.send_message(chat_id: msj.chat.id,
-                             parse_mode: :html,
-                             disable_web_page_preview: true,
-                             disable_notification: true,
-                             text: texto)
-
+        if miembro.custom_title &&
+           (miembro.status == 'administrator' || miembro.status == 'creator')
+            texto << "\nTítulo: <b>#{html_parser miembro.custom_title}</b>"
         end
+
+        agregar_cualidades(miembro, texto) unless miembro.user.first_name.empty?
+
+        texto << "\n\nPermisos de los miembros comunes en este chat:"
+        agregar_permisos_chat(msj, texto)
+
+        @tg.send_message(
+            chat_id: msj.chat.id,
+            parse_mode: :html,
+            disable_web_page_preview: true,
+            disable_notification: true,
+            text: texto
+        )
     end
 
     def permisos(msj)

@@ -22,7 +22,7 @@ class Dankie
         opciones = armar_botonera(índice,
                                   obtener_tamaño_lista(id_chat, id_mensaje),
                                   id_usuario,
-                                  metadatos[:editable_por] == 'todos')
+                                  editable: metadatos[:editable_por] == 'todos')
 
         valor = obtener_elemento_lista(id_chat,
                                        id_mensaje,
@@ -95,7 +95,7 @@ class Dankie
             @tg.answer_callback_query(callback_query_id: callback.id,
                                       text: 'Botonera ahora es presionable por todos.')
             opciones = armar_botonera(índice, obtener_tamaño_lista(id_chat, id_mensaje),
-                                      id_usuario, true)
+                                      id_usuario, editable: true)
             @tg.edit_message_reply_markup(chat_id: id_chat, message_id: id_mensaje,
                                           reply_markup: opciones)
         when 'noedit'
@@ -105,7 +105,7 @@ class Dankie
                                       text: 'Botonera ahora solo es presionable '\
                                       'por el que la pidió.')
             opciones = armar_botonera(índice, obtener_tamaño_lista(id_chat, id_mensaje),
-                                      id_usuario, false)
+                                      id_usuario, editable: false)
             @tg.edit_message_reply_markup(chat_id: id_chat, message_id: id_mensaje,
                                           reply_markup: opciones)
         end
@@ -138,7 +138,7 @@ class Dankie
         h.transform_keys!(&:to_sym)
     end
 
-    def armar_botonera(página_actual, tamaño_máximo, id_usuario, editable = false)
+    def armar_botonera(página_actual, tamaño_máximo, id_usuario, editable: false)
         return nil if tamaño_máximo == 1
 
         página_actual = [página_actual, tamaño_máximo - 1].min # valido el rango

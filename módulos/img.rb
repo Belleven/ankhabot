@@ -31,8 +31,7 @@ class Dankie
                     @logger.info(loggeo, al_canal: false)
 
                     begin
-                        @tg.send_photo(chat_id: msj.chat.id, photo: enlace.link)
-                        return
+                        return @tg.send_photo(chat_id: msj.chat.id, photo: enlace.link)
                     rescue Telegram::Bot::Exceptions::ResponseError => e
                         e = e.to_s
 

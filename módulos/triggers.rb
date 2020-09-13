@@ -275,7 +275,7 @@ class Dankie
         # hacer algo para ignorar estos dos bloques
         arreglo_tablero(triggers_globales, arr, título,
                         "\n<b>Globales:</b>", contador,
-                        30, 1000, agr_elemento, true)
+                        30, 1000, agr_elemento, inicio_en_subtítulo: true)
 
         # Armo botonera y envío
         opciones = armar_botonera 0, arr.size, msj.from.id

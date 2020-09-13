@@ -91,6 +91,6 @@ class Dankie
     def enviar_doujin(doujin, id_chat, id_usuario)
         id_mensaje = preguntar_nsfw(id_chat, id_usuario, 'doujin_nsfw')
 
-        armar_lista(id_chat, id_mensaje, [doujin.cover, *doujin.pages], tipo = 'photo')
+        armar_lista(id_chat, id_mensaje, [doujin.cover, *doujin.pages], 'photo')
     end
 end

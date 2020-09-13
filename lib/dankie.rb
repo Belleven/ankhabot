@@ -212,10 +212,10 @@ class Dankie
 
         clave = "usuario:#{usuario.id}"
 
-        if @redis.get(clave) != usuario.username
-            # 86400 = 60 * 60 * 24
-            @redis.set clave, usuario.username, ex: 86_400
-        end
+        return unless @redis.get(clave) != usuario.username
+
+        # 86400 = 60 * 60 * 24
+        @redis.set clave, usuario.username, ex: 86_400
     end
 
     # Analiza un texto y se fija si es un comando válido, devuelve el comando
@@ -536,33 +536,6 @@ class Dankie
                          reply_to_message_id: msj.message_id)
     end
 
-    def descargar_archivo_tg(_id_archivo, nombre_guardado)
-        archivo = @tg.get_file(id_imagen)
-        archivo = Telegram::Bot::Types::File.new(archivo['result'])
-
-        return false if archivo.file_size && archivo.file_size > 20
-
-        # TODO: ver que esta virgueada ande y validar hasta el ojete,
-        # ni me quiero imaginar la cantidad de excepciones que hay que
-        # manejar acá
-        enlace_archivo = "https://api.telegram.org/file/bot<#{@tg.token}>"\
-                         "/#{archivo.file_path}"
-
-        descargar_archivo_internet(enlace_archivo, nombre_guardado)
-    end
-
-    def descargar_archivo_internet(enlace_internet, _nombre_guardado)
-        enlace_disco = "./tmp/dankie/#{SecureRandom.uuid}.#{extension}"
-        # TODO: ver que esta virgueada ande y validar hasta el ojete,
-        # ni me quiero imaginar la cantidad de excepciones que hay que
-        # manejar acá
-        open(enlace_internet) do |archivo_internet|
-            File.open(enlace_disco, 'wb') do |archivo_disco|
-                archivo_disco.write(archivo_internet.read)
-            end
-        end
-    end
-
     def enviar_lista(msj, conjunto_iterable, título_lista, crear_línea, error_vacío)
         # Si el conjunto está vacío aviso
         if conjunto_iterable.nil? || conjunto_iterable.empty?
@@ -635,7 +608,7 @@ class Dankie
 
     def arreglo_tablero(conjunto_iterable, arr, título,
                         subtítulo, contador, max_cant, max_tam,
-                        agr_elemento, inicio_en_subtítulo = false)
+                        agr_elemento, inicio_en_subtítulo: false)
         return if conjunto_iterable.nil? || conjunto_iterable.empty?
 
         # .dup crea una copia del objeto original

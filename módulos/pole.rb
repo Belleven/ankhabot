@@ -94,7 +94,7 @@ class Dankie
                 contador = 0
             end
 
-            unless enlace_usuario = obtener_enlace_usuario(pole.first, msj.chat.id)
+            unless (enlace_usuario = obtener_enlace_usuario(pole.first, msj.chat.id))
                 @redis.zrem "pole:#{msj.chat.id}", pole.first
             end
 
@@ -104,7 +104,7 @@ class Dankie
         end
 
         # Armo botonera y envío
-        opciones = armar_botonera 0, arr.size, msj.from.id, true
+        opciones = armar_botonera 0, arr.size, msj.from.id, editable: true
 
         respuesta = @tg.send_message(
             chat_id: msj.chat.id, text: arr.first,

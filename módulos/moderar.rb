@@ -93,27 +93,27 @@ class Dankie
                            error_afectado, msj_final, para_aplicar_restricción)
         cumple, miembro, razón = cumple_requisitos(msj, para_aplicar_restricción)
 
-        if cumple
-            if chequeo_afectado.call(miembro)
-                @tg.send_message(chat_id: msj.chat.id,
-                                 text: error_afectado,
-                                 reply_to_message_id: msj.message_id)
-            elsif moderar(msj, miembro.user.id, func_moderadora)
-                razón = if razón.nil?
-                            ''
-                        else
-                            ".\nRazón: #{razón}#{(razón[-1] == '.' ? '' : '.')}"
-                        end
-                nombre = obtener_enlace_usuario(miembro.user,
-                                                msj.chat.id) || 'Usuario eliminado'
+        return unless cumple
 
-                texto = "#{msj_final} #{nombre}#{razón}"
-                @tg.send_message(chat_id: msj.chat.id,
-                                 text: texto,
-                                 parse_mode: :html,
-                                 disable_web_page_preview: true,
-                                 disable_notification: true)
-            end
+        if chequeo_afectado.call(miembro)
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: error_afectado,
+                             reply_to_message_id: msj.message_id)
+        elsif moderar(msj, miembro.user.id, func_moderadora)
+            razón = if razón.nil?
+                        ''
+                    else
+                        ".\nRazón: #{razón}#{(razón[-1] == '.' ? '' : '.')}"
+                    end
+            nombre = obtener_enlace_usuario(miembro.user,
+                                            msj.chat.id) || 'Usuario eliminado'
+
+            texto = "#{msj_final} #{nombre}#{razón}"
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: texto,
+                             parse_mode: :html,
+                             disable_web_page_preview: true,
+                             disable_notification: true)
         end
     end
 

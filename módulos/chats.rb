@@ -18,18 +18,18 @@ class Dankie
         @redis.sadd("chat:#{msj.chat.type}:activos", msj.chat.id.to_s)
         @redis.srem("chat:#{msj.chat.type}:eliminados", msj.chat.id.to_s)
 
-        if msj.migrate_from_chat_id
-            @logger.info("Chat #{msj.migrate_from_chat_id} migró a #{msj.chat.id}",
-                         al_canal: true)
+        return unless msj.migrate_from_chat_id
 
-            @redis.sadd('chat:group:eliminados', msj.migrate_from_chat_id.to_s)
-            @redis.srem('chat:group:activos', msj.migrate_from_chat_id.to_s)
+        @logger.info("Chat #{msj.migrate_from_chat_id} migró a #{msj.chat.id}",
+                     al_canal: true)
 
-            # Hash con los grupos que migran a supergrupos
-            @redis.hset('chats_migrados',
-                        msj.migrate_from_chat_id.to_s,
-                        msj.chat.id.to_s)
-        end
+        @redis.sadd('chat:group:eliminados', msj.migrate_from_chat_id.to_s)
+        @redis.srem('chat:group:activos', msj.migrate_from_chat_id.to_s)
+
+        # Hash con los grupos que migran a supergrupos
+        @redis.hset('chats_migrados',
+                    msj.migrate_from_chat_id.to_s,
+                    msj.chat.id.to_s)
     end
 
     def chats(msj)

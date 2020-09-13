@@ -186,7 +186,7 @@ class Dankie
         end
 
         # Armo botonera y envío
-        opciones = armar_botonera 0, arr.size, msj.from.id, true
+        opciones = armar_botonera 0, arr.size, msj.from.id, editable: true
 
         respuesta = @tg.send_message(chat_id: msj.chat.id, text: arr.first,
                                      reply_markup: opciones, parse_mode: :html,

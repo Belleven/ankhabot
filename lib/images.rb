@@ -10,7 +10,7 @@ class ImageSearcher
         @logger = logger
     end
 
-    def buscar_imagen(búsqueda, params_búsqueda: nil)
+    def buscar_imagen(búsqueda)
         params_uri = [['q', búsqueda], ['key', @key], ['cx', @cx],
                       ['gl', @gl], %w[searchType image]]
         uri_codificado = URI.encode_www_form(params_uri)

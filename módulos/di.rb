@@ -64,15 +64,15 @@ class Dankie
 
         # Una palabra por mensaje, y en cada una, una letra en mayúscula
         # por línea, intercaladas entre guiones
-        if con_todo && palabras.length <= 7
-            grito_infernal = []
-            palabras.each do |palabra|
-                grito_infernal << palabra.chars.join("\n-\n")
-            end
+        return unless con_todo && palabras.length <= 7
 
-            grito_infernal&.each do |grito|
-                @tg.send_message(chat_id: msj.chat.id, text: grito)
-            end
+        grito_infernal = []
+        palabras.each do |palabra|
+            grito_infernal << palabra.chars.join("\n-\n")
+        end
+
+        grito_infernal&.each do |grito|
+            @tg.send_message(chat_id: msj.chat.id, text: grito)
         end
     end
 
