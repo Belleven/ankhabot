@@ -31,24 +31,57 @@ class Dankie
                                                   'bloqueados por el bot')
 
     def restringir(msj, params)
-        comando_lista_negra(msj, :chequeo_local,
-                            :bloquear_usuario, msj.chat.id.to_s,
-                            params, 'Vos no podés usar esto pa')
+        funciones = {
+            función_validadora: :chequeo_local,
+            función_comando: :bloquear_usuario
+        }
+        comando_lista_negra(
+            msj,
+            funciones,
+            msj.chat.id.to_s,
+            params,
+            texto: 'Vos no podés usar esto pa'
+        )
     end
 
     def bloquear(msj, params)
-        comando_lista_negra(msj, :validar_desarrollador,
-                            :bloquear_usuario, 'global', params)
+        funciones = {
+            función_validadora: :validar_desarrollador,
+            función_comando: :bloquear_usuario
+        }
+        comando_lista_negra(
+            msj,
+            funciones,
+            'global',
+            params
+        )
     end
 
     def habilitar(msj, params)
-        comando_lista_negra(msj, :es_admin, :desbloquear_usuario,
-                            msj.chat.id.to_s, params, 'Vos no podés usar esto pa')
+        funciones = {
+            función_validadora: :es_admin,
+            función_comando: :desbloquear_usuario
+        }
+        comando_lista_negra(
+            msj,
+            funciones,
+            msj.chat.id.to_s,
+            params,
+            texto: 'Vos no podés usar esto pa'
+        )
     end
 
     def desbloquear(msj, params)
-        comando_lista_negra(msj, :validar_desarrollador,
-                            :desbloquear_usuario, 'global', params)
+        funciones = {
+            función_validadora: :validar_desarrollador,
+            función_comando: :desbloquear_usuario
+        }
+        comando_lista_negra(
+            msj,
+            funciones,
+            'global',
+            params
+        )
     end
 
     def bloqueados(msj)
@@ -68,9 +101,7 @@ class Dankie
 
     private
 
-    def comando_lista_negra(msj, funcion_validadora, execute_function,
-                            block_site, params, text = nil)
-
+    def comando_lista_negra(msj, funciones, block_site, params, texto: nil)
         id_chat = msj.chat.id
         id_mensaje = msj.message_id
         id_usuario = msj.from.id
@@ -85,9 +116,18 @@ class Dankie
         end
 
         # Chequeo que sea llamado por quién corresponde
-        if send(funcion_validadora, id_usuario, id_chat, id_mensaje, text, id)
-            send(execute_function, msj, block_site, id)
-        end
+        validado = send(
+            funciones[:función_validadora],
+            id_usuario,
+            id_chat,
+            id_mensaje,
+            texto,
+            id
+        )
+
+        return unless validado
+
+        send(funciones[:función_comando], msj, block_site, id)
     end
 
     def bloquear_usuario(msj, id_grupo, id = nil)
@@ -96,29 +136,8 @@ class Dankie
         # Chequeo casos turbinas de quien va a ser bloqueado
         if id.nil?
             if msj.reply_to_message
-
                 id = msj.reply_to_message.from.id
-
-                if id == @user.id
-                    @tg.send_message(chat_id: id_chat,
-                                     reply_to_message_id: msj.message_id,
-                                     text: 'Ni se te ocurra')
-                    return
-
-                elsif msj.reply_to_message.from.is_bot
-                    @tg.send_message(chat_id: id_chat,
-                                     reply_to_message_id: msj.message_id,
-                                     text: 'Para qué querés bloquear a un '\
-                                        'botazo???? Si ni los puedo leer')
-                    return
-                elsif msj.reply_to_message.from.first_name.empty?
-                    @tg.send_message(chat_id: id_chat,
-                                     reply_to_message_id: msj.message_id,
-                                     text: 'Para qué querés bloquear a una '\
-                                        'cuenta eliminada? Si ya no jode')
-                    return
-                end
-
+                return if caso_inválido(id, id_chat, msj)
             else
                 @tg.send_message(chat_id: id_chat,
                                  reply_to_message_id: msj.message_id,
@@ -127,33 +146,7 @@ class Dankie
             end
         end
 
-        if id == msj.from.id
-            @tg.send_message(chat_id: id_chat,
-                             reply_to_message_id: msj.message_id,
-                             text: 'Cómo te vas a autobloquear papurri??')
-            return
-        elsif id == @user.id
-            @tg.send_message(chat_id: id_chat,
-                             reply_to_message_id: msj.message_id,
-                             text: 'Ni se te ocurra')
-            return
-        end
-
-        # Chequeo que no sea desarrollador ni admin del grupete
-        if DEVS.include?(id)
-            @tg.send_message(chat_id: id_chat,
-                             reply_to_message_id: msj.message_id,
-                             text: 'No podés bloquear a un desarrollador pa')
-            return
-        end
-
-        # Si es un bloqueo local chequeo que no se bloquee a un admin
-        if (id_grupo != 'global') && es_admin(id, id_chat, msj.message_id)
-            @tg.send_message(chat_id: id_chat,
-                             reply_to_message_id: msj.message_id,
-                             text: 'No podés bloquear admines')
-            return
-        end
+        return if caso_de_no_bloqueo(id, msj, id_chat, id_grupo)
 
         # Chequeo que no esté bloqueado ya
         id = id.to_s
@@ -165,33 +158,79 @@ class Dankie
                                    'podés bloquear a alguien?? ya está en la '\
                                    'lista negra')
         else
-            @redis.sadd("lista_negra:#{id_grupo}", id)
+            agregar_a_lista_bloqueados(id_grupo, id, msj, id_chat)
+        end
+    end
 
-            if msj.reply_to_message.nil?
-                if id_grupo == 'global'
-                    @tg.send_message(chat_id: id_chat,
-                                     text: "ya no te doy bola #{id} ¬_¬")
-                else
-                    usuario = obtener_enlace_usuario(id, id_chat) || 'eliminado'
-                    @tg.send_message(
-                        chat_id: id_chat,
-                        text: "ya no te doy bola #{usuario} ¬_¬",
-                        parse_mode: :html,
-                        disable_web_page_preview: true,
-                        disable_notification: true
-                    )
-                end
+    def caso_inválido(_id, id_chat, msj)
+        if msj.reply_to_message.from.is_bot
+            @tg.send_message(chat_id: id_chat,
+                             reply_to_message_id: msj.message_id,
+                             text: 'Para qué querés bloquear a un '\
+                                'botazo???? Si ni los puedo leer')
+            return true
+        elsif msj.reply_to_message.from.first_name.empty?
+            @tg.send_message(chat_id: id_chat,
+                             reply_to_message_id: msj.message_id,
+                             text: 'Para qué querés bloquear a una '\
+                                'cuenta eliminada? Si ya no jode')
+            return true
+        end
+        false
+    end
+
+    def caso_de_no_bloqueo(id, msj, id_chat, id_grupo)
+        if id == msj.from.id
+            @tg.send_message(chat_id: id_chat,
+                             reply_to_message_id: msj.message_id,
+                             text: 'Cómo te vas a autobloquear papurri??')
+            return true
+        elsif id == @user.id
+            @tg.send_message(chat_id: id_chat,
+                             reply_to_message_id: msj.message_id,
+                             text: 'Ni se te ocurra')
+            return true
+        elsif DEVS.include?(id)
+            @tg.send_message(chat_id: id_chat,
+                             reply_to_message_id: msj.message_id,
+                             text: 'No podés bloquear a un desarrollador pa')
+            return true
+        elsif (id_grupo != 'global') && es_admin(id, id_chat, msj.message_id)
+            @tg.send_message(chat_id: id_chat,
+                             reply_to_message_id: msj.message_id,
+                             text: 'No podés bloquear admines')
+            return true
+        end
+        false
+    end
+
+    def agregar_a_lista_bloqueados(id_grupo, id, msj, id_chat)
+        @redis.sadd("lista_negra:#{id_grupo}", id)
+
+        if msj.reply_to_message.nil?
+            if id_grupo == 'global'
+                @tg.send_message(chat_id: id_chat,
+                                 text: "ya no te doy bola #{id} ¬_¬")
             else
                 usuario = obtener_enlace_usuario(id, id_chat) || 'eliminado'
                 @tg.send_message(
                     chat_id: id_chat,
-                    reply_to_message_id: msj.reply_to_message.message_id,
                     text: "ya no te doy bola #{usuario} ¬_¬",
                     parse_mode: :html,
                     disable_web_page_preview: true,
                     disable_notification: true
                 )
             end
+        else
+            usuario = obtener_enlace_usuario(id, id_chat) || 'eliminado'
+            @tg.send_message(
+                chat_id: id_chat,
+                reply_to_message_id: msj.reply_to_message.message_id,
+                text: "ya no te doy bola #{usuario} ¬_¬",
+                parse_mode: :html,
+                disable_web_page_preview: true,
+                disable_notification: true
+            )
         end
     end
 
@@ -215,34 +254,36 @@ class Dankie
                              text: 'No puedo desbloquear a alguien que no '\
                                    'está en la lista negra')
         else
-            @redis.srem("lista_negra:#{id_grupo}", id)
+            quitar_de_lista_bloqueados(id_grupo, id, msj, id_chat)
+        end
+    end
 
-            if msj.reply_to_message.nil?
+    def quitar_de_lista_bloqueados(id_grupo, id, msj, id_chat)
+        @redis.srem("lista_negra:#{id_grupo}", id)
 
-                if id_grupo == 'global'
-                    @tg.send_message(chat_id: id_chat, text: "ola de nuevo #{id} nwn")
-                else
-                    usuario = obtener_enlace_usuario(id, id_chat) || 'eliminado-kun'
-                    @tg.send_message(
-                        chat_id: id_chat,
-                        text: "ola de nuevo #{usuario} nwn",
-                        parse_mode: :html,
-                        disable_web_page_preview: true,
-                        disable_notification: true
-                    )
-                end
-
+        if msj.reply_to_message.nil?
+            if id_grupo == 'global'
+                @tg.send_message(chat_id: id_chat, text: "ola de nuevo #{id} nwn")
             else
                 usuario = obtener_enlace_usuario(id, id_chat) || 'eliminado-kun'
                 @tg.send_message(
                     chat_id: id_chat,
-                    reply_to_message_id: msj.reply_to_message.message_id,
                     text: "ola de nuevo #{usuario} nwn",
                     parse_mode: :html,
                     disable_web_page_preview: true,
                     disable_notification: true
                 )
             end
+        else
+            usuario = obtener_enlace_usuario(id, id_chat) || 'eliminado-kun'
+            @tg.send_message(
+                chat_id: id_chat,
+                reply_to_message_id: msj.reply_to_message.message_id,
+                text: "ola de nuevo #{usuario} nwn",
+                parse_mode: :html,
+                disable_web_page_preview: true,
+                disable_notification: true
+            )
         end
     end
 
@@ -299,11 +340,9 @@ class Dankie
                        end
         # Código para crear línea
         crear_línea = proc do |elemento|
-            miembro = if es_global
-                          elemento
-                      else
-                          obtener_enlace_usuario(elemento, msj.chat.id) || 'eliminado'
-                      end
+            return "\n- #{elemento}" if es_global
+
+            miembro = obtener_enlace_usuario(elemento, msj.chat.id) || 'eliminado'
             "\n- #{miembro}"
         end
         # Error a mandar en caso de que sea un conjunto vacío

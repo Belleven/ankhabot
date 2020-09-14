@@ -40,7 +40,7 @@ Naming/VariableName:
     Enabled: false
 
 Style/AsciiComments:
-    AllowedChars: [☑️, á, é, í, ó, ú, ü, ñ, Á, É, Í, Ó, Ú, Ü, Ñ]
+    AllowedChars: [☑️, á, é, í, ó, ú, ü, ñ, Á, É, Í, Ó, Ú, Ü, Ñ, ¬]
 
 
 Style/FrozenStringLiteralComment:
