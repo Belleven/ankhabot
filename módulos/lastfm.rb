@@ -26,20 +26,7 @@ class Dankie
 
     def usuario_last_fm(msj, params)
         # Sin parámetros mando la info actual.
-        unless params
-            if (usuario = @redis.get("lastfm:#{msj.from.id}"))
-                @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
-                                 reply_to_message_id: msj.message_id,
-                                 text: 'Tu usuario de Last.fm es '\
-                                       "<code>#{html_parser usuario}</code>.")
-            else
-                @tg.send_message(chat_id: msj.chat.id,
-                                 reply_to_message_id: msj.message_id,
-                                 text: "Configurá tu usuario con \n"\
-                                       '/usuariolastfm mi_usuario')
-            end
-            return
-        end
+        return usuario_last_fm_params(msj) unless params
 
         # Si hay parámetros, sobreescribo la cuenta actual.
         usuario = @lastfm.user.get_info user: params
@@ -62,6 +49,20 @@ class Dankie
                          text: 'Saltó un error, probablemente pusiste mal tu usuario.')
     end
 
+    def usuario_last_fm_params(msj)
+        if (usuario = @redis.get("lastfm:#{msj.from.id}"))
+            @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
+                             reply_to_message_id: msj.message_id,
+                             text: 'Tu usuario de Last.fm es '\
+                                   "<code>#{html_parser usuario}</code>.")
+        else
+            @tg.send_message(chat_id: msj.chat.id,
+                             reply_to_message_id: msj.message_id,
+                             text: "Configurá tu usuario con \n"\
+                                   '/usuariolastfm mi_usuario')
+        end
+    end
+
     def borrar_usuario_last_fm(msj)
         if @redis.del("lastfm:#{msj.from.id}").zero?
             @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
@@ -81,35 +82,113 @@ class Dankie
             return
         end
 
-        @logger.info "Pidiendo el tema que está escuchando #{usuario}"
-
         temazo = @lastfm.user.get_recent_tracks(user: usuario, limit: 1)
 
-        # Capaz que esto despues sea validado como una excepción.
-        unless temazo
-            @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
-                             text: 'Me tiró error, ¿Pusiste bien el usuario?')
-            return
-        end
-
-        # Si no escuchó ningún tema.
-        if temazo.dig('recenttracks', '@attr', 'total').to_i.zero?
-            @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
-                             text: "No escuchaste nada, #{TROESMAS.sample}.")
-            return
-        end
+        validaciones_escuchando(temazo, msj)
 
         # El primer tema.
         temazo = temazo.dig 'recenttracks', 'track', 0
 
         # Primero pongo el link invisible así lo toma para la preview.
-        imágen = temazo.dig('image', -1, '#text')
-        imágen = imágen.empty? ? 'https://i.imgur.com/fwu2ESz.png' : imágen
-        texto = '<a href="' << html_parser(imágen) << '">' << "\u200d</a>"
+        imagen = temazo.dig('image', -1, '#text')
+        imagen = imagen.empty? ? 'https://i.imgur.com/fwu2ESz.png' : imagen
 
         nombre = args || obtener_enlace_usuario(msj.from.id, msj.chat.id)
         nombre ||= 'si salta este texto estamos mal'
 
+        enviar_texto_comando(msj, imagen, nombre, temazo)
+    rescue StandardError => e
+        @logger.error e.to_s
+        @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                         text: 'Saltó un error, probablemente pusiste mal tu usuario.')
+    end
+
+    def recientes(msj, args)
+        return unless (temas = chequear_y_obtener_temas(msj, args))
+        return if sin_temas(temas, msj)
+
+        escuchando = temas.find { |tema| tema.dig('@attr', 'nowplaying') }
+
+        arr = crear_nombre_y_tablero(msj, temas, escuchando)
+        # Armo botonera y envío
+        opciones = armar_botonera 0, arr.size, msj.from.id, editable: true
+
+        respuesta = @tg.send_message(chat_id: msj.chat.id, text: arr.first,
+                                     reply_markup: opciones, parse_mode: :html,
+                                     reply_to_message_id: msj.message_id,
+                                     disable_web_page_preview: true)
+        return unless respuesta
+
+        respuesta = Telegram::Bot::Types::Message.new respuesta['result']
+        armar_lista(msj.chat.id, respuesta.message_id, arr, 'texto', 'todos')
+    rescue StandardError => e
+        logger.error e.to_s
+        @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                         text: 'Saltó un error, probablemente pusiste mal tu usuario.')
+    end
+
+    private
+
+    def crear_nombre_y_tablero(msj, temas, escuchando)
+        nombre = obtener_enlace_usuario(msj.from.id, msj.chat.id)
+        nombre ||= 'COMO CARAJOS BORRÁS EL USUARIO despues DE MANDAR ESTE COMANDO LOCO'
+        crear_array_tablero(temas, escuchando, nombre)
+    end
+
+    def sin_temas(temas, msj)
+        if temas.empty?
+            @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                             text: "No escuchaste ningún tema, #{TROESMAS.sample}.")
+            return true
+        end
+        false
+    end
+
+    def crear_array_tablero(temas, escuchando, nombre)
+        título = 'Canciones recientes de '
+        título << "#{nombre}:\n"
+
+        arr = [título.dup]
+
+        dígitos = temas.size.digits.count
+        contador = 0
+        índice = 1
+
+        temas.each do |tema|
+            if contador == 13 || arr.last.size >= 1000
+                arr << título.dup
+                contador = 0
+            end
+
+            arr.last << "\n<code>" << format("%#{dígitos}d", índice) << '.</code> '
+            arr.last << datos_tema_compacto(tema)
+            arr.last << ' <i>(ahora)</i>' if tema == escuchando
+            índice += 1
+            contador += 1
+        end
+
+        arr
+    end
+
+    def validaciones_escuchando(temazo, msj)
+        # Capaz que esto despues sea validado como una excepción.
+        unless temazo
+            @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                             text: 'Me tiró error, ¿Pusiste bien el usuario?')
+            return false
+        end
+
+        # Si no escuchó ningún tema.
+        return true unless temazo.dig('recenttracks', '@attr', 'total').to_i.zero?
+
+        @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                         text: "No escuchaste nada, #{TROESMAS.sample}.")
+
+        false
+    end
+
+    def enviar_texto_comando(msj, imagen, nombre, temazo)
+        texto = '<a href="' << html_parser(imagen) << '">' << "\u200d</a>"
         texto << nombre
         texto << if temazo.dig('@attr', 'nowplaying')
                      " está escuchando\n\n"
@@ -120,13 +199,9 @@ class Dankie
 
         @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
                          parse_mode: :html, text: texto)
-    rescue StandardError => e
-        logger.error e.to_s
-        @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
-                         text: 'Saltó un error, probablemente pusiste mal tu usuario.')
     end
 
-    def recientes(msj, args)
+    def chequear_y_obtener_temas(msj, args)
         if args && (args.match?(/\D+/) || args.to_i.zero?)
             @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
                              text: "Pasame un número natural, #{TROESMAS.sample}.")
@@ -151,58 +226,8 @@ class Dankie
 
         temas = temas.dig 'recenttracks', 'track'
         temas.pop if temas.size > cantidad # Bug que manda un tema mas que lo pedido
-
-        escuchando = temas.find { |tema| tema.dig('@attr', 'nowplaying') }
-
-        if temas.empty?
-            @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
-                             text: "No escuchaste ningún tema, #{TROESMAS.sample}.")
-            return
-        end
-
-        nombre = obtener_enlace_usuario(msj.from.id, msj.chat.id)
-        nombre ||= 'COMO CARAJOS BORRÁS EL USUARIO despues DE MANDAR ESTE COMANDO LOCO'
-
-        título = 'Canciones recientes de '
-        título << "#{nombre}:\n"
-
-        arr = [título.dup]
-
-        dígitos = temas.size.digits.count
-        contador = 0
-        índice = 1
-
-        temas.each do |tema|
-            if contador == 13 || arr.last.size >= 1000
-                arr << título.dup
-                contador = 0
-            end
-
-            arr.last << "\n<code>" << format("%#{dígitos}d", índice) << '.</code> '
-            arr.last << datos_tema_compacto(tema)
-            arr.last << ' <i>(ahora)</i>' if tema == escuchando
-            índice += 1
-            contador += 1
-        end
-
-        # Armo botonera y envío
-        opciones = armar_botonera 0, arr.size, msj.from.id, editable: true
-
-        respuesta = @tg.send_message(chat_id: msj.chat.id, text: arr.first,
-                                     reply_markup: opciones, parse_mode: :html,
-                                     reply_to_message_id: msj.message_id,
-                                     disable_web_page_preview: true)
-        return unless respuesta
-
-        respuesta = Telegram::Bot::Types::Message.new respuesta['result']
-        armar_lista(msj.chat.id, respuesta.message_id, arr, 'texto', 'todos')
-    rescue StandardError => e
-        logger.error e.to_s
-        @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
-                         text: 'Saltó un error, probablemente pusiste mal tu usuario.')
+        temas
     end
-
-    private
 
     # Función que recibe un hash del arreglo de 'track' que devuelve la api y devuelve
     # un String.

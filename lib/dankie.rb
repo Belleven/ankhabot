@@ -130,8 +130,9 @@ class Dankie
     end
 
     def manejar_excepción_asesina(excepción, msj = nil)
-        @logger.loggear_hora_excepción(msj, @tz.utc_offset, @tz.now) unless msj.nil?
         return if @tg.capturar(excepción)
+
+        @logger.loggear_hora_excepción(msj, @tz.utc_offset, @tz.now) unless msj.nil?
 
         texto, backtrace = @logger.excepcion_texto(excepción)
         @logger.fatal texto, al_canal: true, backtrace: backtrace
