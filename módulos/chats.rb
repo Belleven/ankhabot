@@ -51,23 +51,23 @@ class Dankie
         eliminados = priv_eliminados + canal_eliminados +
                      grupo_eliminados + supergrupo_eliminados
 
-        total = activos + eliminados
+        texto = "Chats en los que participé: <b>#{activos + eliminados}</b>"\
+                "\n\nChats en los que estoy: <b>#{activos}</b>"\
+                "\nChats en los que ya no sigo: <b>#{eliminados}</b>"\
+                "\n\nGrupos en los que estoy: <b>#{grupo_activos}</b>"\
+                "\nGrupos en los que ya no sigo: <b>#{grupo_eliminados}</b>"\
+                "\n\nSupergrupos en los que estoy: <b>#{supergrupo_activos}</b>"\
+                "\nSupergrupos en los que ya no sigo: <b>#{supergrupo_eliminados}</b>"\
+                "\n\nCanales en los que estoy: <b>#{canal_activos}</b>"\
+                "\nCanales en los que ya no sigo: <b>#{canal_eliminados}</b>"\
+                "\n\nChats privados activos: <b>#{priv_activos}</b>"\
+                "\nChats privados donde no puedo hablar: <b>#{priv_eliminados}</b>"
 
-        texto = "Chats en los que participé: <b>#{total}</b>"
-        texto << "\n\nChats en los que estoy: <b>#{activos}</b>"
-        texto << "\nChats en los que ya no sigo: <b>#{eliminados}</b>"
-        texto << "\n\nGrupos en los que estoy: <b>#{grupo_activos}</b>"
-        texto << "\nGrupos en los que ya no sigo: <b>#{grupo_eliminados}</b>"
-        texto << "\n\nSupergrupos en los que estoy: <b>#{supergrupo_activos}</b>"
-        texto << "\nSupergrupos en los que ya no sigo: <b>#{supergrupo_eliminados}</b>"
-        texto << "\n\nCanales en los que estoy: <b>#{canal_activos}</b>"
-        texto << "\nCanales en los que ya no sigo: <b>#{canal_eliminados}</b>"
-        texto << "\n\nChats privados activos: <b>#{priv_activos}</b>"
-        texto << "\nChats privados donde no puedo hablar: <b>#{priv_eliminados}</b>"
-
-        @tg.send_message(chat_id: msj.chat.id,
-                         parse_mode: :html,
-                         text: texto)
+        @tg.send_message(
+            chat_id: msj.chat.id,
+            parse_mode: :html,
+            text: texto
+        )
     end
 
     def estadochat(msj, params)
@@ -79,17 +79,7 @@ class Dankie
             return
         end
 
-        if params.nil? || !/\A-?\d+\z/.match?(params)
-            @tg.send_message(chat_id: msj.chat.id,
-                             reply_to_message_id: msj.message_id,
-                             text: 'Tenés que pasarme una id de chat válida')
-            return
-        elsif (migrado = @redis.hget('chats_migrados', params))
-            @tg.send_message(chat_id: msj.chat.id,
-                             reply_to_message_id: msj.message_id,
-                             text: "Ese chat migró a #{migrado}")
-            return
-        end
+        return if params_inválidos_estado_chat(msj, params)
 
         begin
             id_chat = params.to_i
@@ -104,26 +94,51 @@ class Dankie
                              text: 'Sigo estando en ese chat',
                              reply_to_message_id: msj.message_id)
         rescue Telegram::Bot::Exceptions::ResponseError => e
-            texto = case e.to_s
-                    when /chat not found/
-                        "\nNunca estuve en este chat, o no existe"
-                    when /bot was kicked from the (super)?group chat/
-                        "\nMe banearon en ese chat"
-                    when /bot is not a member of the ((super)?group|channel) chat/
-                        "\nNo estoy en ese chat"
-                    when /PEER_ID_INVALID/
-                        "\nEse usuario me tiene bloqueado o nunca iniciamos conversación"
-                    when /bot can't send messages to bots/
-                        "\nEse usuario es un bot, no le puedo hablar"
-                    else
-                        "\nSaltó este otro error y no puedo saber si "\
-                                "estoy en el chat: #{e}"
-                    end
-
-            @logger.info("En el comando /estadochat => #{e}")
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: texto,
-                             reply_to_message_id: msj.message_id)
+            analizar_excepción_estado_chat(e)
         end
+    end
+
+    def params_inválidos_estado_chat(msj, params)
+        if params.nil? || !/\A-?\d+\z/.match?(params)
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                reply_to_message_id: msj.message_id,
+                text: 'Tenés que pasarme una id de chat válida'
+            )
+            return true
+        elsif (migrado = @redis.hget('chats_migrados', params))
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                reply_to_message_id: msj.message_id,
+                text: "Ese chat migró a #{migrado}"
+            )
+            return true
+        end
+        false
+    end
+
+    def analizar_excepción_estado_chat(exc)
+        texto = case exc.to_s
+                when /chat not found/
+                    "\nNunca estuve en este chat, o no existe"
+                when /bot was kicked from the (super)?group chat/
+                    "\nMe banearon en ese chat"
+                when /bot is not a member of the ((super)?group|channel) chat/
+                    "\nNo estoy en ese chat"
+                when /PEER_ID_INVALID/
+                    "\nEse usuario me tiene bloqueado o nunca iniciamos conversación"
+                when /bot can't send messages to bots/
+                    "\nEse usuario es un bot, no le puedo hablar"
+                else
+                    "\nSaltó este otro error y no puedo saber si "\
+                            "estoy en el chat: #{exc}"
+                end
+
+        @logger.info("En el comando /estadochat => #{exc}")
+        @tg.send_message(
+            chat_id: msj.chat.id,
+            text: texto,
+            reply_to_message_id: msj.message_id
+        )
     end
 end
