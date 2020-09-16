@@ -33,7 +33,8 @@ class ImageSearcher
 
                 # Le bajo uno a imágenes enviadas y aumento el contador de error
                 Stats::Contador.decr('googleapi', hora: Time.now.to_i, intervalo: 600)
-                Stats::Contador.incr('googleapi:excedida', hora: Time.now.to_i, intervalo: 600)
+                Stats::Contador.incr('googleapi:excedida', hora: Time.now.to_i,
+                                                           intervalo: 600)
                 :límite_diario
             else
                 @logger.error resultado['error']
