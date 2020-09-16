@@ -26,7 +26,7 @@ class Dankie
     private
 
     def numero_comic_random
-        último_comic = último_XKCD['num']
+        último_comic = último_xkcd['num']
         nro = rand(1..último_comic)
         nro = último_comic if nro == 404
         nro
@@ -85,7 +85,7 @@ class Dankie
         )
     end
 
-    def último_XKCD
+    def último_xkcd
         respuesta = Net::HTTP.get_response(URI('https://xkcd.com/info.0.json'))
         JSON.parse(respuesta.body)
     end

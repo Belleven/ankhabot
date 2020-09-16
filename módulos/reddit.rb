@@ -11,7 +11,7 @@ class Dankie
     def sub(msj, subr)
         return if no_hay_subreddit(msj, subr) || sub_inválido(msj, subr)
 
-        resultado = @redditApi.browse(subr)
+        resultado = @reddit_api.browse(subr)
 
         if !resultado || resultado.empty?
             @tg.send_message(

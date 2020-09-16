@@ -27,7 +27,7 @@ class Dankie
                                        ', qué los trae por acá?',
                                        ', pasen y siéntense al fondo.']
 
-            texto = concatenarSaludos(msj, saludo_varios_miembros.sample)
+            texto = concatenar_saludos(msj, saludo_varios_miembros.sample)
             saludo = texto + extra_varios_miembros.sample
 
         end
@@ -37,7 +37,7 @@ class Dankie
                          reply_to_message_id: msj.message_id)
     end
 
-    def concatenarSaludos(msj, texto)
+    def concatenar_saludos(msj, texto)
         cantidad_miembros = msj.new_chat_members.size
         # Saluda a varios usuarios nuevas
         msj.new_chat_members.each_with_index do |nuevo_miembro, índice|

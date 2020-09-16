@@ -90,7 +90,7 @@ class Dankie
         @user = Telegram::Bot::Types::User.new @tg.get_me['result']
         @lastfm = LastFM::Api.new args[:last_fm_api]
         @tz = TZInfo::Timezone.get args[:timezone]
-        @redditApi = Reddit::Api.new
+        @reddit_api = Reddit::Api.new
     end
 
     def run
