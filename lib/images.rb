@@ -21,9 +21,9 @@ class ImageSearcher
         respuesta = Net::HTTP.get_response URI.parse(dirección)
         resultado = JSON.parse(respuesta.body)
 
-        # Cuantas imágenes fueron enviadas por día
-        # ejemplo: googleapi-2020-12-25
-        Stats.incr('googleapi:' + Time.now.strftime('%Y-%m-%d'))
+        # Cuantas imágenes fueron enviadas por hora
+        # ejemplo: googleapi:1598302800
+        Stats::Contador.incr('googleapi', hora: Time.now.to_i, intervalo: 600)
 
         if resultado['error']
             if %w[dailyLimitExceeded
@@ -32,8 +32,8 @@ class ImageSearcher
                 @logger.info('Alcancé el límite diario de imágenes')
 
                 # Le bajo uno a imágenes enviadas y aumento el contador de error
-                Stats.decr('googleapi:' + Time.now.strftime('%Y-%m-%d'))
-                Stats.incr('googleapi:excedida:' + Time.now.strftime('%Y-%m-%d'))
+                Stats::Contador.decr('googleapi', hora: Time.now.to_i, intervalo: 600)
+                Stats::Contador.incr('googleapi:excedida', hora: Time.now.to_i, intervalo: 600)
                 :límite_diario
             else
                 @logger.error resultado['error']

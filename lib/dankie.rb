@@ -6,11 +6,11 @@ require_relative 'images.rb'
 require_relative 'last_fm_parser.rb'
 require_relative 'botoneras.rb'
 require_relative 'configuración.rb'
+require_relative 'stats.rb'
 require 'redis'
 require 'tzinfo'
 require 'set'
 require 'securerandom'
-require 'stats'
 require 'ruby_reddit_api'
 require 'cgi'
 
@@ -81,7 +81,7 @@ class Dankie
                       password: args[:redis_pass], db: i)
         end
         @redis = dbs.first
-        Stats.redis = dbs.last
+        Stats::Base.redis = dbs.last
 
         @img = ImageSearcher.new args[:google_image_key], args[:google_image_cx],
                                  args[:google_image_gl], @logger
@@ -95,8 +95,7 @@ class Dankie
         # Ciclo principal
         @tg.client.listen do |msj|
             # Registra cuanto tiempo tarda en ejecutar el loop del bot
-            # ejemplo: tiempo_procesado_loop:2020-12-25
-            Stats.time('tiempo_procesado_loop:' + Time.now.strftime('%Y-%m-%d')) do
+            Stats::Temporizador.time('tiempo_procesado_loop', intervalo: 600) do
                 loop_principal(msj)
             end
         end
@@ -253,6 +252,25 @@ class Dankie
         end
 
         { command: command&.to_sym, params: params }
+    end
+
+    # Analiza un texto y lo separa en parámetros.
+    # Formato: 'opción1: valor1 opción2: lista de valores opción3: 3'
+    # Se puede escapar un : con un \ antes ('\:')
+    # Devuelve un hash con opción => valor, donde cada opción es un Symbol y valor String
+    def parse_params(texto)
+        parámetros = {}
+
+        # separo en pares nombre: valores
+        texto.split(/\s+(?=\S+[^\\]:)/).each do |param|
+            # separo el nombre del valor
+            opción = param.split(/(?<!\\):/)
+            return opción.first if opción.size == 1
+
+            parámetros[opción[0].strip.to_sym] = opción[1].strip
+        end
+
+        parámetros
     end
 
     # Método que recibe un User o un id_usuario, un Chat o un id_chat y devuelve

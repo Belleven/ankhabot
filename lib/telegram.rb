@@ -111,7 +111,7 @@ class TelegramAPI
 
             # Como los métodos que tienen acción son los que envían mensajes,
             # voy a aumentar las stats de mensajes enviados acá.
-            Stats.incr('msj_enviados:' + Time.now.strftime('%Y-%m-%d'))
+            Stats::Contador.incr('msj_enviados', hora: Time.now.to_i, intervalo: 600)
         end
 
         # TODO: meter delay para no sobrepasar los

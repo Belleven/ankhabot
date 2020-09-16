@@ -11,7 +11,6 @@ gem 'nhentai-api', git: 'https://github.com/lukeovalle/nhentai-api.git', branch:
 gem 'rake'
 gem 'redis'
 gem 'ruby_reddit_api'
-gem 'stats'
 gem 'telegram-bot-ruby'
 gem 'tzinfo'
 
