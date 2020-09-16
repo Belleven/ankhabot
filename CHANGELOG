@@ -1,5 +1,6 @@
 2.0
     -estadísticas de uso del bot graficadas con /stats_bot
+    -sistema de reputación
     -comando xkcd
     -comando roll
     -mejora en la captura de excepciones
