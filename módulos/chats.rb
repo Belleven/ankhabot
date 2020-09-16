@@ -98,6 +98,8 @@ class Dankie
         end
     end
 
+    private
+
     def params_inválidos_estado_chat(msj, params)
         if params.nil? || !/\A-?\d+\z/.match?(params)
             @tg.send_message(

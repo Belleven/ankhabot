@@ -49,20 +49,6 @@ class Dankie
                          text: 'Saltó un error, probablemente pusiste mal tu usuario.')
     end
 
-    def usuario_last_fm_params(msj)
-        if (usuario = @redis.get("lastfm:#{msj.from.id}"))
-            @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
-                             reply_to_message_id: msj.message_id,
-                             text: 'Tu usuario de Last.fm es '\
-                                   "<code>#{html_parser usuario}</code>.")
-        else
-            @tg.send_message(chat_id: msj.chat.id,
-                             reply_to_message_id: msj.message_id,
-                             text: "Configurá tu usuario con \n"\
-                                   '/usuariolastfm mi_usuario')
-        end
-    end
-
     def borrar_usuario_last_fm(msj)
         if @redis.del("lastfm:#{msj.from.id}").zero?
             @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
@@ -128,6 +114,21 @@ class Dankie
     end
 
     private
+
+    
+    def usuario_last_fm_params(msj)
+        if (usuario = @redis.get("lastfm:#{msj.from.id}"))
+            @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
+                             reply_to_message_id: msj.message_id,
+                             text: 'Tu usuario de Last.fm es '\
+                                   "<code>#{html_parser usuario}</code>.")
+        else
+            @tg.send_message(chat_id: msj.chat.id,
+                             reply_to_message_id: msj.message_id,
+                             text: "Configurá tu usuario con \n"\
+                                   '/usuariolastfm mi_usuario')
+        end
+    end
 
     def crear_nombre_y_tablero(msj, temas, escuchando)
         nombre = obtener_enlace_usuario(msj.from.id, msj.chat.id)

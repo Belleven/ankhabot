@@ -25,6 +25,8 @@ class Dankie
         end
     end
 
+    private
+
     def analizar_resultados(resultados, args, msj)
         case resultados
             # Caso bueno

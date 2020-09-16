@@ -37,32 +37,7 @@ class Dankie
 
         @redis.set "pole:#{id_chat}:próxima", próx_pole.to_i
 
-        hoy = Time.at(msj.date)
-        case [hoy.month, hoy.day]
-        when [12, 25] # Navidad
-            @redis.zincrby("pole:#{id_chat}", 5, id_usuario)
-            tipo_de_pole = 'nisman navideña, +5'
-        when [1, 1] # Año nuevo
-            @redis.zincrby("pole:#{id_chat}", 2, id_usuario)
-            tipo_de_pole = 'primer nisman del año, +2'
-        else # Despues se podría añadir otro tipo de eventos, ej cumpleaños
-            @redis.zincrby("pole:#{id_chat}", 1, id_usuario)
-            tipo_de_pole = 'nisman'
-        end
-
-        nombre = if msj.from.first_name.empty?
-                     "ay no c (#{id_usuario})"
-                 else
-                     html_parser(msj.from.first_name)
-                 end
-
-        @logger.info("#{nombre} hizo la nisman en #{id_chat}", al_canal: false)
-        @tg.send_message(
-            chat_id: id_chat,
-            parse_mode: :html,
-            reply_to_message_id: msj.message_id,
-            text: "<b>#{nombre}</b> hizo la #{tipo_de_pole}."
-        )
+        enviar_captura_pole(msj, id_chat, id_usuario)
     end
 
     def enviar_ranking_pole(msj)
@@ -138,5 +113,34 @@ class Dankie
             acumulador += pole[1].to_i
         end
         acumulador
+    end
+
+    def enviar_captura_pole(msj, id_chat, id_usuario)
+        hoy = Time.at(msj.date)
+        case [hoy.month, hoy.day]
+        when [12, 25] # Navidad
+            @redis.zincrby("pole:#{id_chat}", 5, id_usuario)
+            tipo_de_pole = 'nisman navideña, +5'
+        when [1, 1] # Año nuevo
+            @redis.zincrby("pole:#{id_chat}", 2, id_usuario)
+            tipo_de_pole = 'primer nisman del año, +2'
+        else # Despues se podría añadir otro tipo de eventos, ej cumpleaños
+            @redis.zincrby("pole:#{id_chat}", 1, id_usuario)
+            tipo_de_pole = 'nisman'
+        end
+
+        nombre = if msj.from.first_name.empty?
+                     "ay no c (#{id_usuario})"
+                 else
+                     html_parser(msj.from.first_name)
+                 end
+
+        @logger.info("#{nombre} hizo la nisman en #{id_chat}", al_canal: false)
+        @tg.send_message(
+            chat_id: id_chat,
+            parse_mode: :html,
+            reply_to_message_id: msj.message_id,
+            text: "<b>#{nombre}</b> hizo la #{tipo_de_pole}."
+        )
     end
 end
