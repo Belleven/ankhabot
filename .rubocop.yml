@@ -31,7 +31,7 @@ Naming/AsciiIdentifiers:
     Enabled: false
 
 Style/AsciiComments:
-    AllowedChars: [☑️, á, é, í, ó, ú, ü, ñ, Á, É, Í, Ó, Ú, Ü, Ñ, ¬]
+    Enabled: false
 
 Style/FrozenStringLiteralComment:
     EnforcedStyle: never
