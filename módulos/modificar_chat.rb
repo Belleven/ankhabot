@@ -252,7 +252,7 @@ class Dankie
                                      'No tengo permisos para sacar eso')
             quitar.call(msj.chat.id)
             @tg.send_message(chat_id: msj.chat.id,
-                             text: texto_éxito + ' ' + TROESMAS.sample,
+                             text: "#{texto_éxito} #{TROESMAS.sample}",
                              reply_to_message_id: msj.message_id)
         end
     rescue Telegram::Bot::Exceptions::ResponseError => e

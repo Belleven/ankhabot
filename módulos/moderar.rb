@@ -24,13 +24,14 @@ class Dankie
                 (miembro.status == 'restricted' && !miembro.is_member)
         end
         # Función para moderar el grupete
-        if msj.chat.type == 'supergroup'
+        case msj.chat.type
+        when 'supergroup'
             func_moderadora = proc do |chat_id, id_afectada|
                 # Por alguna razón misteriosa la función unban_chat_member
                 # kickea en supergrupos
                 @tg.unban_chat_member(chat_id: chat_id, user_id: id_afectada)
             end
-        elsif msj.chat.type == 'group'
+        when 'group'
             func_moderadora = proc do |chat_id, id_afectada|
                 # Por alguna razón misteriosa esta función solo kickea
                 # en grupos normales
@@ -92,27 +93,27 @@ class Dankie
                            error_afectado, msj_final, para_aplicar_restricción)
         cumple, miembro, razón = cumple_requisitos(msj, para_aplicar_restricción)
 
-        if cumple
-            if chequeo_afectado.call(miembro)
-                @tg.send_message(chat_id: msj.chat.id,
-                                 text: error_afectado,
-                                 reply_to_message_id: msj.message_id)
-            elsif moderar(msj, miembro.user.id, func_moderadora)
-                razón = if razón.nil?
-                            ''
-                        else
-                            ".\nRazón: " + razón + (razón[-1] == '.' ? '' : '.')
-end
-                nombre = obtener_enlace_usuario(miembro.user,
-                                                msj.chat.id) || 'Usuario eliminado'
+        return unless cumple
 
-                texto = msj_final + ' ' + nombre + razón
-                @tg.send_message(chat_id: msj.chat.id,
-                                 text: texto,
-                                 parse_mode: :html,
-                                 disable_web_page_preview: true,
-                                 disable_notification: true)
-            end
+        if chequeo_afectado.call(miembro)
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: error_afectado,
+                             reply_to_message_id: msj.message_id)
+        elsif moderar(msj, miembro.user.id, func_moderadora)
+            razón = if razón.nil?
+                        ''
+                    else
+                        ".\nRazón: #{razón}#{(razón[-1] == '.' ? '' : '.')}"
+                    end
+            nombre = obtener_enlace_usuario(miembro.user,
+                                            msj.chat.id) || 'Usuario eliminado'
+
+            texto = "#{msj_final} #{nombre}#{razón}"
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: texto,
+                             parse_mode: :html,
+                             disable_web_page_preview: true,
+                             disable_notification: true)
         end
     end
 
@@ -181,7 +182,8 @@ end
         resultado = false
         miembro = nil
 
-        # Chequeo que quien llame al comando sea admin y tenga permisos para restringir usuarios
+        # Chequeo que quien llame al comando sea admin y
+        # tenga permisos para restringir usuarios
         if tiene_permisos(msj, msj.from.id, :can_restrict_members, 'Tenés que',
                           'No tenés permisos para restringir/suspender usuarios')
 
@@ -189,15 +191,16 @@ end
 
             if miembro
                 # Chequeo si a quien le afecta el comando es admin
-                if para_aplicar_restricción && (miembro.status == 'administrator' || miembro.status == 'creator')
+                if para_aplicar_restricción && (miembro.status == 'administrator' ||
+                    miembro.status == 'creator')
                     @tg.send_message(chat_id: msj.chat.id,
                                      text: 'No podés usar este comando contra un admin',
                                      reply_to_message_id: msj.message_id)
                 elsif alias_id && (!miembro.user.username ||
                         miembro.user.username != alias_id)
                     @tg.send_message(chat_id: msj.chat.id,
-                                     text: 'No reconozco ese alias, lo más probable es que '\
-                                            'haya sido cambiado recientemente',
+                                     text: 'No reconozco ese alias, lo más probable '\
+                                           'es que haya sido cambiado recientemente',
                                      reply_to_message_id: msj.message_id)
                 else
                     resultado = true

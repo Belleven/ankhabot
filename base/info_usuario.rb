@@ -139,8 +139,8 @@ class Dankie
                           ''
                       else
                           'Apodo en el grupete: '\
-                                                                "<b>#{html_parser(apodo)}</b>\n"
-end)
+                         "<b>#{html_parser(apodo)}</b>\n"
+                      end)
         respuesta << (lastfm.nil? ? '' : "Cuenta de LastFM: <b>#{lastfm}</b>")
 
         @tg.send_message(chat_id: msj.chat.id,
@@ -170,7 +170,7 @@ end)
                 contador = 0
             end
 
-            unless enlace_usuario = obtener_enlace_usuario(apodo.first, msj.chat.id)
+            unless (enlace_usuario = obtener_enlace_usuario(apodo.first, msj.chat.id))
                 @redis.hdel("apodo:#{msj.chat.id}", apodo.first.to_s)
             end
 
@@ -179,7 +179,7 @@ end)
         end
 
         # Armo botonera y envío
-        opciones = armar_botonera 0, arr.size, msj.from.id, true
+        opciones = armar_botonera 0, arr.size, msj.from.id, editable: true
 
         respuesta = @tg.send_message(chat_id: msj.chat.id, text: arr.first,
                                      reply_markup: opciones, parse_mode: :html,

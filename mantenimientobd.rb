@@ -2,8 +2,8 @@
 require 'yaml'
 require 'redis'
 
-def imprimir_todas_las_claves(redis, patron = 'trigger')
-    redis.each_key do |clave|
+def imprimir_todas_las_claves(redis, patron = 'triggers:')
+    redis.keys('*').each do |clave|
         next unless clave.include? patron
 
         case redis.type(clave)

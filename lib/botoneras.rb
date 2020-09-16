@@ -1,5 +1,6 @@
 class Dankie
-    # Las siguientes i6 funciones son para manejar listas de n páginas de texto, media o caption
+    # Las siguientes i6 funciones son para manejar
+    # listas de n páginas de texto, media o caption
     def editar_botonera_lista(callback)
         match = callback.data.match(/lista:(?<id_usuario>\d+):(?<índice>\d+)/)
 
@@ -21,7 +22,7 @@ class Dankie
         opciones = armar_botonera(índice,
                                   obtener_tamaño_lista(id_chat, id_mensaje),
                                   id_usuario,
-                                  metadatos[:editable_por] == 'todos')
+                                  editable: metadatos[:editable_por] == 'todos')
 
         valor = obtener_elemento_lista(id_chat,
                                        id_mensaje,
@@ -39,11 +40,12 @@ class Dankie
 
         case metadatos[:tipo]
         when 'texto'
+            # TODO: ver como permitir que los dos disable sean variables ???
             @tg.edit_message_text(chat_id: id_chat,
                                   parse_mode: :html,
                                   message_id: id_mensaje,
                                   disable_web_page_preview: true,
-                                  disable_notification: true, # TODO: ver como permitir que estos dos sean variables ???
+                                  disable_notification: true,
                                   text: valor,
                                   reply_markup: opciones)
         when 'caption'
@@ -54,8 +56,10 @@ class Dankie
                                      reply_markup: opciones)
         else
             @tg.edit_message_media(chat_id: id_chat, message_id: id_mensaje,
-                                   media: { type: metadatos[:tipo],
-                                            media: valor }.to_json,
+                                   media: {
+                                       type: metadatos[:tipo],
+                                       media: valor
+                                   }.to_json,
                                    reply_markup: opciones)
         end
     rescue Telegram::Bot::Exceptions::ResponseError => e
@@ -91,7 +95,7 @@ class Dankie
             @tg.answer_callback_query(callback_query_id: callback.id,
                                       text: 'Botonera ahora es presionable por todos.')
             opciones = armar_botonera(índice, obtener_tamaño_lista(id_chat, id_mensaje),
-                                      id_usuario, true)
+                                      id_usuario, editable: true)
             @tg.edit_message_reply_markup(chat_id: id_chat, message_id: id_mensaje,
                                           reply_markup: opciones)
         when 'noedit'
@@ -101,7 +105,7 @@ class Dankie
                                       text: 'Botonera ahora solo es presionable '\
                                       'por el que la pidió.')
             opciones = armar_botonera(índice, obtener_tamaño_lista(id_chat, id_mensaje),
-                                      id_usuario, false)
+                                      id_usuario, editable: false)
             @tg.edit_message_reply_markup(chat_id: id_chat, message_id: id_mensaje,
                                           reply_markup: opciones)
         end
@@ -134,22 +138,23 @@ class Dankie
         h.transform_keys!(&:to_sym)
     end
 
-    def armar_botonera(página_actual, tamaño_máximo, id_usuario, editable = false)
+    def armar_botonera(página_actual, tamaño_máximo, id_usuario, editable: false)
         return nil if tamaño_máximo == 1
 
         página_actual = [página_actual, tamaño_máximo - 1].min # valido el rango
 
         arr = [[]]
-        botones_abajo = [Telegram::Bot::Types::InlineKeyboardButton.new(
-            text: (editable ? "\u{1F513}" : "\u{1F512}"),
-            callback_data: "opcioneslista:#{id_usuario}:#{página_actual}:"\
-                           "#{editable ? 'noedit' : 'edit'}"
-        ),
-                         Telegram::Bot::Types::InlineKeyboardButton.new(
-                             text: "\u274C",
-                             callback_data: "opcioneslista:#{id_usuario}:#{página_actual}:"\
-                                            'borrar'
-                         )]
+        botones_abajo = [
+            Telegram::Bot::Types::InlineKeyboardButton.new(
+                text: (editable ? "\u{1F513}" : "\u{1F512}"),
+                callback_data: "opcioneslista:#{id_usuario}:#{página_actual}:"\
+                               "#{editable ? 'noedit' : 'edit'}"
+            ),
+            Telegram::Bot::Types::InlineKeyboardButton.new(
+                text: "\u274C",
+                callback_data: "opcioneslista:#{id_usuario}:#{página_actual}:borrar"
+            )
+        ]
 
         if tamaño_máximo <= 5
             tamaño_máximo.times do |i|

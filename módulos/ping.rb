@@ -14,9 +14,15 @@ class Dankie
         tiempo3 = Time.new
 
         # Calculo tiempos
-        tiempo_tg = format('%.3f', tiempo2.to_r - tiempo1.to_r)
-        tiempo_bbdd = format('%.3f', tiempo3.to_r - tiempo2.to_r)
+        tiempo_tg = format('%<tiempo>.3f', tiempo: tiempo2.to_r - tiempo1.to_r)
+        tiempo_bbdd = format('%<tiempo>.3f', tiempo: tiempo3.to_r - tiempo2.to_r)
 
+        responder_ping(msj, enviado, tiempo_tg, tiempo_bbdd)
+    end
+
+    private
+
+    def responder_ping(msj, enviado, tiempo_tg, tiempo_bbdd)
         # Atraso por flooding
         respuesta = (enviado.date - msj.date).to_i
 

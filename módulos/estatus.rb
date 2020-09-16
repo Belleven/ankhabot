@@ -9,37 +9,42 @@ class Dankie
                                                    'miembros comunes del grupete')
 
     def estatus(msj)
-        if (miembro = miembro_válido(msj))
+        return unless (miembro = miembro_válido(msj))
 
-            traducción = { 'member' => 'MIEMBRO COMÚN', 'kicked' => 'BANEADO',
-                           'left' => 'FUERA DEL GRUPO (PUEDE VOLVER CUANDO QUIERA)',
-                           'creator' => 'CREADOR DEL GRUPETE',
-                           'administrator' => 'ADMINISTRADOR',
-                           'restricted' => 'USUARIO RESTRINGIDO' }
+        traducción = { 'member' => 'MIEMBRO COMÚN', 'kicked' => 'BANEADO',
+                       'left' => 'FUERA DEL GRUPO (PUEDE VOLVER CUANDO QUIERA)',
+                       'creator' => 'CREADOR DEL GRUPETE',
+                       'administrator' => 'ADMINISTRADOR',
+                       'restricted' => 'USUARIO RESTRINGIDO' }
 
-            estado = if miembro.user.first_name.empty?
-                         'DESAPARECIDO'
-                     else
-                         traducción[miembro.status]
-                     end
+        estado = if miembro.user.first_name.empty?
+                     'DESAPARECIDO'
+                 else
+                     traducción[miembro.status]
+                 end
 
-            usuario = obtener_enlace_usuario(miembro.user,
-                                             msj.chat.id) || '<code>Usuario eliminado</code>'
+        eliminado = '<code>Usuario eliminado</code>'
+        usuario = obtener_enlace_usuario(miembro.user, msj.chat.id) || eliminado
 
-            texto = "Estatus de #{usuario}"\
-                    ": #{estado}"
-            agregar_cualidades(miembro, texto) unless miembro.user.first_name.empty?
+        texto = "Estatus de #{usuario}: #{estado}"
 
-            texto << "\n\nPermisos de los miembros comunes en este chat:"
-            agregar_permisos_chat(msj, texto)
-
-            @tg.send_message(chat_id: msj.chat.id,
-                             parse_mode: :html,
-                             disable_web_page_preview: true,
-                             disable_notification: true,
-                             text: texto)
-
+        if miembro.custom_title &&
+           (miembro.status == 'administrator' || miembro.status == 'creator')
+            texto << "\nTítulo: <b>#{html_parser miembro.custom_title}</b>"
         end
+
+        agregar_cualidades(miembro, texto) unless miembro.user.first_name.empty?
+
+        texto << "\n\nPermisos de los miembros comunes en este chat:"
+        agregar_permisos_chat(msj, texto)
+
+        @tg.send_message(
+            chat_id: msj.chat.id,
+            parse_mode: :html,
+            disable_web_page_preview: true,
+            disable_notification: true,
+            text: texto
+        )
     end
 
     def permisos(msj)
@@ -80,7 +85,8 @@ class Dankie
     end
 
     def agregar_cualidades(miembro, texto)
-        if miembro.status == 'administrator'
+        case miembro.status
+        when 'administrator'
             texto << "\n\nCon las siguientes características:"
 
             agr_cualidades_admin_restr(miembro, texto)
@@ -109,7 +115,7 @@ class Dankie
                          "\n❌ No puede agregar nuevos admins."
                      end
 
-        elsif miembro.status == 'restricted'
+        when 'restricted'
             texto << "\n\nCon las siguientes restricciones:"
             agr_cualidades_ban_restr(miembro, texto, 'Restringido')
             agr_cualidades_admin_restr(miembro, texto)
@@ -121,7 +127,7 @@ class Dankie
                      end
             agr_cualidades_generales(miembro, texto)
 
-        elsif miembro.status == 'kicked'
+        when 'kicked'
             agr_cualidades_ban_restr(miembro, texto, 'Baneado')
         end
     end

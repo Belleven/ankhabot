@@ -7,6 +7,7 @@ require_relative 'last_fm_parser.rb'
 require_relative 'botoneras.rb'
 require_relative 'configuración.rb'
 require_relative 'stats.rb'
+require_relative 'excepciones'
 require 'redis'
 require 'tzinfo'
 require 'set'
@@ -24,12 +25,13 @@ class Dankie
     DEUS_VULT = File.readlines('resources/deus.txt').map(&:chomp).freeze
     # rubocop:disable Layout/MultilineArrayBraceLayout
     DEVS = Set.new([240_524_686, # Luke
-                    98_631_116,  # M
+                    98_631_116, # M
                     812_107_125, # Santi
                     267_832_653, # Galerazo
                     196_535_916, # Ale
                     298_088_760, # Mel
-                    36_557_595   # Bruno
+                    36_557_595, # Bruno
+                    257_266_743 # Fran
     ]).freeze
     # rubocop:enable Layout/MultilineArrayBraceLayout
 
@@ -88,7 +90,7 @@ class Dankie
         @user = Telegram::Bot::Types::User.new @tg.get_me['result']
         @lastfm = LastFM::Api.new args[:last_fm_api]
         @tz = TZInfo::Timezone.get args[:timezone]
-        @redditApi = Reddit::Api.new
+        @reddit_api = Reddit::Api.new
     end
 
     def run
@@ -98,6 +100,9 @@ class Dankie
             Stats::Temporizador.time('tiempo_procesado_loop', intervalo: 600) do
                 loop_principal(msj)
             end
+        rescue StandardError => e
+            manejar_excepción_asesina(e)
+            retry
         end
     end
 
@@ -119,27 +124,20 @@ class Dankie
 
         # Le paso el mensaje a los handlers correspondientes
         dispatch(msj)
-    rescue Faraday::ConnectionFailed, Faraday::TimeoutError,
-           HTTPClient::ReceiveTimeoutError, Net::OpenTimeout => e
-        begin
-            texto, backtrace = @logger.excepcion_texto(e)
-            @logger.error texto, al_canal: true, backtrace: backtrace
-        rescue StandardError => e
-            @logger.fatal "EXCEPCIÓN LEYENDO LA EXCEPCIÓN\n#{e}", al_canal: true
-        end
-        retry
     rescue StandardError => e
-        begin
-            texto, backtrace = @logger.excepcion_texto(e)
-            @logger.fatal texto, al_canal: true, backtrace: backtrace
-        rescue StandardError => e
-            @logger.fatal "EXCEPCIÓN LEYENDO LA EXCEPCIÓN\n#{e}", al_canal: true
-        end
+        manejar_excepción_asesina(e, msj)
+    end
 
-        # Sacar este raise cuando el bot deje de ser testeadísimo
-        # lo puse porque luke dice que es pesado cuando se pone a mandar
-        # errores en el grupete.
-        #       raise
+    def manejar_excepción_asesina(excepción, msj = nil)
+        return if @tg.capturar(excepción)
+
+        @logger.loggear_hora_excepción(msj, @tz.utc_offset, @tz.now) unless msj.nil?
+
+        texto, backtrace = @logger.excepcion_texto(excepción)
+        @logger.fatal texto, al_canal: true, backtrace: backtrace
+    rescue StandardError => e
+        @logger.fatal "EXCEPCIÓN: #{e}\nLEYENDO LA EXCEPCIÓN: #{excepción}\n\n"\
+                      "#{@logger.excepcion_texto(e).last}", al_canal: true
     end
 
     # Permite iterar sobre los comandos del bot, y sus descripciones
@@ -175,9 +173,10 @@ class Dankie
 
         texto = "Este comando es válido solo en #{traducciones[válidos.first]}"
 
-        if válidos.length == 2
+        case válidos.length
+        when 2
             texto << " y #{traducciones[válidos[1]]}"
-        elsif válidos.length == 3
+        when 3
             texto << ", #{traducciones[válidos[1]]} y #{traducciones[válidos[2]]}"
         end
 
@@ -207,14 +206,16 @@ class Dankie
         clave = "nombre:#{usuario.id}"
 
         if @redis.get(clave) != usuario.first_name
-            @redis.set clave, usuario.first_name, ex: 60 * 60 * 24
+            # 86400 = 60 * 60 * 24
+            @redis.set clave, usuario.first_name, ex: 86_400
         end
 
         clave = "usuario:#{usuario.id}"
 
-        if @redis.get(clave) != usuario.username
-            @redis.set clave, usuario.username, ex: 60 * 60 * 24
-        end
+        return unless @redis.get(clave) != usuario.username
+
+        # 86400 = 60 * 60 * 24
+        @redis.set clave, usuario.username, ex: 86_400
     end
 
     # Analiza un texto y se fija si es un comando válido, devuelve el comando
@@ -306,7 +307,8 @@ class Dankie
         else
             usuario = @tg.get_chat_member(chat_id: id_chat, user_id: usuario)
             usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
-            alias_usuario = usuario.username
+            # Lo comente porque no se usa
+            # alias_usuario = usuario.username
 
             redis_actualizar_datos usuario
             if usuario.first_name.empty?
@@ -387,7 +389,7 @@ class Dankie
         vieja_clave = texto_antes + vieja_id.to_s + texto_después
         nueva_clave = texto_antes + nueva_id.to_s + texto_después
 
-        @redis.rename(vieja_clave, nueva_clave) if @redis.exists(vieja_clave)
+        @redis.rename(vieja_clave, nueva_clave) if @redis.exists?(vieja_clave)
     end
 
     def primer_nombre(usuario)
@@ -453,12 +455,14 @@ class Dankie
                     otro_texto = nil if otro_texto.empty?
 
                     # Me fijo si esa entidad efectivamente era un alias
-                    if entidad.type == 'mention'
+                    case entidad.type
+                    when 'mention'
                         # La entidad arranca con un @, por eso el + 1
                         alias_usuario = texto[(entidad.offset + 1)..(fin - 1)].strip
                         id_afectada = obtener_id_de_alias(alias_usuario)
-                    # Me fijo si esa entidad efectivamente era una mención de usuario sin alias
-                    elsif entidad.type == 'text_mention'
+                    # Me fijo si esa entidad efectivamente
+                    # era una mención de usuario sin alias
+                    when 'text_mention'
                         id_afectada = entidad.user.id
                     end
                 end
@@ -502,7 +506,7 @@ class Dankie
     rescue Telegram::Bot::Exceptions::ResponseError => e
         case e.to_s
         when /USER_ID_INVALID/
-            @logger.error('Me dieron una id inválida en ' + grupo_del_msj(msj))
+            @logger.error("Me dieron una id inválida en #{grupo_del_msj(msj)}")
             @tg.send_message(chat_id: msj.chat.id,
                              text: 'Disculpame pero no puedo reconocer esta '\
                                    "id: #{id_usuario}. O es inválida, o es de "\
@@ -531,7 +535,7 @@ class Dankie
             if miembro.status != 'administrator'
                 tiene_autorización = false
                 @tg.send_message(chat_id: msj.chat.id,
-                                 text: error_no_admin + ' ser admin para hacer eso',
+                                 text: "#{error_no_admin} ser admin para hacer eso",
                                  reply_to_message_id: msj.message_id)
             # Chequeo si tiene el permiso
             elsif !(miembro.send permiso)
@@ -545,37 +549,10 @@ class Dankie
     end
 
     def log_y_aviso(msj, error, al_canal: true)
-        @logger.error(error + ' en ' + grupo_del_msj(msj), al_canal: al_canal)
+        @logger.error("#{error} en #{grupo_del_msj(msj)}", al_canal: al_canal)
         @tg.send_message(chat_id: msj.chat.id,
                          text: error,
                          reply_to_message_id: msj.message_id)
-    end
-
-    def descargar_archivo_tg(_id_archivo, nombre_guardado)
-        archivo = @tg.get_file(id_imagen)
-        archivo = Telegram::Bot::Types::File.new(archivo['result'])
-
-        return false if archivo.file_size && archivo.file_size > 20
-
-        # TODO: ver que esta virgueada ande y validar hasta el ojete,
-        # ni me quiero imaginar la cantidad de excepciones que hay que
-        # manejar acá
-        enlace_archivo = "https://api.telegram.org/file/bot<#{@tg.token}>"\
-                         "/#{archivo.file_path}"
-
-        descargar_archivo_internet(enlace_archivo, nombre_guardado)
-    end
-
-    def descargar_archivo_internet(enlace_internet, _nombre_guardado)
-        enlace_disco = "./tmp/dankie/#{SecureRandom.uuid}.#{extension}"
-        # TODO: ver que esta virgueada ande y validar hasta el ojete,
-        # ni me quiero imaginar la cantidad de excepciones que hay que
-        # manejar acá
-        open(enlace_internet) do |archivo_internet|
-            File.open(enlace_disco, 'wb') do |archivo_disco|
-                archivo_disco.write(archivo_internet.read)
-            end
-        end
     end
 
     def enviar_lista(msj, conjunto_iterable, título_lista, crear_línea, error_vacío)
@@ -621,22 +598,13 @@ class Dankie
     # Método que mete un id_mensaje en una cola de mensajes que
     # son borrados despues de cierto límite, para evitar el spam.
     def añadir_a_cola_spam(id_chat, id_mensaje)
+        borrado = nil
         @redis.rpush "spam:#{id_chat}", id_mensaje
         if @redis.llen("spam:#{id_chat}") > 24
             id_mensaje = @redis.lpop("spam:#{id_chat}").to_i
-            @tg.delete_message(chat_id: id_chat, message_id: id_mensaje)
+            borrado = @tg.delete_message(chat_id: id_chat, message_id: id_mensaje)
         end
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        case e.to_s
-        when /message to delete not found/
-            @logger.error("Traté de borrar un mensaje (id mensaje: #{id_mensaje}) "\
-                          "muy viejo (id chat: #{id_chat}).",
-                          al_canal: false)
-        when /message can't be deleted/
-            @logger.error("No pude borrar un mensaje (id mensaje: #{id_mensaje}) "\
-                          "(id chat: #{id_chat}).",
-                          al_canal: false)
-        end
+        borrado
     end
 
     # Función que recibe un arreglo de Time o unix-time y verifica si se mandaron
@@ -659,7 +627,7 @@ class Dankie
 
     def arreglo_tablero(conjunto_iterable, arr, título,
                         subtítulo, contador, max_cant, max_tam,
-                        agr_elemento, inicio_en_subtítulo = false)
+                        agr_elemento, inicio_en_subtítulo: false)
         return if conjunto_iterable.nil? || conjunto_iterable.empty?
 
         # .dup crea una copia del objeto original

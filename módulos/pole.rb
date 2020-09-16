@@ -10,33 +10,6 @@ class Dankie
                                      chats_permitidos: %i[group supergroup],
                                      descripción: 'Muestro el ranking de Nisman')
 
-    # TODO: Ponerle algún flag de solo test a este comando
-    # add_handler Handler::Comando.new(:darnisman, :_test_dar_pole)
-    # add_handler Handler::Comando.new(:reiniciar_nisman, :_test_reiniciar_pole)
-
-    def _test_reiniciar_pole(msj)
-        @redis.set "pole:#{msj.chat.id}:próxima", msj.date
-        @tg.send_message(chat_id: msj.chat.id, text: 'Borré la clave pa')
-    end
-
-    def _test_dar_pole(msj)
-        id = msj.reply_to_message ? msj.reply_to_message.from.id : msj.from.id
-        mensaje = msj.reply_to_message || msj
-
-        nombre = if mensaje.from.first_name.empty?
-                     mensaje.from.id.to_s
-                 else
-                     html_parser(mensaje.from.first_name)
-                 end
-
-        @redis.zincrby("pole:#{mensaje.chat.id}", 1, id)
-        @logger.info("#{nombre} hizo la nisman en #{mensaje.chat.id}", al_canal: false)
-        @tg.send_message(chat_id: mensaje.chat.id,
-                         parse_mode: :html,
-                         reply_to_message_id: mensaje.message_id,
-                         text: "<b>#{nombre}</b> hizo la Nisman")
-    end
-
     def pole(msj)
         id_chat = msj.chat.id
         id_usuario = msj.from.id
@@ -64,37 +37,18 @@ class Dankie
 
         @redis.set "pole:#{id_chat}:próxima", próx_pole.to_i
 
-        hoy = Time.at(msj.date)
-        if [hoy.month, hoy.day] == [12, 25] # Navidad
-            @redis.zincrby("pole:#{id_chat}", 5, id_usuario)
-            tipo_de_pole = 'nisman navideña, +5'
-        elsif [hoy.month, hoy.day] == [1, 1] # Año nuevo
-            @redis.zincrby("pole:#{id_chat}", 2, id_usuario)
-            tipo_de_pole = 'primer nisman del año, +2'
-        else # Despues se podría añadir otro tipo de eventos, ej cumpleaños
-            @redis.zincrby("pole:#{id_chat}", 1, id_usuario)
-            tipo_de_pole = 'nisman'
-        end
-
-        nombre = if msj.from.first_name.empty?
-                     "ay no c (#{id_usuario})"
-                 else
-                     html_parser(msj.from.first_name)
-                 end
-
-        @logger.info("#{nombre} hizo la nisman en #{id_chat}", al_canal: false)
-        @tg.send_message(chat_id: id_chat, parse_mode: :html,
-                         reply_to_message_id: msj.message_id,
-                         text: "<b>#{nombre}</b> hizo la #{tipo_de_pole}.")
+        enviar_captura_pole(msj, id_chat, id_usuario)
     end
 
     def enviar_ranking_pole(msj)
         poles = @redis.zrevrange("pole:#{msj.chat.id}", 0, -1, with_scores: true)
 
         if poles.nil?
-            @tg.edit_message_text(chat_id: id_chat,
-                                  text: 'No hay poles en este grupo.',
-                                  message_id: enviado.message_id)
+            @tg.edit_message_text(
+                chat_id: id_chat,
+                text: 'No hay poles en este grupo.',
+                message_id: enviado.message_id
+            )
             return
         end
 
@@ -115,8 +69,8 @@ class Dankie
                 contador = 0
             end
 
-            unless enlace_usuario = obtener_enlace_usuario(pole[0], msj.chat.id)
-                @redis.zrem "pole:#{msj.chat.id}", pole[0]
+            unless (enlace_usuario = obtener_enlace_usuario(pole.first, msj.chat.id))
+                @redis.zrem "pole:#{msj.chat.id}", pole.first
             end
 
             arr.last << "\n<code>#{format("%#{dígitos}d", pole[1].to_i)}</code> "
@@ -125,13 +79,15 @@ class Dankie
         end
 
         # Armo botonera y envío
-        opciones = armar_botonera 0, arr.size, msj.from.id, true
+        opciones = armar_botonera 0, arr.size, msj.from.id, editable: true
 
-        respuesta = @tg.send_message(chat_id: msj.chat.id, text: arr.first,
-                                     reply_markup: opciones, parse_mode: :html,
-                                     reply_to_message_id: msj.message_id,
-                                     disable_web_page_preview: true,
-                                     disable_notification: true)
+        respuesta = @tg.send_message(
+            chat_id: msj.chat.id, text: arr.first,
+            reply_markup: opciones, parse_mode: :html,
+            reply_to_message_id: msj.message_id,
+            disable_web_page_preview: true,
+            disable_notification: true
+        )
         return unless respuesta
 
         respuesta = Telegram::Bot::Types::Message.new respuesta['result']
@@ -157,5 +113,34 @@ class Dankie
             acumulador += pole[1].to_i
         end
         acumulador
+    end
+
+    def enviar_captura_pole(msj, id_chat, id_usuario)
+        hoy = Time.at(msj.date)
+        case [hoy.month, hoy.day]
+        when [12, 25] # Navidad
+            @redis.zincrby("pole:#{id_chat}", 5, id_usuario)
+            tipo_de_pole = 'nisman navideña, +5'
+        when [1, 1] # Año nuevo
+            @redis.zincrby("pole:#{id_chat}", 2, id_usuario)
+            tipo_de_pole = 'primer nisman del año, +2'
+        else # Despues se podría añadir otro tipo de eventos, ej cumpleaños
+            @redis.zincrby("pole:#{id_chat}", 1, id_usuario)
+            tipo_de_pole = 'nisman'
+        end
+
+        nombre = if msj.from.first_name.empty?
+                     "ay no c (#{id_usuario})"
+                 else
+                     html_parser(msj.from.first_name)
+                 end
+
+        @logger.info("#{nombre} hizo la nisman en #{id_chat}", al_canal: false)
+        @tg.send_message(
+            chat_id: id_chat,
+            parse_mode: :html,
+            reply_to_message_id: msj.message_id,
+            text: "<b>#{nombre}</b> hizo la #{tipo_de_pole}."
+        )
     end
 end
