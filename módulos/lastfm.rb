@@ -115,7 +115,6 @@ class Dankie
 
     private
 
-    
     def usuario_last_fm_params(msj)
         if (usuario = @redis.get("lastfm:#{msj.from.id}"))
             @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
