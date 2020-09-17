@@ -141,8 +141,9 @@ module Estadísticas
         end
 
         def initialize(clave)
-            @arr = self.class.redis.lrange(clave, 0, -1).map(&:to_f)
+            super
 
+            @arr = self.class.redis.lrange(clave, 0, -1).map(&:to_f)
             @datos_reducidos = self.class.redis.hgetall("#{clave}:reducido")
             @datos_reducidos.transform_keys!(&:to_sym)
             @datos_reducidos.transform_values!(&:to_f)

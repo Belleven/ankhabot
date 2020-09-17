@@ -10,8 +10,29 @@ class Dankie
     #       descripción: 'Te digo cuanto me usan en el grupo 7u7'
     # )
 
-    add_handler Handler::Comando.new(:estadísticas_bot, :enviar_estadísticas_bot,
-                                     permitir_params: true)
+    add_handler Handler::Comando.new(
+        :estadísticas_bot,
+        :enviar_estadísticas_bot,
+        permitir_params: true
+    )
+
+    add_handler Handler::Comando.new(
+        :estadisticas_bot,
+        :enviar_estadísticas_bot,
+        permitir_params: true
+    )
+
+    add_handler Handler::Comando.new(
+        :stats_bot,
+        :enviar_estadísticas_bot,
+        permitir_params: true
+    )
+
+    add_handler Handler::Comando.new(
+        :bot_stats,
+        :enviar_estadísticas_bot,
+        permitir_params: true
+    )
 
     def estadísticas_básicas(msj)
         # Mensajes recibidos por hora
@@ -221,11 +242,12 @@ class Dankie
                   private: [], channel: [] }
 
         (desde..hasta).step(saltos).each_cons(2) do |hora, siguiente|
-            datos.each do |nombre, arr|
+            datos.each do |nombre_datos, arr|
                 arr << Estadísticas::Conjunto.size(
-                    "chats:#{nombre}", desde: hora,
-                                       intervalo: intervalo,
-                                       hasta: siguiente - intervalo
+                    "chats:#{nombre_datos}",
+                    desde: hora,
+                    intervalo: intervalo,
+                    hasta: siguiente - intervalo
                 )
             end
         end
