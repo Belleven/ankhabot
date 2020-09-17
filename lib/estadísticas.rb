@@ -101,7 +101,8 @@ module Estadísticas
         # Añade un tiempo de ejecución de un bloque a la lista.
         def self.time(clave, intervalo: nil, &bloque)
             unless bloque
-                raise ArgumentError, 'Se necesita un bloque de código para saber su tiempo.'
+                error_texto = 'Se necesita un bloque de código para saber su tiempo.'
+                raise ArgumentError, error_texto
             end
 
             tiempo = Benchmark.realtime { bloque.call }
