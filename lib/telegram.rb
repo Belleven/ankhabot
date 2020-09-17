@@ -118,8 +118,8 @@ class TelegramAPI
         # Mando el mensaje (de texto, sticker, lo que sea)
         enviado = @client.api.send(función_envío, args)
         # Como los métodos que tienen acción son los que envían mensajes,
-        # voy a aumentar las stats de mensajes enviados acá.
-        Stats::Contador.incr('msj_enviados', hora: Time.now.to_i, intervalo: 600)
+        # voy a aumentar las estadísticas de mensajes enviados acá.
+        Estadísticas::Contador.incr('msj_enviados', hora: Time.now.to_i, intervalo: 600)
         enviado
 
     # Si hay un error de telegram, loggeo si es conocido,

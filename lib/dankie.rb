@@ -6,7 +6,7 @@ require_relative 'images'
 require_relative 'last_fm_parser'
 require_relative 'botoneras'
 require_relative 'configuración'
-require_relative 'stats'
+require_relative 'estadísticas'
 require_relative 'excepciones'
 require 'redis'
 require 'tzinfo'
@@ -77,13 +77,13 @@ class Dankie
         @tg = TelegramAPI.new args[:tg_token], @logger
         @logger.inicializar_cliente @tg.client
 
-        # Creo dos instancias de Redis, una base de datos general y una de stats
+        # Creo dos instancias de Redis, una base de datos general y una de estadísticas
         dbs = 2.times.map do |i|
             Redis.new(port: args[:redis_port], host: args[:redis_host],
                       password: args[:redis_pass], db: i)
         end
         @redis = dbs.first
-        Stats::Base.redis = dbs.last
+        Estadísticas::Base.redis = dbs.last
 
         @img = ImageSearcher.new args[:google_image_key], args[:google_image_cx],
                                  args[:google_image_gl], @logger
@@ -97,7 +97,7 @@ class Dankie
         # Ciclo principal
         @tg.client.listen do |msj|
             # Registra cuanto tiempo tarda en ejecutar el loop del bot
-            Stats::Temporizador.time('tiempo_procesado_loop', intervalo: 600) do
+            Estadísticas::Temporizador.time('tiempo_procesado_loop', intervalo: 600) do
                 loop_principal(msj)
             end
         rescue StandardError => e

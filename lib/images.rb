@@ -21,26 +21,25 @@ class ImageSearcher
         respuesta = Net::HTTP.get_response URI.parse(dirección)
         resultado = JSON.parse(respuesta.body)
 
-        # Cuantas imágenes fueron enviadas por hora
-        # ejemplo: googleapi:1598302800
-        Stats::Contador.incr('googleapi', hora: Time.now.to_i, intervalo: 600)
-
         if resultado['error']
             if %w[dailyLimitExceeded
                   rateLimitExceeded].include? resultado.dig('error', 'errors', 0,
                                                             'reason')
                 @logger.info('Alcancé el límite diario de imágenes')
 
-                # Le bajo uno a imágenes enviadas y aumento el contador de error
-                Stats::Contador.decr('googleapi', hora: Time.now.to_i, intervalo: 600)
-                Stats::Contador.incr('googleapi:excedida', hora: Time.now.to_i,
-                                                           intervalo: 600)
+                incrementar_exceso_api
                 :límite_diario
             else
+                incrementar_uso_api
                 @logger.error resultado['error']
                 :error
             end
-        elsif resultado['searchInformation']['totalResults'] == '0'
+            return
+        end
+
+        incrementar_uso_api
+
+        if resultado['searchInformation']['totalResults'] == '0'
             @logger.info('Sin resultados en la búsqueda')
             :sin_resultados
         else
@@ -57,5 +56,18 @@ class ImageSearcher
     rescue JSON::ParserError => e
         @logger.error(e)
         :error
+    end
+
+    private
+
+    def incrementar_uso_api
+        # Cuantas imágenes fueron enviadas por hora
+        # ejemplo: googleapi:1598302800
+        Estadísticas::Contador.incr('googleapi', hora: Time.now.to_i, intervalo: 600)
+    end
+
+    def incrementar_exceso_api
+        Estadísticas::Contador.incr('googleapi:excedida', hora: Time.now.to_i,
+                                                          intervalo: 600)
     end
 end

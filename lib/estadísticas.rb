@@ -1,7 +1,7 @@
 require 'benchmark'
 require 'redis'
 
-module Stats
+module Estadísticas
     class Base
         def self.redis=(servidor)
             @@redis = servidor
@@ -139,12 +139,7 @@ module Stats
             media / total_muestras
         end
 
-        def initialize(clave, h = {})
-            unless h.empty?
-                @datos_reducidos = h
-                return
-            end
-
+        def initialize(clave)
             @arr = self.class.redis.lrange(clave, 0, -1).map(&:to_f)
 
             @datos_reducidos = self.class.redis.hgetall("#{clave}:reducido")
@@ -175,7 +170,7 @@ module Stats
             return @datos_reducidos[:varianza] if @datos_reducidos[:varianza]
 
             prom = promedio
-            @arr.inject(0) { |acc, i| acc + (i - prom) * (i - prom) } / total_datos
+            @arr.inject(0) { |acc, i| acc + (i - prom)**2 } / total_datos
         end
 
         def desviación_estándar

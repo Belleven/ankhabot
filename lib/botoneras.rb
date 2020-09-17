@@ -1,5 +1,5 @@
 class Dankie
-    # Las siguientes i6 funciones son para manejar
+    # Las siguientes funciones son para manejar
     # listas de n páginas de texto, media o caption
     def editar_botonera_lista(callback)
         match = callback.data.match(/lista:(?<id_usuario>\d+):(?<índice>\d+)/)
