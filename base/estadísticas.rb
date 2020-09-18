@@ -164,7 +164,7 @@ class Dankie
         match = parámetros[:tiempo].match(regexp_tiempos)
         return nil unless match
 
-        tiempo = calcular_tiempo
+        tiempo = calcular_tiempo match
         return nil unless tiempo
 
         hash = { tiempo: [tiempo, 3600].min } # número random xd ver que tal queda
@@ -399,6 +399,24 @@ class Dankie
         archivo = params[:archivo]
         gráfico.write archivo
         archivo
+    end
+
+    def calcular_tiempo(match)
+        tiempo = match[1].to_i # el primer match es un número
+        # el segundo match es el string, su primer caracter es h, d, s, m
+        case match[2][0]
+        when 'h'
+            tiempo *= 6 # intervalos de 10 minutos
+        when 'd'
+            tiempo *= 6 * 24
+        when 's'
+            tiempo *= 6 * 24 * 7
+        when 'm'
+            tiempo *= 6 * 24 * 30
+        else
+            return nil
+        end
+        tiempo
     end
 
     # Verifica si existe la carpeta cache y da el nombre del archivo a usar
