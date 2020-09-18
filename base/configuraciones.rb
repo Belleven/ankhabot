@@ -48,29 +48,7 @@ class Dankie
             return
         end
 
-        arr = [[
-            Telegram::Bot::Types::InlineKeyboardButton.new(
-                text: 'Sí',
-                callback_data: "modificar_config:#{match[:categoria]}:Sí"
-            ),
-            Telegram::Bot::Types::InlineKeyboardButton.new(
-                text: 'No',
-                callback_data: "modificar_config:#{match[:categoria]}:No"
-            )
-        ],
-               Telegram::Bot::Types::InlineKeyboardButton.new(
-                   text: 'Cancelar',
-                   callback_data: "modificar_config:#{match[:categoria]}:Cancelar"
-               )]
-        opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new inline_keyboard: arr
-        @tg.answer_callback_query(callback_query_id: callback.id)
-        @tg.edit_message_text(chat_id: callback.message.chat.id,
-                              parse_mode: :html,
-                              text: callback.message.text,
-                              reply_markup: opciones,
-                              message_id: callback.message.message_id,
-                              disable_web_page_preview: true,
-                              disable_notification: true)
+        crear_arreglo_y_enviar(match, callback)
     end
 
     def callback_modificar_config(callback)
@@ -132,5 +110,34 @@ class Dankie
         return '<b>Si</b>' if valor.nil? || valor.to_i.positive?
 
         '<b>No</b>'
+    end
+
+    def crear_arreglo_y_enviar(match, callback)
+        arr = [
+            [
+                Telegram::Bot::Types::InlineKeyboardButton.new(
+                    text: 'Sí',
+                    callback_data: "modificar_config:#{match[:categoria]}:Sí"
+                ),
+                Telegram::Bot::Types::InlineKeyboardButton.new(
+                    text: 'No',
+                    callback_data: "modificar_config:#{match[:categoria]}:No"
+                )
+            ],
+            Telegram::Bot::Types::InlineKeyboardButton.new(
+                text: 'Cancelar',
+                callback_data: "modificar_config:#{match[:categoria]}:Cancelar"
+            )
+        ]
+        opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new inline_keyboard: arr
+        @tg.edit_message_text(
+            chat_id: callback.message.chat.id,
+            parse_mode: :html,
+            text: callback.message.text,
+            reply_markup: opciones,
+            message_id: callback.message.message_id,
+            disable_web_page_preview: true,
+            disable_notification: true
+        )
     end
 end

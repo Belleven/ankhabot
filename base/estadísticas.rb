@@ -91,14 +91,12 @@ class Dankie
         # dos veces en un día.
         # El resultado se envía en forma de botonera.
 
-        unless DEVS.include? msj.from.id
-            @tg.send_message(
-                chat_id: msj.chat.id,
-                reply_to_message: msj.message_id,
-                text: 'Gomen ne, este comando es solo para los admins. >///<'
-            )
-            return
-        end
+        return unless validar_desarrollador(
+            msj.from.id,
+            msj.chat.id,
+            msj.message_id,
+            texto: 'Gomen ne, este comando es solo para los admins. >///<'
+        )
 
         unless (parámetros = params_enviar_estadísticas_bot(parámetros))
             @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
@@ -113,20 +111,7 @@ class Dankie
         desde -= desde % 600
 
         parámetros[:gráficos].each do |param|
-            case param
-            when /mensajes/
-                gráficos << gráfico_mensajes_total_bot(desde, 600,
-                                                       parámetros[:sobreescribir])
-            when /chats/
-                gráficos << gráfico_cantidad_chats(desde, 600,
-                                                   parámetros[:sobreescribir])
-            when /imágenes/
-                gráficos << gráfico_imágenes_enviadas(desde, 600,
-                                                      parámetros[:sobreescribir])
-            when /procesado/
-                gráficos << gráfico_tiempo_procesado(desde, 600,
-                                                     parámetros[:sobreescribir])
-            end
+            acumular_gráficos(param, gráficos, desde, 600, parámetros)
         end
 
         gráficos.each do |img|
@@ -136,6 +121,35 @@ class Dankie
     end
 
     private
+
+    def acumular_gráficos(param, gráficos, desde, número, parámetros)
+        case param
+        when /mensajes/
+            gráficos << gráfico_mensajes_total_bot(
+                desde,
+                número,
+                forzar_sobreescribir: parámetros[:sobreescribir]
+            )
+        when /chats/
+            gráficos << gráfico_cantidad_chats(
+                desde,
+                número,
+                forzar_sobreescribir: parámetros[:sobreescribir]
+            )
+        when /imágenes/
+            gráficos << gráfico_imágenes_enviadas(
+                desde,
+                número,
+                forzar_sobreescribir: parámetros[:sobreescribir]
+            )
+        when /procesado/
+            gráficos << gráfico_tiempo_procesado(
+                desde,
+                número,
+                forzar_sobreescribir: parámetros[:sobreescribir]
+            )
+        end
+    end
 
     def params_enviar_estadísticas_bot(parámetros)
         parámetros = parse_params(parámetros || 'tiempo: 30 días gráficos: mensajes '\
@@ -150,20 +164,8 @@ class Dankie
         match = parámetros[:tiempo].match(regexp_tiempos)
         return nil unless match
 
-        tiempo = match[1].to_i # el primer match es un número
-        # el segundo match es el string, su primer caracter es h, d, s, m
-        case match[2][0]
-        when 'h'
-            tiempo *= 6 # intervalos de 10 minutos
-        when 'd'
-            tiempo *= 6 * 24
-        when 's'
-            tiempo *= 6 * 24 * 7
-        when 'm'
-            tiempo *= 6 * 24 * 30
-        else
-            return nil
-        end
+        tiempo = calcular_tiempo
+        return nil unless tiempo
 
         hash = { tiempo: [tiempo, 3600].min } # número random xd ver que tal queda
 
@@ -181,7 +183,7 @@ class Dankie
         hash
     end
 
-    def gráfico_mensajes_total_bot(desde, intervalo, forzar_sobreescribir = false)
+    def gráfico_mensajes_total_bot(desde, intervalo, forzar_sobreescribir: false)
         nombre = nombre_temporal_estadísticas('mensajes_total', desde, intervalo)
         return nombre if !forzar_sobreescribir && File.exist?(nombre)
 
@@ -213,17 +215,17 @@ class Dankie
         end
 
         armar_gráfico(
-            Gruff::Area,
-            'Mensajes recibidos y enviados',
-            desde,
-            saltos,
-            hasta,
-            { 'Recibidos' => recibidos, 'Enviados' => enviados },
-            nombre
+            tipo: Gruff::Area,
+            título: 'Mensajes recibidos y enviados',
+            desde: desde,
+            saltos: saltos,
+            hasta: hasta,
+            datos: { 'Recibidos' => recibidos, 'Enviados' => enviados },
+            archivo: nombre
         )
     end
 
-    def gráfico_cantidad_chats(desde, intervalo, forzar_sobreescribir = false)
+    def gráfico_cantidad_chats(desde, intervalo, forzar_sobreescribir: false)
         nombre = nombre_temporal_estadísticas('cantidad_chats', desde, intervalo)
         return nombre if !forzar_sobreescribir && File.exist?(nombre)
 
@@ -259,11 +261,18 @@ class Dankie
                           'Canales' => datos[:private]
                       })
 
-        armar_gráfico(Gruff::StackedBar, 'Total de chats', desde, saltos,
-                      hasta, datos, nombre)
+        armar_gráfico(
+            tipo: Gruff::StackedBar,
+            título: 'Total de chats',
+            desde: desde,
+            saltos: saltos,
+            hasta: hasta,
+            datos: datos,
+            archivo: nombre
+        )
     end
 
-    def gráfico_imágenes_enviadas(desde, intervalo, forzar_sobreescribir = false)
+    def gráfico_imágenes_enviadas(desde, intervalo, forzar_sobreescribir: false)
         nombre = nombre_temporal_estadísticas('imágenes_enviadas', desde, intervalo)
         return nombre if !forzar_sobreescribir && File.exist?(nombre)
 
@@ -299,11 +308,18 @@ class Dankie
         datos = { 'Búsquedas' => búsquedas,
                   'Rechazadas por el límite diario' => excedidas }
 
-        armar_gráfico(Gruff::StackedArea, 'Imágenes enviadas', desde, saltos,
-                      hasta, datos, nombre)
+        armar_gráfico(
+            tipo: Gruff::StackedArea,
+            título: 'Imágenes enviadas',
+            desde: desde,
+            saltos: saltos,
+            hasta: hasta,
+            datos: datos,
+            archivo: nombre
+        )
     end
 
-    def gráfico_tiempo_procesado(desde, intervalo, forzar_sobreescribir = false)
+    def gráfico_tiempo_procesado(desde, intervalo, forzar_sobreescribir: false)
         nombre = nombre_temporal_estadísticas('tiempo_procesado_loop', desde, intervalo)
         return nombre if !forzar_sobreescribir && File.exist?(nombre)
 
@@ -332,8 +348,15 @@ class Dankie
 
         datos = { 'Tiempo de procesado (ms)' => tiempos }
 
-        armar_gráfico(Gruff::Line, 'Tiempo de procesado de mensaje', desde, saltos,
-                      hasta, datos, nombre)
+        armar_gráfico(
+            tipo: Gruff::Line,
+            título: 'Tiempo de procesado de mensaje',
+            desde: desde,
+            saltos: saltos,
+            hasta: hasta,
+            datos: datos,
+            archivo: nombre
+        )
     end
 
     # Método que devuelve un hash con el formato que necesita Gruff, donde la clave es
@@ -361,13 +384,19 @@ class Dankie
         intervalo
     end
 
-    def armar_gráfico(tipo, título, desde, saltos, hasta, datos, archivo)
-        gráfico = tipo.new
+    def armar_gráfico(params)
+        gráfico = params[:tipo].new
         gráfico.theme_pastel
-        gráfico.title = título
-        gráfico.labels = generar_hash_labels(desde, saltos, hasta)
+        gráfico.title = params[:título]
+        gráfico.labels = generar_hash_labels(
+            params[:desde],
+            params[:saltos],
+            params[:hasta]
+        )
 
         datos.each { |nombre, arr| gráfico.data(nombre, arr) }
+
+        archivo = params[:archivo]
         gráfico.write archivo
         archivo
     end

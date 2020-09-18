@@ -3,12 +3,14 @@ require 'redis'
 
 module Estadísticas
     class Base
-        def self.redis=(servidor)
-            @@redis = servidor
+        @redis = nil
+
+        class << self
+            attr_writer :redis
         end
 
         def self.redis
-            return @@redis if @@redis
+            return @redis if @redis
 
             Redis.new
         end

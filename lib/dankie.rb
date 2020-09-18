@@ -346,11 +346,12 @@ class Dankie
         false
     end
 
-    def validar_desarrollador(usuario_id, chat_id, mensaje_id, _text = nil, _id = nil)
+    def validar_desarrollador(usuario_id, chat_id, mensaje_id,
+                              texto: 'Vos no podés usar esto pa')
         # Chequeo que quien llama al comando sea o desarrollador
         unless DEVS.include?(usuario_id)
             @tg.send_message(chat_id: chat_id, reply_to_message_id: mensaje_id,
-                             text: 'Vos no podés usar esto pa')
+                             text: texto)
             return false
         end
 
