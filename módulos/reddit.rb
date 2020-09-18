@@ -51,63 +51,70 @@ class Dankie
         enlace_post = "redd.it/#{id_post}"
         # Si es un posteo de texto, lo mando así
         if post.selftext && !post.selftext.empty?
-            @logger.info("Mandando post texto: #{post.url}", al_canal: false)
-
-            # Me fijo que el mensaje supere los 4096 cracteres (y si lo hace, lo corto)
-            longitud_otros = título.length + enlace_post.length + 17
-            # Si el texto parseado + título + post + otros caracteres que voy a poner
-            # para acomodar el texto (como <i> o </i> o \n, etc) supera los 4096
-            # caracteres, corto el post para que no lo haga y le agrego tres puntos
-            # para que se sepa que continúa
-            texto_post = if post.selftext.length + longitud_otros > 4096
-                             "#{post.selftext[0..(4092 - longitud_otros)]}..."
-                         else
-                             post.selftext
-                         end
-
-            texto = "#{título}\n\n"\
-                    "<i>#{texto_post}</i> <b>[</b>"\
-                    "<a href=\"#{enlace_post}\">post</a><b>]</b>"
-
-            @tg.send_message(
-                chat_id: msj.chat.id,
-                text: texto,
-                parse_mode: :html,
-                disable_web_page_preview: true
-            )
+            mandar_texto_reddit(post, título, enlace_post, msj)
 
         # Si es un video de reddit, lo acomodo
         elsif post.url.include?('v.redd.it/') && post.media &&
               post.media['reddit_video'] &&
               post.media['reddit_video']['fallback_url']
 
-            # Tomo link
-            enlace = post.media['reddit_video']['fallback_url']
-            # Armo el texto de acompañamiento
-            texto = "#{título} <b>[</b><a href=\"#{enlace_post}\">post</a><b>]</b>"
-
-            # Depende si es gif o video, cómo lo mando
-            if post.media['reddit_video']['is_gif']
-                @logger.info("Mandando gif: #{enlace}", al_canal: false)
-                @tg.send_animation(
-                    chat_id: msj.chat.id,
-                    animation: enlace,
-                    caption: texto,
-                    parse_mode: :html
-                )
-            else
-                # TODO: en un futuro descargar el archivo de video y resubirlo
-                @logger.info("Mandando video: #{enlace}", al_canal: false)
-                enviar_multimedia(msj, título, enlace_post, post.url)
-                # @tg.send_video(chat_id: msj.chat.id,
-                #               video: enlace,
-                #               caption: texto,
-                #               parse_mode: :html)
-            end
+            mandar_video_reddit(post, título, enlace_post, msj)
 
         # Si no, mando la multimedia/link
         else
             enviar_multimedia(msj, título, enlace_post, post.url)
+        end
+    end
+
+    def mandar_texto_reddit(post, título, enlace_post, msj)
+        @logger.info("Mandando post texto: #{post.url}", al_canal: false)
+
+        # Me fijo que el mensaje supere los 4096 cracteres (y si lo hace, lo corto)
+        longitud_otros = título.length + enlace_post.length + 17
+        # Si el texto parseado + título + post + otros caracteres que voy a poner
+        # para acomodar el texto (como <i> o </i> o \n, etc) supera los 4096
+        # caracteres, corto el post para que no lo haga y le agrego tres puntos
+        # para que se sepa que continúa
+        texto_post = if post.selftext.length + longitud_otros > 4096
+                         "#{post.selftext[0..(4092 - longitud_otros)]}..."
+                     else
+                         post.selftext
+                     end
+
+        texto = "#{título}\n\n<i>#{texto_post}</i> <b>[</b>"\
+                "<a href=\"#{enlace_post}\">post</a><b>]</b>"
+
+        @tg.send_message(
+            chat_id: msj.chat.id,
+            text: texto,
+            parse_mode: :html,
+            disable_web_page_preview: true
+        )
+    end
+
+    def mandar_video_reddit(post, título, enlace_post, msj)
+        # Tomo link
+        enlace = post.media['reddit_video']['fallback_url']
+        # Armo el texto de acompañamiento
+        texto = "#{título} <b>[</b><a href=\"#{enlace_post}\">post</a><b>]</b>"
+
+        # Depende si es gif o video, cómo lo mando
+        if post.media['reddit_video']['is_gif']
+            @logger.info("Mandando gif: #{enlace}", al_canal: false)
+            @tg.send_animation(
+                chat_id: msj.chat.id,
+                animation: enlace,
+                caption: texto,
+                parse_mode: :html
+            )
+        else
+            # TODO: en un futuro descargar el archivo de video y resubirlo
+            @logger.info("Mandando video: #{enlace}", al_canal: false)
+            enviar_multimedia(msj, título, enlace_post, post.url)
+            # @tg.send_video(chat_id: msj.chat.id,
+            #               video: enlace,
+            #               caption: texto,
+            #               parse_mode: :html)
         end
     end
 
@@ -148,9 +155,19 @@ class Dankie
                         " del tipo: #{enlace.type}"
         @logger.info(mensaje_log, al_canal: false)
 
-        # Al texto de acompañamiento le pongo el título del post
-        texto = título
+        enviar_tipo_correspondiente(enlace, enlace_post, msj, título)
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        if e.to_s.include? 'failed to get HTTP URL content'
+            error = 'Error de telegram con el link al querer mandar multimedia'
+            @logger.error(error, al_canal: true)
+        else
+            @logger.error("Error al querer mandar el linkazo: #{e}", al_canal: true)
+        end
+        # Si hay error mando el texto que me quedó
+        mandar_link_error(msj, texto)
+    end
 
+    def enviar_tipo_correspondiente(enlace, enlace_post, msj, texto)
         case enlace.type
         when :image
             # Agrego link del post
@@ -189,15 +206,6 @@ class Dankie
                 parse_mode: :html
             )
         end
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        if e.to_s.include? 'failed to get HTTP URL content'
-            error = 'Error de telegram con el link al querer mandar multimedia'
-            @logger.error(error, al_canal: true)
-        else
-            @logger.error("Error al querer mandar el linkazo: #{e}", al_canal: true)
-        end
-        # Si hay error mando el texto que me quedó
-        mandar_link_error(msj, texto)
     end
 
     def no_hay_subreddit(msj, sub)
