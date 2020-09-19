@@ -20,15 +20,21 @@ module Handler
                       Dankie.comandos.include?(bot.get_command(msj))
             return unless @chats_permitidos.include?(msj.chat.type)
 
+            verificar_tipo msj
+        end
+
+        def ejecutar(bot, msj)
+            bot.public_send(@callback, msj)
+        end
+
+        private
+
+        def verificar_tipo(msj)
             @tipos.each do |tipo|
                 tipo_msj = msj.send tipo
                 return true if tipo_msj && !(tipo_msj.is_a?(Array) && tipo_msj.empty?)
             end
             false
-        end
-
-        def ejecutar(bot, msj)
-            bot.public_send(@callback, msj)
         end
     end
 
