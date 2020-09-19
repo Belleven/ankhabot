@@ -19,16 +19,13 @@ class Dankie
             return
         end
 
-        opciones = armar_botonera(índice,
-                                  obtener_tamaño_lista(id_chat, id_mensaje),
-                                  id_usuario,
-                                  editable: metadatos[:editable_por] == 'todos')
-
-        valor = obtener_elemento_lista(id_chat,
-                                       id_mensaje,
-                                       índice)
-
-        @tg.answer_callback_query(callback_query_id: callback.id)
+        valor = obtener_elemento_lista(id_chat, id_mensaje, índice)
+        opciones = armar_botonera(
+            índice,
+            obtener_tamaño_lista(id_chat, id_mensaje),
+            id_usuario,
+            editable: metadatos[:editable_por] == 'todos'
+        )
 
         if valor.nil?
             @tg.edit_message_text(chat_id: id_chat,
@@ -38,30 +35,7 @@ class Dankie
             return
         end
 
-        case metadatos[:tipo]
-        when 'texto'
-            # TODO: ver como permitir que los dos disable sean variables ???
-            @tg.edit_message_text(chat_id: id_chat,
-                                  parse_mode: :html,
-                                  message_id: id_mensaje,
-                                  disable_web_page_preview: true,
-                                  disable_notification: true,
-                                  text: valor,
-                                  reply_markup: opciones)
-        when 'caption'
-            @tg.edit_message_caption(chat_id: id_chat,
-                                     message_id: id_mensaje,
-                                     parse_mode: :html,
-                                     caption: valor,
-                                     reply_markup: opciones)
-        else
-            @tg.edit_message_media(chat_id: id_chat, message_id: id_mensaje,
-                                   media: {
-                                       type: metadatos[:tipo],
-                                       media: valor
-                                   }.to_json,
-                                   reply_markup: opciones)
-        end
+        editar_según_el_tipo(metadatos, id_chat, id_mensaje, valor, opciones)
     rescue Telegram::Bot::Exceptions::ResponseError => e
         @logger.error e.to_s, al_canal: false
     end
@@ -84,31 +58,14 @@ class Dankie
             return
         end
 
-        case match[:acción]
-        when 'borrar'
-            @tg.answer_callback_query(callback_query_id: callback.id,
-                                      text: 'Mensaje borrado.')
-            @tg.delete_message(chat_id: id_chat, message_id: id_mensaje)
-        when 'edit'
-            @redis.hset("botonera:#{id_chat}:#{id_mensaje}:metadatos",
-                        'editable_por', 'todos')
-            @tg.answer_callback_query(callback_query_id: callback.id,
-                                      text: 'Botonera ahora es presionable por todos.')
-            opciones = armar_botonera(índice, obtener_tamaño_lista(id_chat, id_mensaje),
-                                      id_usuario, editable: true)
-            @tg.edit_message_reply_markup(chat_id: id_chat, message_id: id_mensaje,
-                                          reply_markup: opciones)
-        when 'noedit'
-            @redis.hset("botonera:#{id_chat}:#{id_mensaje}:metadatos",
-                        'editable_por', 'dueño')
-            @tg.answer_callback_query(callback_query_id: callback.id,
-                                      text: 'Botonera ahora solo es presionable '\
-                                      'por el que la pidió.')
-            opciones = armar_botonera(índice, obtener_tamaño_lista(id_chat, id_mensaje),
-                                      id_usuario, editable: false)
-            @tg.edit_message_reply_markup(chat_id: id_chat, message_id: id_mensaje,
-                                          reply_markup: opciones)
-        end
+        resolver_acción_inferior_lista(
+            match: match,
+            callback: callback,
+            id_chat: id_chat,
+            id_mensaje: id_mensaje,
+            id_usuario: id_usuario,
+            índice: índice
+        )
     rescue Telegram::Bot::Exceptions::ResponseError => e
         @logger.error e.to_s, al_canal: false
     end
@@ -211,6 +168,40 @@ class Dankie
         ]
     end
 
+    def resolver_acción_inferior_lista(params)
+        callback = params[:callback]
+        id_chat = params[:id_chat]
+        id_mensaje = params[:id_mensaje]
+        id_usuario = params[:id_usuario]
+        índice = params[:índice]
+
+        case params[:match][:acción]
+        when 'borrar'
+            @tg.answer_callback_query(callback_query_id: callback.id,
+                                      text: 'Mensaje borrado.')
+            @tg.delete_message(chat_id: id_chat, message_id: id_mensaje)
+        when 'edit'
+            @redis.hset("botonera:#{id_chat}:#{id_mensaje}:metadatos",
+                        'editable_por', 'todos')
+            @tg.answer_callback_query(callback_query_id: callback.id,
+                                      text: 'Botonera ahora es presionable por todos.')
+            opciones = armar_botonera(índice, obtener_tamaño_lista(id_chat, id_mensaje),
+                                      id_usuario, editable: true)
+            @tg.edit_message_reply_markup(chat_id: id_chat, message_id: id_mensaje,
+                                          reply_markup: opciones)
+        when 'noedit'
+            @redis.hset("botonera:#{id_chat}:#{id_mensaje}:metadatos",
+                        'editable_por', 'dueño')
+            @tg.answer_callback_query(callback_query_id: callback.id,
+                                      text: 'Botonera ahora solo es presionable '\
+                                      'por el que la pidió.')
+            opciones = armar_botonera(índice, obtener_tamaño_lista(id_chat, id_mensaje),
+                                      id_usuario, editable: false)
+            @tg.edit_message_reply_markup(chat_id: id_chat, message_id: id_mensaje,
+                                          reply_markup: opciones)
+        end
+    end
+
     def rellenar_botones(página_actual, tamaño_máximo)
         botones = []
 
@@ -232,5 +223,38 @@ class Dankie
             botones << ["#{tamaño_máximo} >>", tamaño_máximo - 1]
         end
         botones
+    end
+
+    def editar_según_el_tipo(metadatos, id_chat, id_mensaje, valor, opciones)
+        case metadatos[:tipo]
+        when 'texto'
+            @tg.edit_message_text(
+                chat_id: id_chat,
+                parse_mode: :html,
+                message_id: id_mensaje,
+                disable_web_page_preview: true,
+                disable_notification: true,
+                text: valor,
+                reply_markup: opciones
+            )
+        when 'caption'
+            @tg.edit_message_caption(
+                chat_id: id_chat,
+                message_id: id_mensaje,
+                parse_mode: :html,
+                caption: valor,
+                reply_markup: opciones
+            )
+        else
+            @tg.edit_message_media(
+                chat_id: id_chat,
+                message_id: id_mensaje,
+                media: {
+                    type: metadatos[:tipo],
+                    media: valor
+                }.to_json,
+                reply_markup: opciones
+            )
+        end
     end
 end
