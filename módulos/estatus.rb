@@ -90,30 +90,7 @@ class Dankie
             texto << "\n\nCon las siguientes características:"
 
             agr_cualidades_admin_restr(miembro, texto)
-
-            texto << if miembro.can_be_edited
-                         "\n✅ Puedo editarle sus privilegios de administrador."
-                     else
-                         "\n❌ No puedo editarle sus privilegios de administrador."
-                     end
-
-            texto << if miembro.can_delete_messages
-                         "\n✅ Puede eliminar mensajes."
-                     else
-                         "\n❌ No puede eliminar mensajes."
-                     end
-
-            texto << if miembro.can_restrict_members
-                         "\n✅ Puede suspender usuarios."
-                     else
-                         "\n❌ No puede suspender usuarios."
-                     end
-
-            texto << if miembro.can_promote_members
-                         "\n✅ Puede agregar nuevos admins."
-                     else
-                         "\n❌ No puede agregar nuevos admins."
-                     end
+            agr_cualidades_admin_solo(miembro, texto)
 
         when 'restricted'
             texto << "\n\nCon las siguientes restricciones:"
@@ -132,6 +109,32 @@ class Dankie
         end
     end
 
+    def agr_cualidades_admin_solo(miembro, texto)
+        texto << if miembro.can_be_edited
+                     "\n✅ Puedo editarle sus privilegios de administrador."
+                 else
+                     "\n❌ No puedo editarle sus privilegios de administrador."
+                 end
+
+        texto << if miembro.can_delete_messages
+                     "\n✅ Puede eliminar mensajes."
+                 else
+                     "\n❌ No puede eliminar mensajes."
+                 end
+
+        texto << if miembro.can_restrict_members
+                     "\n✅ Puede suspender usuarios."
+                 else
+                     "\n❌ No puede suspender usuarios."
+                 end
+
+        texto << if miembro.can_promote_members
+                     "\n✅ Puede agregar nuevos admins."
+                 else
+                     "\n❌ No puede agregar nuevos admins."
+                 end
+    end
+
     def agr_cualidades_generales(entidad, texto, miembro_específico: true)
         if miembro_específico
             inicio_pos = 'Puede'
@@ -141,6 +144,16 @@ class Dankie
             inicio_neg = 'No pueden'
         end
 
+        agr_cualidades_envío(texto, entidad, inicio_pos, inicio_neg)
+
+        texto << if entidad.can_add_web_page_previews
+                     "\n✅ #{inicio_pos} incrustar enlaces."
+                 else
+                     "\n❌ #{inicio_neg} incrustar enlaces."
+                 end
+    end
+
+    def agr_cualidades_envío(texto, entidad, inicio_pos, inicio_neg)
         texto << if entidad.can_send_messages
                      "\n✅ #{inicio_pos} mandar mensajes."
                  else
@@ -163,12 +176,6 @@ class Dankie
                      "\n✅ #{inicio_pos} mandar stickers y GIFS."
                  else
                      "\n❌ #{inicio_neg} mandar stickers y GIFS."
-                 end
-
-        texto << if entidad.can_add_web_page_previews
-                     "\n✅ #{inicio_pos} incrustar enlaces."
-                 else
-                     "\n❌ #{inicio_neg} incrustar enlaces."
                  end
     end
 
