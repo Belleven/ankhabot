@@ -2,7 +2,7 @@
 require 'yaml'
 require 'redis'
 
-def imprimir_todas_las_claves(redis, patron = 'triggers:')
+def imprimir_todas_las_claves(redis, patron = '')
     redis.keys('*').each do |clave|
         next unless clave.include? patron
 
@@ -46,6 +46,7 @@ def modificar_base
 
     # Acá meter funciones para modificar la BD, NO OLVIDARSE de borrarlos después
     # Por ejemplo: redis.del("agregar:5")
+    redis.del('pole:-1001114900130:próxima')
 
     imprimir_después redis
 end

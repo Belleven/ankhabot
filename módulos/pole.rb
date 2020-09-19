@@ -28,36 +28,63 @@ class Dankie
 
         return unless chequear_flood(@pole_flood[id_chat][id_usuario])
 
-        # Tomo el datetime del mensaje polero y le sumo 1 día
-        # 86400 es un día en segundos -> 24*60*60 = 86400
-        mañana = (Time.at msj.date, in: @tz.utc_offset) + 86_400
-        # La próxima pole va a ser en el día de "mañana" pero a las 00:00:00
-        próx_pole = Time.new(mañana.year, mañana.month, mañana.day,
-                             0, 0, 0, @tz.utc_offset)
-
-        @redis.set "pole:#{id_chat}:próxima", próx_pole.to_i
-
-        enviar_captura_pole(msj, id_chat, id_usuario)
+        calcular_nueva_pole_y_enviar(msj, id_chat, id_usuario)
     end
 
     def enviar_ranking_pole(msj)
         poles = @redis.zrevrange("pole:#{msj.chat.id}", 0, -1, with_scores: true)
 
-        if poles.nil?
-            @tg.edit_message_text(
-                chat_id: id_chat,
+        if poles.nil? || poles.empty?
+            @tg.send_message(
+                chat_id: msj.chat.id,
                 text: 'No hay poles en este grupo.',
-                message_id: enviado.message_id
+                message_id: msj.message_id
             )
             return
         end
 
-        título = '<b>Ranking de Nisman</b>'
-
         # Tomo el total de poles y lo agrego al título
-        poles_totales = poles.map(&:last).inject { |c, i| c.to_i + i.to_i }
-        título << " <i>(#{poles_totales})</i>\n"
+        poles_totales = poles.map(&:last).inject { |c, i| c + i }
 
+        arr = crear_arreglo_botonera(
+            "<b>Ranking de Nisman</b> <i>(#{poles_totales.to_i})</i>\n",
+            poles,
+            msj
+        )
+
+        mandar_pole_y_crear_botonera(msj, arr)
+    end
+
+    # Para cuando un grupo se convierte en supergrupo
+    def pole_supergrupo(msj)
+        cambiar_claves_supergrupo(msj.migrate_from_chat_id,
+                                  msj.chat.id,
+                                  'pole:')
+        cambiar_claves_supergrupo(msj.migrate_from_chat_id,
+                                  msj.chat.id,
+                                  'pole:',
+                                  ':próxima')
+    end
+
+    private
+
+    def mandar_pole_y_crear_botonera(msj, arr)
+        respuesta = @tg.send_message(
+            chat_id: msj.chat.id,
+            text: arr.first,
+            reply_markup: armar_botonera(0, arr.size, msj.from.id, editable: true),
+            parse_mode: :html,
+            reply_to_message_id: msj.message_id,
+            disable_web_page_preview: true,
+            disable_notification: true
+        )
+        return unless respuesta
+
+        respuesta = Telegram::Bot::Types::Message.new respuesta['result']
+        armar_lista(msj.chat.id, respuesta.message_id, arr, 'texto', 'todos')
+    end
+
+    def crear_arreglo_botonera(título, poles, msj)
         arr = [título.dup]
 
         dígitos = poles.first[1].to_i.digits.count
@@ -77,42 +104,7 @@ class Dankie
             arr.last << (enlace_usuario || '<i>Usuario eliminado</i>')
             contador += 1
         end
-
-        # Armo botonera y envío
-        opciones = armar_botonera 0, arr.size, msj.from.id, editable: true
-
-        respuesta = @tg.send_message(
-            chat_id: msj.chat.id, text: arr.first,
-            reply_markup: opciones, parse_mode: :html,
-            reply_to_message_id: msj.message_id,
-            disable_web_page_preview: true,
-            disable_notification: true
-        )
-        return unless respuesta
-
-        respuesta = Telegram::Bot::Types::Message.new respuesta['result']
-        armar_lista(msj.chat.id, respuesta.message_id, arr, 'texto', 'todos')
-    end
-
-    # Para cuando un grupo se convierte en supergrupo
-    def pole_supergrupo(msj)
-        cambiar_claves_supergrupo(msj.migrate_from_chat_id,
-                                  msj.chat.id,
-                                  'pole:')
-        cambiar_claves_supergrupo(msj.migrate_from_chat_id,
-                                  msj.chat.id,
-                                  'pole:',
-                                  ':próxima')
-    end
-
-    private
-
-    def calcular_total_poles(poles)
-        acumulador = 0
-        poles.each do |pole|
-            acumulador += pole[1].to_i
-        end
-        acumulador
+        arr
     end
 
     def enviar_captura_pole(msj, id_chat, id_usuario)
@@ -142,5 +134,18 @@ class Dankie
             reply_to_message_id: msj.message_id,
             text: "<b>#{nombre}</b> hizo la #{tipo_de_pole}."
         )
+    end
+
+    def calcular_nueva_pole_y_enviar(msj, id_chat, id_usuario)
+        # Tomo el datetime del mensaje polero y le sumo 1 día
+        # 86400 es un día en segundos -> 24*60*60 = 86400
+        mañana = (Time.at msj.date, in: @tz.utc_offset) + 86_400
+        # La próxima pole va a ser en el día de "mañana" pero a las 00:00:00
+        próx_pole = Time.new(mañana.year, mañana.month, mañana.day,
+                             0, 0, 0, @tz.utc_offset)
+
+        @redis.set "pole:#{id_chat}:próxima", próx_pole.to_i
+
+        enviar_captura_pole(msj, id_chat, id_usuario)
     end
 end

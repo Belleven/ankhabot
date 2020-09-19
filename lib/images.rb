@@ -3,10 +3,10 @@ require 'json'
 require_relative 'links'
 
 class ImageSearcher
-    def initialize(key, cx, gl, logger)
+    def initialize(key, api_cx, api_gl, logger)
         @key = key
-        @cx = cx
-        @gl = gl
+        @cx = api_cx
+        @gl = api_gl
         @logger = logger
     end
 

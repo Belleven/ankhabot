@@ -144,17 +144,7 @@ class Dankie
         página_actual = [página_actual, tamaño_máximo - 1].min # valido el rango
 
         arr = [[]]
-        botones_abajo = [
-            Telegram::Bot::Types::InlineKeyboardButton.new(
-                text: (editable ? "\u{1F513}" : "\u{1F512}"),
-                callback_data: "opcioneslista:#{id_usuario}:#{página_actual}:"\
-                               "#{editable ? 'noedit' : 'edit'}"
-            ),
-            Telegram::Bot::Types::InlineKeyboardButton.new(
-                text: "\u274C",
-                callback_data: "opcioneslista:#{id_usuario}:#{página_actual}:borrar"
-            )
-        ]
+        botones_abajo = crear_botones_abajo(editable, id_usuario, página_actual)
 
         if tamaño_máximo <= 5
             tamaño_máximo.times do |i|
@@ -167,25 +157,7 @@ class Dankie
             return Telegram::Bot::Types::InlineKeyboardMarkup.new inline_keyboard: arr
         end
 
-        botones = []
-
-        if página_actual < 3
-            4.times do |i|
-                botones << [página_actual == i ? "<#{i + 1}>" : (i + 1).to_s, i]
-            end
-            botones << ["#{tamaño_máximo} >>", tamaño_máximo - 1]
-        elsif página_actual > (tamaño_máximo - 4)
-            botones << ['<< 1', 0]
-            ((tamaño_máximo - 4)..(tamaño_máximo - 1)).each do |i|
-                botones << [página_actual == i ? "<#{i + 1}>" : (i + 1).to_s, i]
-            end
-        else
-            botones << ['<< 1', 0]
-            botones << ["< #{página_actual}", página_actual - 1]
-            botones << ["< #{página_actual + 1} >", página_actual]
-            botones << ["#{página_actual + 2} >", página_actual + 1]
-            botones << ["#{tamaño_máximo} >>", tamaño_máximo - 1]
-        end
+        rellenar_botones(página_actual, tamaño_máximo)
 
         botones.each do |botón|
             arr.first << Telegram::Bot::Types::InlineKeyboardButton.new(
@@ -221,5 +193,44 @@ class Dankie
         respuesta = Telegram::Bot::Types::Message.new respuesta['result']
 
         respuesta.message_id
+    end
+
+    private
+
+    def crear_botones_abajo(editable, id_usuario, página_actual)
+        [
+            Telegram::Bot::Types::InlineKeyboardButton.new(
+                text: (editable ? "\u{1F513}" : "\u{1F512}"),
+                callback_data: "opcioneslista:#{id_usuario}:#{página_actual}:"\
+                               "#{editable ? 'noedit' : 'edit'}"
+            ),
+            Telegram::Bot::Types::InlineKeyboardButton.new(
+                text: "\u274C",
+                callback_data: "opcioneslista:#{id_usuario}:#{página_actual}:borrar"
+            )
+        ]
+    end
+
+    def rellenar_botones(página_actual, tamaño_máximo)
+        botones = []
+
+        if página_actual < 3
+            4.times do |i|
+                botones << [página_actual == i ? "<#{i + 1}>" : (i + 1).to_s, i]
+            end
+            botones << ["#{tamaño_máximo} >>", tamaño_máximo - 1]
+        elsif página_actual > (tamaño_máximo - 4)
+            botones << ['<< 1', 0]
+            ((tamaño_máximo - 4)..(tamaño_máximo - 1)).each do |i|
+                botones << [página_actual == i ? "<#{i + 1}>" : (i + 1).to_s, i]
+            end
+        else
+            botones << ['<< 1', 0]
+            botones << ["< #{página_actual}", página_actual - 1]
+            botones << ["< #{página_actual + 1} >", página_actual]
+            botones << ["#{página_actual + 2} >", página_actual + 1]
+            botones << ["#{tamaño_máximo} >>", tamaño_máximo - 1]
+        end
+        botones
     end
 end

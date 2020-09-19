@@ -126,28 +126,32 @@ class TelegramAPI
     # si no lo vuelvo a lanzar
     rescue Telegram::Bot::Exceptions::ResponseError => e
         if e.error_code.to_i == 400
-            args[:reply_to_message_id] = nil
-
-            if e.message.include?('reply message not found')
-                @client.logger.error('No puedo responder a un mensaje '\
-                                     "borrado (ID: #{args[:reply_to_message_id]}) "\
-                                     "en #{args[:chat_id]}. Error:\n#{e.message}")
-            elsif e.message.include?('group chat was upgraded to a supergroup chat')
-                corte_al_inicio = e.message.split('{"migrate_to_chat_id"=>').last
-                id_supergrupo = corte_al_inicio.split('}').first
-
-                @client.logger.error("Error en #{args[:chat_id]}. El grupo se "\
-                                     'actualizó y ahora es unsupergrupo '\
-                                     "(#{id_supergrupo}).\n#{e.message}",
-                                     al_canal: true)
-                args[:chat_id] = id_supergrupo.to_i
-            else
-                raise
-            end
+            analizar_excepción_400_enviar(args, e)
 
             retry
         else
             @excepciones.loggear(e, args)
+            raise
+        end
+    end
+
+    def analizar_excepción_400_enviar(args, exc)
+        args[:reply_to_message_id] = nil
+
+        if exc.message.include?('reply message not found')
+            @client.logger.error('No puedo responder a un mensaje '\
+                                    "borrado (ID: #{args[:reply_to_message_id]}) "\
+                                    "en #{args[:chat_id]}. Error:\n#{exc.message}")
+        elsif exc.message.include?('group chat was upgraded to a supergroup chat')
+            corte_al_inicio = exc.message.split('{"migrate_to_chat_id"=>').last
+            id_supergrupo = corte_al_inicio.split('}').first
+
+            @client.logger.error("Error en #{args[:chat_id]}. El grupo se "\
+                                    'actualizó y ahora es unsupergrupo '\
+                                    "(#{id_supergrupo}).\n#{exc.message}",
+                                 al_canal: true)
+            args[:chat_id] = id_supergrupo.to_i
+        else
             raise
         end
     end
