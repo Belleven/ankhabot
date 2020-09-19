@@ -49,33 +49,7 @@ class Dankie
             return
         end
 
-        if es_admin(msj.from.id, chat_id, msj.message_id) && msj.reply_to_message
-            id_usuario = msj.reply_to_message.from.id
-            nombre = msj.reply_to_message.from.first_name
-            apellido = msj.reply_to_message.from.last_name
-            responde_a = msj.reply_to_message.message_id
-        else
-            id_usuario = msj.from.id
-            nombre = msj.from.first_name
-            apellido = msj.from.last_name
-            responde_a = msj.message_id
-        end
-
-        # La estructura es un hash de clave "info_usuario:apodo:chat_id",los atributos
-        # son las ids de los usuarios y el valor de cada atributo es el apodo
-        # correspondiente
-        @redis.hset("apodo:#{chat_id}", id_usuario.to_s, nuevo_apodo)
-
-        nombre = dame_nombre_completo(nombre, apellido, 'Cuenta eliminada')
-        texto = "De hoy en adelante, el #{TROESMAS.sample} "\
-                "'#{nombre}' será conocido como '#{html_parser(nuevo_apodo)}'."
-
-        @tg.send_message(chat_id: msj.chat.id,
-                         reply_to_message_id: responde_a,
-                         text: texto,
-                         parse_mode: :html)
-        @logger.info("Se cambió el apodo de #{nombre} (#{id_usuario}) a "\
-                     "#{nuevo_apodo} en #{grupo_del_msj(msj)} (#{chat_id})")
+        resolver_nuevo_apodo(msj, chat_id, nuevo_apodo)
     end
 
     def borrar_apodo(msj)
@@ -92,29 +66,24 @@ class Dankie
         end
 
         # Si no tenía ningún apodo, entonces aviso
-        if @redis.hget("apodo:#{chat_id}", id_usuario.to_s).nil?
+        unless @redis.hget("apodo:#{chat_id}", id_usuario.to_s)
             @tg.send_message(chat_id: chat_id,
                              reply_to_message_id: msj.message_id,
                              text: texto_error)
-        else
-            # Si sí tenía, entonces lo borro
-            @redis.hdel("apodo:#{chat_id}", id_usuario.to_s)
-            # Hacer algo con los bgsave en un futuro
-            @tg.send_message(chat_id: chat_id,
-                             reply_to_message_id: msj.message_id,
-                             text: 'Apodo recontra borradísimo')
-
-            nombre = dame_nombre_completo(msj.from.first_name,
-                                          msj.from.last_name,
-                                          'Cuenta eliminada')
-            @logger.info("Se borró el apodo de #{nombre} (#{id_usuario}) "\
-                                  "en #{grupo_del_msj(msj)} (#{chat_id})")
+            return
         end
+
+        # Si sí tenía, entonces lo borro
+        @redis.hdel("apodo:#{chat_id}", id_usuario.to_s)
+        # Hacer algo con los bgsave en un futuro
+        @tg.send_message(
+            chat_id: chat_id,
+            reply_to_message_id: msj.message_id,
+            text: 'Apodo recontra borradísimo'
+        )
     end
 
     def obtener_info(msj)
-        chat_id = msj.chat.id
-
         if msj.reply_to_message
             id_usuario = msj.reply_to_message.from.id
             nombre = msj.reply_to_message.from.first_name
@@ -127,26 +96,7 @@ class Dankie
             alias_usuario = msj.from.username
         end
 
-        lastfm = @redis.get("lastfm:#{id_usuario}")
-        apodo = @redis.hget("apodo:#{chat_id}", id_usuario.to_s)
-
-        respuesta = 'Nombre de usuario: '\
-                    "<b>#{dame_nombre_completo(nombre, apellido, 'ay no c')}</b>\n"
-
-        respuesta << (alias_usuario.nil? ? '' : "Alias: <b>#{alias_usuario}</b>\n")
-        respuesta << "Id de usuario: <b>#{id_usuario}</b>\n"
-        respuesta << (if apodo.nil?
-                          ''
-                      else
-                          'Apodo en el grupete: '\
-                         "<b>#{html_parser(apodo)}</b>\n"
-                      end)
-        respuesta << (lastfm.nil? ? '' : "Cuenta de LastFM: <b>#{lastfm}</b>")
-
-        @tg.send_message(chat_id: msj.chat.id,
-                         reply_to_message_id: msj.message_id,
-                         parse_mode: :html,
-                         text: respuesta)
+        responder_info(alias_usuario, id_usuario, msj, nombre, apellido)
     end
 
     def apodos(msj)
@@ -159,6 +109,38 @@ class Dankie
             return
         end
 
+        arr = calcular_arreglo_apodos(msj, apodos)
+
+        # Armo botonera y envío
+        respuesta = @tg.send_message(
+            chat_id: msj.chat.id,
+            text: arr.first,
+            reply_markup: armar_botonera(0, arr.size, msj.from.id, editable: true),
+            parse_mode: :html,
+            disable_web_page_preview: true,
+            disable_notification: true
+        )
+        return unless respuesta
+
+        armar_lista(
+            msj.chat.id,
+            Telegram::Bot::Types::Message.new(respuesta['result']).message_id,
+            arr,
+            'texto',
+            'todos'
+        )
+    end
+
+    def info_usuario_supergrupo(msj)
+        # Esta función está definida en dankie.rb
+        cambiar_claves_supergrupo(msj.migrate_from_chat_id,
+                                  msj.chat.id,
+                                  'apodo:')
+    end
+
+    private
+
+    def calcular_arreglo_apodos(msj, apodos)
         título = "Apodos del grupete #{html_parser(msj.chat.title)}\n"
 
         arr = [título.dup]
@@ -177,28 +159,30 @@ class Dankie
             arr.last << "\n- #{enlace_usuario || '<i>Usuario eliminado</i>'}"
             contador += 1
         end
-
-        # Armo botonera y envío
-        opciones = armar_botonera 0, arr.size, msj.from.id, editable: true
-
-        respuesta = @tg.send_message(chat_id: msj.chat.id, text: arr.first,
-                                     reply_markup: opciones, parse_mode: :html,
-                                     disable_web_page_preview: true,
-                                     disable_notification: true)
-        return unless respuesta
-
-        respuesta = Telegram::Bot::Types::Message.new respuesta['result']
-        armar_lista(msj.chat.id, respuesta.message_id, arr, 'texto', 'todos')
+        arr
     end
 
-    def info_usuario_supergrupo(msj)
-        # Esta función está definida en dankie.rb
-        cambiar_claves_supergrupo(msj.migrate_from_chat_id,
-                                  msj.chat.id,
-                                  'apodo:')
-    end
+    def responder_info(alias_usuario, id_usuario, msj, nombre, apellido)
+        alias_usuario = alias_usuario ? "Alias: <b>#{alias_usuario}</b>\n" : ''
 
-    private
+        apodo = @redis.hget("apodo:#{msj.chat.id}", id_usuario.to_s)
+        apodo = apodo ? "Apodo en el grupete: <b>#{html_parser(apodo)}</b>\n" : ''
+
+        lastfm = @redis.get("lastfm:#{id_usuario}")
+        lastfm = lastfm ? "Cuenta de LastFM: <b>#{lastfm}</b>" : ''
+
+        respuesta = 'Nombre de usuario: '\
+                    "<b>#{dame_nombre_completo(nombre, apellido, 'ay no c')}</b>\n"\
+                    "Id de usuario: <b>#{id_usuario}</b>\n"\
+                    "#{alias_usuario}#{apodo}#{lastfm}"
+
+        @tg.send_message(
+            chat_id: msj.chat.id,
+            reply_to_message_id: msj.message_id,
+            parse_mode: :html,
+            text: respuesta
+        )
+    end
 
     def dame_nombre_completo(nombre, apellido, nombre_suplente)
         if nombre.empty?
@@ -206,5 +190,39 @@ class Dankie
         else
             html_parser(nombre + (apellido ? " #{apellido}" : ''))
         end
+    end
+
+    def resolver_nuevo_apodo(msj, chat_id, nuevo_apodo)
+        if es_admin(msj.from.id, chat_id, msj.message_id) && msj.reply_to_message
+            id_usuario = msj.reply_to_message.from.id
+            nombre = msj.reply_to_message.from.first_name
+            apellido = msj.reply_to_message.from.last_name
+            responde_a = msj.reply_to_message.message_id
+        else
+            id_usuario = msj.from.id
+            nombre = msj.from.first_name
+            apellido = msj.from.last_name
+            responde_a = msj.message_id
+        end
+
+        # La estructura es un hash de clave "info_usuario:apodo:chat_id",los atributos
+        # son las ids de los usuarios y el valor de cada atributo es el apodo
+        # correspondiente
+        @redis.hset("apodo:#{chat_id}", id_usuario.to_s, nuevo_apodo)
+
+        enviar_nuevo_apodo(nombre, apellido, nuevo_apodo, msj, responde_a)
+    end
+
+    def enviar_nuevo_apodo(nombre, apellido, nuevo_apodo, msj, responde_a)
+        nombre = dame_nombre_completo(nombre, apellido, 'Cuenta eliminada')
+        texto = "De hoy en adelante, el #{TROESMAS.sample} "\
+                "'#{nombre}' será conocido como '#{html_parser(nuevo_apodo)}'."
+
+        @tg.send_message(
+            chat_id: msj.chat.id,
+            reply_to_message_id: responde_a,
+            text: texto,
+            parse_mode: :html
+        )
     end
 end
