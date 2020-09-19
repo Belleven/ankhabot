@@ -39,26 +39,36 @@ class Dankie
     # Recibe un Hash con los datos de config.yml
     def initialize(args)
         @canal = args[:canal_logging]
+
         # Tanto tg como dankielogger usan un cliente para mandar mensajes
         # Y además tg usa un logger
-        logger = Logger.new $stderr
-        @logger = DankieLogger.new logger, @canal
+        @logger = DankieLogger.new (Logger.new $stderr), @canal
         @tg = TelegramAPI.new args[:tg_token], @logger
         @logger.inicializar_cliente @tg.client
 
         # Creo dos instancias de Redis, una base de datos general y una de estadísticas
-        dbs = 2.times.map do |i|
-            Redis.new(port: args[:redis_port], host: args[:redis_host],
-                      password: args[:redis_pass], db: i)
-        end
-        @redis = dbs.first
-        Estadísticas::Base.redis = dbs.last
+        @redis = Redis.new(
+            port: args[:redis_port],
+            host: args[:redis_host],
+            password: args[:redis_pass],
+            db: 0
+        )
+        Estadísticas::Base.redis = Redis.new(
+            port: args[:redis_port],
+            host: args[:redis_host],
+            password: args[:redis_pass],
+            db: 1
+        )
 
         @img = ImageSearcher.new args[:google_image_key], args[:google_image_cx],
                                  args[:google_image_gl], @logger
+
         @user = Telegram::Bot::Types::User.new @tg.get_me['result']
+
         @lastfm = LastFM::Api.new args[:last_fm_api]
+
         @tz = TZInfo::Timezone.get args[:timezone]
+
         @reddit_api = Reddit::Api.new
     end
 
@@ -167,37 +177,62 @@ class Dankie
     # Analiza un texto y se fija si es un comando válido, devuelve el comando
     # y el resto del texto
     def _parse_command(msj)
-        unless (text = msj.text || msj.caption)
-            return { command: nil, params: nil }
-        end
+        respuesta = { command: nil, params: nil }
 
-        return { command: nil, params: nil } if text.size <= 1
+        return respuesta unless (texto = msj.text || msj.caption)
+        return respuesta if texto.size <= 1
 
-        command = nil
-        params = nil
+        # "/cmd params" o "/cmd@bot params"
+        return comando_barra(texto) if texto.start_with? '/'
 
-        if text.start_with? '/' # "/cmd params" o "/cmd@bot params"
-            command, params = text.split ' ', 2
-            command.downcase!
-            command.gsub!(%r{^/([a-z]+)(@#{@user.username.downcase})?}, '\\1')
+        # "!cmd params" o ">cmd params"
+        return comando_símbolo(texto) if ['!', '>', '$', '.'].include? texto[0]
 
-        elsif ['!', '>', '$', '.'].include? text[0] # "!cmd params" o ">cmd params"
-            command, params = text.split ' ', 2
-            command = command[1..]
-            command.downcase!
+        parsear_otros_comandos(texto, msj, respuesta)
+    end
+
+    def parsear_otros_comandos(texto, msj, respuesta)
+        # ["usuario", "comando", "params"]
+        arr = texto.split(' ', 3)
+        arr.first.downcase!
+
+        if (arr.size > 1) && arr.first.casecmp(@user.username[0..-4]).zero?
+            comando_alias arr
+        # Responde al bot
+        elsif msj.reply_to_message&.from&.id == @user.id
+            comando_respuesta_bot texto
         else
-            arr = text.split(' ', 3) # ["user", "comando", "params"]
-            arr.first.downcase!
-            if (arr.size > 1) && arr.first.casecmp(@user.username[0..-4]).zero?
-                command = arr[1].downcase.to_sym
-                params = arr[2]
-            # Responde al bot
-            elsif msj.reply_to_message&.from&.id == @user.id
-                command, params = text.split ' ', 2
-                command.downcase!
-            end
+            respuesta
         end
+    end
 
-        { command: command&.to_sym, params: params }
+    def comando_barra(texto)
+        comando, params = texto.split ' ', 2
+        comando.downcase!
+        comando.gsub!(%r{^/([a-z]+)(@#{@user.username.downcase})?}, '\\1')
+        devolver_dicc_comando_params(comando, params)
+    end
+
+    def comando_símbolo(texto)
+        comando, params = texto.split ' ', 2
+        comando = comando[1..]
+        comando.downcase!
+        devolver_dicc_comando_params(comando, params)
+    end
+
+    def comando_alias(arr)
+        comando = arr[1].downcase.to_sym
+        params = arr[2]
+        devolver_dicc_comando_params(comando, params)
+    end
+
+    def comando_respuesta_bot(texto)
+        comando, params = texto.split ' ', 2
+        comando.downcase!
+        devolver_dicc_comando_params(comando, params)
+    end
+
+    def devolver_dicc_comando_params(comando, params)
+        { command: comando&.to_sym, params: params }
     end
 end
