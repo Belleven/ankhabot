@@ -62,14 +62,14 @@ class Dankie
         # Llamo a la funcionaza
         arr = []
         arreglo_tablero(
-            últimas_vistas,
-            arr,
-            título_lista,
-            nil,
-            0,
-            30,
-            4096,
-            crear_línea_última_vista(msj)
+            conjunto_iterable: últimas_vistas,
+            arr: arr,
+            título: título_lista,
+            subtítulo: nil,
+            contador: 0,
+            max_cant: 30,
+            max_tam: 4096,
+            agr_elemento: crear_línea_última_vista(msj)
         )
         # Armo botonera y envío
         opciones = armar_botonera 0, arr.size, msj.from.id

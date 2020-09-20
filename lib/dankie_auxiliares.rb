@@ -33,52 +33,54 @@ class Dankie
         if usuario.is_a?(Telegram::Bot::Types::User)
             id_usuario = usuario.id
             alias_usuario = usuario.username
+            nombre_usuario = usuario.first_name
         else
             id_usuario = usuario
-
             alias_usuario = @redis.get "usuario:#{id_usuario}"
-            unless alias_usuario
-                usuario = @tg.get_chat_member(chat_id: id_chat, user_id: usuario)
-                usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
-                alias_usuario = usuario.username
-                redis_actualizar_datos usuario
-            end
+            nombre_usuario = nil
         end
 
-        mención = if alias_usuario && !alias_usuario.empty?
+        mención = if alias_usuario
                   then "<a href='https://telegram.me/#{alias_usuario}'>"
                   else "<a href='tg://user?id=#{id_usuario}'>"
                   end
 
-        if con_apodo && (apodo = @redis.hget("apodo:#{id_chat}", id_usuario))
-            mención << "#{html_parser apodo}</a>"
-        elsif (nombre = @redis.get("nombre:#{id_usuario}")) && !nombre.empty?
-            mención << "#{html_parser nombre}</a>"
-        else
-            usuario = @tg.get_chat_member(chat_id: id_chat, user_id: usuario)
-            usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
-            # Lo comente porque no se usa
-            # alias_usuario = usuario.username
-
-            redis_actualizar_datos usuario
-            if usuario.first_name.empty?
-                mención = "ay no c (#{id_usuario})"
-            else
-                mención << "#{html_parser usuario.first_name}</a>"
-            end
-        end
-
-        mención
+        devolver_mención(mención, nombre_usuario, id_chat, id_usuario, con_apodo)
     rescue Telegram::Bot::Exceptions::ResponseError => e
+        manejar_excepción_enlace(id_usuario, e)
+    end
+
+    def manejar_excepción_enlace(id_usuario, exc)
         mención = "ay no c (#{id_usuario})"
         if e.to_s =~ /user not found|wrong user_id specified/
             @logger.error('Traté de obtener el nombre de una cuenta '\
                         "eliminada: #{id_usuario}")
             return nil
         else
-            @logger.error e
+            @logger.error exc
         end
 
+        mención
+    end
+
+    def devolver_mención(mención, nombre_usuario, id_chat, id_usuario, con_apodo)
+        if con_apodo && (apodo = @redis.hget("apodo:#{id_chat}", id_usuario))
+            mención << "#{html_parser apodo}</a>"
+            return mención
+        end
+
+        if (nombre = @redis.get("nombre:#{id_usuario}") || nombre_usuario)
+            mención << "#{html_parser nombre}</a>"
+            return mención
+        end
+
+        usuario = @tg.get_chat_member(chat_id: id_chat, user_id: id_usuario)
+        usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
+
+        redis_actualizar_datos usuario
+        return "ay no c (#{id_usuario})" if usuario.first_name.empty?
+
+        mención << "#{html_parser usuario.first_name}</a>"
         mención
     end
 
@@ -376,32 +378,51 @@ class Dankie
         arr.shift until arr.size <= 13
     end
 
-    def arreglo_tablero(conjunto_iterable, arr, título,
-                        subtítulo, contador, max_cant, max_tam,
-                        agr_elemento, inicio_en_subtítulo: false)
+    def arreglo_tablero(params, inicio_en_subtítulo: false)
+        conjunto_iterable = params[:conjunto_iterable]
+        arr = params[:arr]
+        subtítulo = params[:subtítulo]
+        contador = params[:contador]
+        max_cant = params[:max_cant]
+        max_tam = params[:max_tam]
+
         return if conjunto_iterable.nil? || conjunto_iterable.empty?
 
-        # .dup crea una copia del objeto original
-        if inicio_en_subtítulo && !arr.empty? && subtítulo &&
-           contador < max_cant && arr.last.size < max_tam
-            # Meto subtítulo si queda bien ponerlo en este caso
-            arr.last << subtítulo.dup
-        end
+        agregar_subtítulo(
+            arr: arr,
+            subtítulo: subtítulo,
+            inicio_en_subtítulo: inicio_en_subtítulo,
+            contador: contador,
+            max_cant: max_cant,
+            max_tam: max_tam
+        )
+
         # Itero sobre los elementos
         conjunto_iterable.each do |elemento|
             # Si es una página nueva agrego título y subtítulo
             if arr.empty? || contador >= max_cant || arr.last.size >= max_tam
-                arr << título.dup
+                arr << params[:título].dup
                 arr.last << subtítulo.dup if subtítulo
                 contador = 0
             end
             # Agrego el elemento juju
-            arr.last << agr_elemento.call(elemento)
+            arr.last << params[:agr_elemento].call(elemento)
             contador += 1
         end
         # Devuelvo el contador para que pueda ser usado luego en futuras
         # llamadas a esta función, recordar que los integers se pasan por
         # copia
         contador
+    end
+
+    def agregar_subtítulo(params)
+        arr = params[:arr]
+        subtítulo = params[:subtítulo]
+        # .dup crea una copia del objeto original
+        if params[:inicio_en_subtítulo] && !arr.empty? && subtítulo &&
+           params[:contador] < params[:max_cant] && arr.last.size < params[:max_tam]
+            # Meto subtítulo si queda bien ponerlo en este caso
+            arr.last << subtítulo.dup
+        end
     end
 end

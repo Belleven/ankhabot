@@ -198,15 +198,30 @@ class Dankie
         end
 
         # Definido en Dankie.rb
-        contador = arreglo_tablero(triggers_locales, arr, título,
-                                   "\n<b>Locales:</b>", 0,
-                                   30, 1000, agr_elemento)
+        contador = arreglo_tablero(
+            conjunto_iterable: triggers_locales,
+            arr: arr,
+            título: título,
+            subtítulo: "\n<b>Locales:</b>",
+            contador: 0,
+            max_cant: 30,
+            max_tam: 1000,
+            agr_elemento: agr_elemento
+        )
 
         # Cuando se haga el coso para desactivar triggers globales,
         # hacer algo para ignorar estos dos bloques
-        arreglo_tablero(triggers_globales, arr, título,
-                        "\n<b>Globales:</b>", contador,
-                        30, 1000, agr_elemento, inicio_en_subtítulo: true)
+        arreglo_tablero(
+            conjunto_iterable: triggers_globales,
+            arr: arr,
+            título: título,
+            subtítulo: "\n<b>Globales:</b>",
+            contador: contador,
+            max_cant: 30,
+            max_tam: 1000,
+            agr_elemento: agr_elemento,
+            inicio_en_subtítulo: true
+        )
 
         # Armo botonera y envío
         opciones = armar_botonera 0, arr.size, msj.from.id
