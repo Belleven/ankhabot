@@ -421,8 +421,7 @@ class Dankie
 
     # Verifica si existe la carpeta cache y da el nombre del archivo a usar
     def nombre_temporal_estadísticas(prefijo, tiempo, intervalo)
-        Dir.mkdir('cache') unless Dir.exist?('cache')
-
-        "./cache/#{prefijo}_#{Time.now.to_i / intervalo * intervalo}_#{tiempo}.png"
+        archivo = "#{prefijo}_#{Time.now.to_i / intervalo * intervalo}_#{tiempo}.png"
+        File.join(Dir.tmpdir, archivo)
     end
 end

@@ -4,8 +4,8 @@ class DankieLogger
     attr_reader :client
     attr_accessor :logger
 
-    def initialize(logger, canal_logging)
-        @logger = logger
+    def initialize(archivo, canal_logging)
+        @logger = Logger.new(archivo || $stderr)
         @canal_logging = canal_logging
     end
 

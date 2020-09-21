@@ -42,7 +42,7 @@ class Dankie
 
         # Tanto tg como dankielogger usan un cliente para mandar mensajes
         # Y además tg usa un logger
-        @logger = DankieLogger.new (Logger.new $stderr), @canal
+        @logger = DankieLogger.new(args[:archivo_logging], @canal)
         @tg = TelegramAPI.new args[:tg_token], @logger
         @logger.inicializar_cliente @tg.client
 

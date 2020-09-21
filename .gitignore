@@ -4,7 +4,6 @@ Gemfile.lock
 .bundle/config
 dump.rdb
 *.gem
-cache/
 
 # Pre-requisitos
 *.d

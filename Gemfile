@@ -1,7 +1,7 @@
 source 'https://rubygems.org'
 
 # Instalar gemas por separado: gem install bundler 'nombre_gema (sin comillas)'
-ruby '>=2.6'
+ruby '~>2.6'
 
 gem 'byebug'
 gem 'concurrent-ruby'

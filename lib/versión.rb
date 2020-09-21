@@ -1,3 +1,3 @@
 class Dankie
-    VERSIÓN = '2.0'.freeze
+    VERSIÓN = '1.3'.freeze
 end
