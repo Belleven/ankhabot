@@ -91,18 +91,24 @@ class Dankie
 
         return if existe_temporal_callback(callback, match)
 
-        texto = resolver_callback_y_devolver_texto(
-            match,
-            callback,
-            %w[confirmar rechazar],
-            %w[confirmado rechazado]
+        resultado_callback = resolver_callback(
+            match: match,
+            callback: callback,
+            acciones: %w[confirmar rechazar],
+            respuestas: %w[confirmado rechazado],
+            métodos: %i[confirmar_trigger rechazar_trigger],
+            args_primer_método: [match[:id_regexp]]
         )
 
-        @tg.edit_message_text(chat_id: callback.message.chat.id,
-                              parse_mode: :html, text: texto,
-                              message_id: callback.message.message_id,
-                              disable_web_page_preview: true,
-                              disable_notification: true)
+        @tg.edit_message_text(
+            chat_id: callback.message.chat.id,
+            parse_mode: :html,
+            text: resultado_callback[:texto],
+            message_id: callback.message.message_id,
+            disable_web_page_preview: true,
+            disable_notification: true
+        )
+
         resultado = if match[:acción] == 'confirmar'
                         'aceptado'
                     else
@@ -110,10 +116,16 @@ class Dankie
                         'trigger local con /settrigger trigger.'
                     end
 
+        temp = resultado_callback[:temp]
         texto = "Trigger <code>#{html_parser Trigger.regexp_a_str(temp[:regexp])}"\
                 "</code> #{resultado}."
-        @tg.send_message(chat_id: temp[:id_grupo], parse_mode: :html,
-                         text: texto, reply_to_message_id: temp[:id_msj])
+
+        @tg.send_message(
+            chat_id: temp[:id_grupo],
+            parse_mode: :html,
+            text: texto,
+            reply_to_message_id: temp[:id_msj]
+        )
     rescue Telegram::Bot::Exceptions::ResponseError => e
         @logger.warn e.to_s, al_canal: true
     end
@@ -127,17 +139,22 @@ class Dankie
 
         return if existe_temporal_callback(callback, match)
 
+        temp = Trigger.obtener_del_trigger_temp match[:id_regexp]
         Trigger.borrar_global_resuelto(temp[:regexp])
+
+        texto = resolver_callback(
+            match: match,
+            callback: callback,
+            acciones: %w[borrar ignorar],
+            respuestas: %w[borrado salvado],
+            métodos: %i[borrar_trigger descartar_temporal],
+            args_primer_método: [:global, temp[:regexp], match[:id_regexp]]
+        )[:texto]
 
         @tg.edit_message_text(
             chat_id: callback.message.chat.id,
             parse_mode: :html,
-            text: resolver_callback_y_devolver_texto(
-                match,
-                callback,
-                %w[borrar ignorar],
-                %w[borrado salvado]
-            ),
+            text: texto,
             message_id: callback.message.message_id,
             disable_web_page_preview: true,
             disable_notification: true
@@ -382,22 +399,39 @@ class Dankie
         false
     end
 
-    def resolver_callback_y_devolver_texto(match, callback, acciones, _respuestas)
-        temp = Trigger.obtener_del_trigger_temp match[:id_regexp]
+    def resolver_callback(params)
+        match = params[:match]
+        callback = params[:callback]
+        acciones = params[:acciones]
+        respuestas = params[:respuestas]
+        métodos = params[:métodos]
 
         usuario = obtener_enlace_usuario(callback.from, callback.chat_instance) || 'dou'
 
         case match[:acción]
         when acciones[0]
-            Trigger.borrar_trigger :global, temp[:regexp], match[:id_regexp]
-            texto = respuesta[0]
+            result = Trigger.send métodos[0], *params[:args_primer_método]
+            texto = respuestas[0]
         when acciones[1]
-            Trigger.descartar_temporal match[:id_regexp]
-            texto = respuesta[1]
+            result = Trigger.send métodos[1], match[:id_regexp]
+            texto = respuestas[1]
         end
 
-        "Trigger <code>#{html_parser Trigger.regexp_a_str(temp[:regexp])}"\
-        "</code> #{texto} por #{usuario} (#{callback.from.id})."
+        regexp = dame_regexp_callback(params, result)
+
+        {
+            temp: result,
+            texto: "Trigger <code>#{html_parser Trigger.regexp_a_str(regexp)}"\
+                   "</code> #{texto} por #{usuario} (#{callback.from.id})."
+        }
+    end
+
+    def dame_regexp_callback(params, result)
+        if params[:acciones].first == 'borrar'
+            params[:args_primer_método][1]
+        else
+            result[:regexp]
+        end
     end
 
     def dev_responde_callback(callback)
@@ -584,11 +618,21 @@ class Dankie
             )
         ]]
 
-        texto = crear_texto_msj_log(fecha, id_usuario, chat, regexp_sanitizada)
+        texto = crear_texto_msj_log(
+            fecha,
+            id_usuario,
+            chat,
+            regexp_sanitizada,
+            'agregar'
+        )
 
-        msj_log = @tg.send_message(chat_id: @canal, parse_mode: :html, text: texto,
-                                   disable_web_page_preview: true,
-                                   disable_notification: true)
+        msj_log = @tg.send_message(
+            chat_id: @canal,
+            parse_mode: :html,
+            text: texto,
+            disable_web_page_preview: true,
+            disable_notification: true
+        )
         id_msj_log = msj_log['result']['message_id'].to_i
 
         # Mando el trigger al canal de logging
@@ -621,7 +665,13 @@ class Dankie
             )
         ]]
 
-        texto = crear_texto_msj_log(fecha, id_usuario, chat, regexp_sanitizada)
+        texto = crear_texto_msj_log(
+            fecha,
+            id_usuario,
+            chat,
+            regexp_sanitizada,
+            'borrar'
+        )
 
         msj_log = @tg.send_message(chat_id: @canal, parse_mode: :html, text: texto,
                                    disable_web_page_preview: true,
@@ -676,7 +726,7 @@ class Dankie
         contador = poner_trigger(regexp, msj.reply_to_message, grupo,
                                  msj.from.id, msj.message_id)
         # Si contador era nil es porque era un trigger local o no era un trigger válido
-        return if contador.nil?
+        return unless contador
 
         confirmar_trigger_global(regexp, msj.chat, msj.date, msj.from.id, contador)
         @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
@@ -737,7 +787,7 @@ class Dankie
         false
     end
 
-    def crear_texto_msj_log(fecha, id_usuario, chat, regexp_sanitizada)
+    def crear_texto_msj_log(fecha, id_usuario, chat, regexp_sanitizada, acción)
         # Aviso que quieren borrar un gatillo
         fecha = Time.at(fecha, in: @tz.utc_offset)
 
@@ -747,7 +797,7 @@ class Dankie
         texto = fecha.strftime("<code>[%d/%m/%Y %T]</code>\n")
         texto << "Usuario #{nombre} (#{id_usuario}) en el chat "
         texto << "#{html_parser(chat&.title || chat&.username)} (#{chat.id}) "
-        texto << 'quiere borrar el trigger: '
+        texto << "quiere #{acción} el trigger: "
         texto << " <code>#{regexp_sanitizada}</code>\n"
         texto
     end

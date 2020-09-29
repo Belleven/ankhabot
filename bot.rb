@@ -26,7 +26,5 @@ end
 
 raise 'No se puede iniciar el bot, falta el archivo de configuración' unless config
 
-puts config.inspect
-
 dankie = Dankie.new(config)
 dankie.run
