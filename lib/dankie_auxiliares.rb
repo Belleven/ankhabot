@@ -52,7 +52,7 @@ class Dankie
 
     def manejar_excepción_enlace(id_usuario, exc)
         mención = "ay no c (#{id_usuario})"
-        if e.to_s =~ /user not found|wrong user_id specified/
+        if exc.to_s =~ /user not found|wrong user_id specified/
             @logger.error('Traté de obtener el nombre de una cuenta '\
                         "eliminada: #{id_usuario}")
             return nil
