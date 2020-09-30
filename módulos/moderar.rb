@@ -149,7 +149,10 @@ class Dankie
     def dar_id_afectada(msj, para_aplicar_restricción)
         # Si el mensaje tiene argumentos, reviso si me sirven para identificar
         # al usuario y/o si tiene la razón del baneo/kickeo/etc
-        id_afectada, alias_id, razón = id_y_resto(msj)
+        valores = id_y_resto(msj)
+        id_afectada = valores[:id]
+        alias_id = valores[:alias]
+        razón = valores[:razón]
 
         # Si no se pudo obtener id, aviso
         if id_afectada.nil?

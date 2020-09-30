@@ -59,7 +59,9 @@ class Dankie
     private
 
     def miembro_válido(msj)
-        id_usuario, alias_usuario, = id_y_resto(msj)
+        valores = id_y_resto(msj)
+        id_usuario = valores[:id]
+        alias_usuario = valores[:alias]
 
         if id_usuario.nil?
             @tg.send_message(chat_id: msj.chat.id,

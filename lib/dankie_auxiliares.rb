@@ -153,100 +153,71 @@ class Dankie
         end
     end
 
-    # Devuelve la id del usuario al que se quiere afectar con el comando +
-    # el resto del texto (si es que hay alguno) en el mensaje
-    # También devuelve un alias_usuario que es un string con el alias pasado
-    # en el mensaje (si es que hubo alguno, ej: /kick @alias) para chequear
-    # después que el id sea válido y corresponda con ese alias.
+    # La gente se asustaría si viera lo mugriento que era este método antes
+    # de la refactorización que le hice hoy 30/09/2020 d.C.
     def id_y_resto(msj)
-        id_afectada = nil
-        otro_texto = nil
-        alias_usuario = false
+        resultado = { id: nil, alias: nil, razón: nil }
 
-        lista_entidades = nil
-        args_mensaje = get_command_params(msj)
-
-        if args_mensaje
-            args_mensaje = args_mensaje.strip
-
-            # Obtengo texto y entidades del mensaje del comando
-            if msj.entities && !msj.entities.empty?
-                texto = msj.text
-                lista_entidades = msj.entities
-            elsif msj.caption_entities && !msj.caption_entities.empty?
-                texto = msj.caption
-                lista_entidades = msj.caption_entities
-            end
-
-            # Me fijo si hay entidades
-            if lista_entidades && !lista_entidades.empty?
-                entidad = nil
-
-                # Si se llama al comando así -> "/comando" entonces eso ya
-                # cuenta como una entidad
-                if lista_entidades.length >= 2 &&
-                   lista_entidades[0].type == 'bot_command' &&
-                   lista_entidades[0].offset.zero?
-
-                    entidad = lista_entidades[1]
-                # msj.entities.length == 1, por ejemplo si se llama
-                # así -> "!comando"
-                elsif lista_entidades.length == 1
-                    entidad = lista_entidades[0]
-                end
-
-                fin = entidad.offset + entidad.length
-                # Veo si efectivamente había una entidad que ocupaba el principio del
-                # argumento del comando (me parece mal chequear que ocupe todo el texto
-                # acá, porque podría ser un hashtag por ejemplo y estaría chequeando
-                # cosas al pedo, pero bueno las posibilidades de eso son muy bajas y
-                # prefiero eso a estar repitiendo código)
-                if entidad &&
-                   args_mensaje.start_with?(texto[entidad.offset..(fin - 1)])
-
-                    otro_texto = texto[fin..].strip
-                    otro_texto = nil if otro_texto.empty?
-
-                    # Me fijo si esa entidad efectivamente era un alias
-                    case entidad.type
-                    when 'mention'
-                        # La entidad arranca con un @, por eso el + 1
-                        alias_usuario = texto[(entidad.offset + 1)..(fin - 1)].strip
-                        id_afectada = obtener_id_de_alias(alias_usuario)
-                    # Me fijo si esa entidad efectivamente
-                    # era una mención de usuario sin alias
-                    when 'text_mention'
-                        id_afectada = entidad.user.id
-                    end
-                end
-            end
-
-            # Si no logré nada con las entidades, entonces chequeo si
-            # me pasaron una id como texto
-            if id_afectada.nil?
-                id_afectada, otro_texto = id_numérica_y_otro_texto(args_mensaje)
-            end
-            # Si no conseguí ninguna id, entonces todo el argumento es "otro_texto"
-            otro_texto = args_mensaje if id_afectada.nil?
-        end
-        # Si está respondiendo a un mensaje y no se obtuvo un id de los argumentos
-        # toma el id de ese miembro para ser afectado. Notar que el otro texto
-        # es obtenido en el if anterior (si existe)
-        if msj.reply_to_message && id_afectada.nil?
-            id_afectada = msj.reply_to_message.from.id
+        if (args = get_command_params(msj))
+            valores = dame_entidades_texto(msj)
+            chequeo_id_y_resto_entidades(msj, args, valores, resultado) if valores
+            chequeo_id_numerica_y_resto(args, resultado) unless resultado[:id]
         end
 
-        [id_afectada, alias_usuario, otro_texto]
+        if resultado[:id].nil? && msj.reply_to_message
+            resultado[:id] = msj.reply_to_message.from.id
+        end
+
+        resultado
     end
 
-    def id_numérica_y_otro_texto(args_mensaje)
-        lista_palabras = args_mensaje.split
-        primer_palabra = natural(lista_palabras.first)
+    def dame_entidades_texto(msj)
+        if msj.entities.length.positive?
+            { entidades: msj.entities, texto: msj.text }
+        elsif msj.caption_entities.length.positive?
+            { entidades: msj.caption_entities, texto: msj.caption }
+        end
+    end
 
-        if primer_palabra
-            [primer_palabra, lista_palabras[1..].join(' ')]
+    def chequeo_id_y_resto_entidades(_msj, args, valores, resultado)
+        texto = valores[:texto]
+
+        entidad = dame_entidad_afectada(valores[:entidades])
+        fin = entidad.offset + entidad.length
+        texto_entidad = texto[entidad.offset..(fin - 1)]
+
+        return unless args.start_with? texto_entidad
+
+        resultado[:razón] = texto.length == fin ? nil : texto[fin..]
+
+        case entidad.type
+        when 'mention'
+            # La entidad arranca con un @, por eso el 1..
+            resultado[:alias] = texto_entidad[1..].strip
+            resultado[:id] = obtener_id_de_alias(resultado[:alias])
+        when 'text_mention'
+            resultado[:id] = entidad.user.id
+        end
+    end
+
+    def dame_entidad_afectada(entidades)
+        if entidades.length >= 2 && entidades.first.type == 'bot_command'
+            entidades[1]
         else
-            [nil, nil]
+            entidades.first
+        end
+    end
+
+    def chequeo_id_numerica_y_resto(args, resultado)
+        lista_palabras = args.split
+
+        if natural(primer_palabra = lista_palabras.first)
+            resultado[:id] = primer_palabra
+            if lista_palabras.length > 1
+                resultado[:razón] = lista_palabras[1..].join(' ')
+            end
+        else
+            resultado[:razón] = args
         end
     end
 
