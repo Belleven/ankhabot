@@ -16,6 +16,15 @@ class Dankie
     add_handler Handler::Comando.new(:apodos, :apodos,
                                      chats_permitidos: %i[group supergroup],
                                      descripción: 'Te doy los apodos del grupete')
+    add_handler Handler::Comando.new(:historial_nombres, :historial_datos_usuario,
+                                     chats_permitidos: %i[group supergroup private],
+                                     descripción: 'Envío el historial de nombres '\
+                                                  'y usernames del usuario')
+    add_handler Handler::Comando.new(:purgar_historial_nombres,
+                                     :purgar_historial_datos_usuario,
+                                     chats_permitidos: %i[group supergroup private],
+                                     descripción: 'Elimino tu historial de nombres '\
+                                                  'y usernames')
 
     def dar_apodo(msj)
         chat_id = msj.chat.id
@@ -138,6 +147,22 @@ class Dankie
                                   'apodo:')
     end
 
+    def historial_datos_usuario(msj)
+        id_usuario = msj&.reply_to_message.from.id || msj.from.id
+
+        datos_usuario = crear_arreglo_datos_usuario(id_usuario)
+
+        # TODO: SEGUIR ACÁ: hay que convertir ese arreglo en una tabla bonita
+        # y enviarla
+    end
+
+    def purgar_historial_datos_usuario(msj)
+        redis_eliminar_datos_usuario(msj.from.id)
+
+        @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                         text: 'Ya eliminé tus nombres y eso nwn')
+    end
+
     private
 
     def calcular_arreglo_apodos(msj, apodos)
@@ -224,5 +249,40 @@ class Dankie
             text: texto,
             parse_mode: :html
         )
+    end
+
+    def crear_arreglo_datos_usuario(id_usuario)
+        # Arreglo de {fecha, nombre, apellido, user}, ordenado por fecha
+        datos = []
+
+        nombres_usuario(id_usuario) do |nombre, fecha|
+            datos << { fecha: fecha, nombre: nombre, apellido: nil, username: nil }
+        end
+
+        apellidos_usuario(id_usuario) do |apellido, fecha|
+            if (dato = datos.find { |d| d[:fecha] == fecha })
+                dato[:apellido] = apellido
+                next
+            end
+
+            # Busco el índice de la primer fecha mayor al dato a ingresar
+            # e inserto ahí el nuevo dato
+            i = datos.index { |d| d[:fecha] > fecha } || datos.size
+            datos.insert(i, { fecha: fecha, nombre: nil,
+                              apellido: apellido, username: nil })
+        end
+
+        usernames_usuario(id_usuario) do |username, fecha|
+            if (dato = datos.find { |d| d[:fecha] == fecha })
+                dato[:username] = username
+                next
+            end
+
+            i = datos.index { |d| d[:fecha] > fecha } || datos.size
+            datos.insert(i, { fecha: fecha, nombre: nil,
+                              apellido: nil, username: username })
+        end
+
+        datos
     end
 end

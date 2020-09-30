@@ -36,7 +36,7 @@ class Dankie
             nombre_usuario = usuario.first_name
         else
             id_usuario = usuario
-            alias_usuario = @redis.get "usuario:#{id_usuario}"
+            alias_usuario = obtener_username_usuario(id_usuario)
             nombre_usuario = nil
         end
 
@@ -69,7 +69,7 @@ class Dankie
             return mención
         end
 
-        if (nombre = @redis.get("nombre:#{id_usuario}") || nombre_usuario)
+        if (nombre = obtener_nombre_usuario(id_usuario) || nombre_usuario)
             mención << "#{html_parser nombre}</a>"
             return mención
         end

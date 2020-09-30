@@ -3,8 +3,14 @@
     -sistema de reputación
     -comando xkcd
     -comando roll
+    -rediseñado cacheo de nombres de usuario:
+        -los guarda en listas con la fecha de modificación
+        -comando historial_nombres para doxxear gente
+        -comando purgar_historial_nombres para vaciar datos propios
+        -IMPORTANTÍSIMO eliminar claves "nombre:*" y "usuario:*" en la base de datos
     -mejora en la captura de excepciones
     -correcciones del rubocop
+    -fran ascendido a dev
 
 1.2
     -implementación básica de estadísticas de uso (sin visualización)

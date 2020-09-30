@@ -6,15 +6,15 @@ class Dankie
     # Método recursivo que actualiza los nombres de usuarios en redis
     # Necesita ser público por los handlers
     def actualizar_datos_usuarios(msj)
-        redis_actualizar_datos msj.from
+        redis_actualizar_datos_usuario msj.from
 
-        redis_actualizar_datos msj.forward_from if msj.forward_from
+        redis_actualizar_datos_usuario msj.forward_from if msj.forward_from
 
         msj.new_chat_members.each do |usuario|
-            redis_actualizar_datos usuario
+            redis_actualizar_datos_usuario usuario
         end
 
-        redis_actualizar_datos msj.left_chat_member if msj.left_chat_member
+        redis_actualizar_datos_usuario msj.left_chat_member if msj.left_chat_member
 
         actualizar_datos_usuarios(msj.reply_to_message) if msj.reply_to_message
     end
@@ -42,19 +42,69 @@ class Dankie
 
     private
 
-    def redis_actualizar_datos(usuario)
+    # Se guardan nombre, apellido y usuario cada uno en una lista por user_id
+    # Hay dos listas por cada dato, una con el valor y otra con la fecha de cambio
+    # ejemplo: "nombre:100000" y "nombre:100000:date"
+    def redis_actualizar_datos_usuario(usuario)
         clave = "nombre:#{usuario.id}"
+        hora = Time.now.to_i
 
-        if @redis.get(clave) != usuario.first_name
-            # 86400 = 60 * 60 * 24
-            @redis.set clave, usuario.first_name, ex: 86_400
+        if obtener_nombre_usuario(usuario.id) != usuario.first_name
+            @redis.rpush(clave, usuario.first_name)
+            @redis.rpush("#{clave}:date", hora)
         end
 
-        clave = "usuario:#{usuario.id}"
+        clave = "apellido:#{usuario.id}"
 
-        return unless @redis.get(clave) != usuario.username
+        if obtener_apellido_usuario(usuario.id) != usuario.last_name
+            @redis.rpush(clave, usuario.last_name)
+            @redis.rpush("#{clave}:date", hora)
+        end
 
-        # 86400 = 60 * 60 * 24
-        @redis.set clave, usuario.username, ex: 86_400
+        clave = "username:#{usuario.id}"
+
+        if obtener_username_usuario(usuario.id) != usuario.username
+            @redis.rpush(clave, usuario.username)
+            @redis.rpush("#{clave}:date", hora)
+        end
+    end
+
+    def redis_eliminar_datos_usuario(usuario)
+        %w[nombre: apellido: username:]
+            .map { |w| w + usuario.to_s }
+            .product(['', ':time'])
+            .map(&:join)
+            .each { |clave| @redis.del(clave) }
+    end
+
+    def obtener_nombre_usuario(id)
+        @redis.lindex("nombre:#{id}", -1)
+    end
+
+    def obtener_apellido_usuario(id)
+        @redis.lindex("apellido:#{id}", -1)
+    end
+
+    def obtener_username_usuario(id)
+        @redis.lindex("username:#{id}", -1)
+    end
+
+    def nombres_usuario(id)
+        iterar_datos_usuario('nombre:', id)
+    end
+
+    def apellidos_usuario(id)
+        iterar_datos_usuario('apellido:', id)
+    end
+
+    def usernames_usuario(id)
+        iterar_datos_usuario('username:', id)
+    end
+
+    def iterar_datos_usuario(campo, id)
+        datos = @redis.lrange(campo + id.to_s, 0, -1)
+        fechas = @redis.lrange(campo + id.to_s, 0, -1)&.map(&:to_i)
+
+        datos.each.with_index { |dato, i| yield dato, fechas[i] }
     end
 end
