@@ -160,7 +160,7 @@ class Dankie
 
         if (args = get_command_params(msj))
             valores = dame_entidades_texto(msj)
-            chequeo_id_y_resto_entidades(msj, args, valores, resultado) if valores
+            chequeo_id_y_resto_entidades(args, valores, resultado) if valores
             chequeo_id_numerica_y_resto(args, resultado) unless resultado[:id]
         end
 
@@ -179,7 +179,7 @@ class Dankie
         end
     end
 
-    def chequeo_id_y_resto_entidades(_msj, args, valores, resultado)
+    def chequeo_id_y_resto_entidades(args, valores, resultado)
         texto = valores[:texto]
 
         entidad = dame_entidad_afectada(valores[:entidades])
