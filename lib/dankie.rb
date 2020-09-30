@@ -211,7 +211,7 @@ class Dankie
     def comando_barra(texto)
         comando, params = texto.split ' ', 2
         comando.downcase!
-        comando.gsub!(%r{^/([a-z]+)(@#{@user.username.downcase})?}, '\\1')
+        comando.gsub!(%r{^/([_a-z]+)(@#{@user.username.downcase})?}, '\\1')
         devolver_dicc_comando_params(comando, params)
     end
 
