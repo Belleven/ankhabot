@@ -190,8 +190,9 @@ class Dankie
                                      text: arr.first)
         return unless respuesta
 
-        respuesta = Telegram::Bot::Types::Message.new respuesta['result']
-        armar_lista(msj.chat.id, respuesta.message_id, arr)
+        armar_lista(msj.chat.id,
+                    Telegram::Bot::Types::Message.new(respuesta['result']).message_id,
+                    arr)
     end
 
     def purgar_historial_datos_usuario(msj)
@@ -297,28 +298,19 @@ class Dankie
             datos << { fecha: fecha, nombre: nombre, apellido: nil, username: nil }
         end
 
-        apellidos_usuario(id_usuario) do |apellido, fecha|
-            if (dato = datos.find { |d| d[:fecha] == fecha })
-                dato[:apellido] = apellido
-                next
+        { apellido: :apellidos_usuario, username: :usernames_usuario }.each do |k, mét|
+            send(mét, id_usuario) do |val, fecha|
+                if (dato = datos.find { |d| d[:fecha] == fecha })
+                    dato[k] = val
+                    next
+                end
+
+                # Busco el índice de la primer fecha mayor al dato a ingresar
+                # e inserto ahí el nuevo dato
+                i = datos.index { |d| d[:fecha] > fecha } || datos.size
+                datos.insert(i, { fecha: fecha, nombre: nil,
+                                  apellido: nil, username: nil }.merge(k => val))
             end
-
-            # Busco el índice de la primer fecha mayor al dato a ingresar
-            # e inserto ahí el nuevo dato
-            i = datos.index { |d| d[:fecha] > fecha } || datos.size
-            datos.insert(i, { fecha: fecha, nombre: nil,
-                              apellido: apellido, username: nil })
-        end
-
-        usernames_usuario(id_usuario) do |username, fecha|
-            if (dato = datos.find { |d| d[:fecha] == fecha })
-                dato[:username] = username
-                next
-            end
-
-            i = datos.index { |d| d[:fecha] > fecha } || datos.size
-            datos.insert(i, { fecha: fecha, nombre: nil,
-                              apellido: nil, username: username })
         end
 
         # Los datos nil indican que se mantuvieron igual que en el estado anterior
@@ -332,17 +324,22 @@ class Dankie
     # ordenado de más nuevo a más viejo
     def lista_cambios_nombres(datos)
         lista = []
-        datos.map do |dato|
+
+        aux = datos.map do |dato|
             [Time.at(dato[:fecha]), [dato[:nombre], dato[:apellido]].join(' ').strip]
         end
-             .each { |item| lista << item unless lista.last&.last == item.last }
+
+        aux.each { |item| lista << item unless lista.last&.last == item.last }
+
         lista.sort { |a, b| b.first <=> a.first }
     end
 
     def lista_cambios_usernames(datos)
         lista = []
+
         datos.map { |dato| [Time.at(dato[:fecha]), dato[:username]] }
              .each { |item| lista << item unless lista.last&.last == item.last }
+
         lista.sort { |a, b| b.first <=> a.first }
     end
 
