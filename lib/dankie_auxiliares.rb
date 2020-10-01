@@ -349,7 +349,7 @@ class Dankie
         arr.shift until arr.size <= 13
     end
 
-    def arreglo_tablero(params, inicio_en_subtítulo: false)
+    def arreglo_tablero(params)
         conjunto_iterable = params[:conjunto_iterable]
         arr = params[:arr]
         subtítulo = params[:subtítulo]
@@ -359,14 +359,7 @@ class Dankie
 
         return if conjunto_iterable.nil? || conjunto_iterable.empty?
 
-        agregar_subtítulo(
-            arr: arr,
-            subtítulo: subtítulo,
-            inicio_en_subtítulo: inicio_en_subtítulo,
-            contador: contador,
-            max_cant: max_cant,
-            max_tam: max_tam
-        )
+        agregar_subtítulo(params)
 
         # Itero sobre los elementos
         conjunto_iterable.each do |elemento|
@@ -387,13 +380,11 @@ class Dankie
     end
 
     def agregar_subtítulo(params)
-        arr = params[:arr]
-        subtítulo = params[:subtítulo]
-        # .dup crea una copia del objeto original
-        if params[:inicio_en_subtítulo] && !arr.empty? && subtítulo &&
-           params[:contador] < params[:max_cant] && arr.last.size < params[:max_tam]
+        if params[:inicio_en_subtítulo] && !params[:arr].empty? && params[:subtítulo] &&
+           params[:contador] < params[:max_cant] &&
+           params[:arr].last.size < params[:max_tam]
             # Meto subtítulo si queda bien ponerlo en este caso
-            arr.last << subtítulo.dup
+            params[:arr].last << "\n#{params[:subtítulo].dup}"
         end
     end
 end

@@ -17,12 +17,10 @@ class Dankie
                                      chats_permitidos: %i[group supergroup],
                                      descripción: 'Te doy los apodos del grupete')
     add_handler Handler::Comando.new(:historial_nombres, :historial_datos_usuario,
-                                     chats_permitidos: %i[group supergroup private],
                                      descripción: 'Envío el historial de nombres '\
                                                   'y usernames del usuario')
     add_handler Handler::Comando.new(:purgar_historial_nombres,
                                      :purgar_historial_datos_usuario,
-                                     chats_permitidos: %i[group supergroup private],
                                      descripción: 'Elimino tu historial de nombres '\
                                                   'y usernames')
 
@@ -148,12 +146,52 @@ class Dankie
     end
 
     def historial_datos_usuario(msj)
-        id_usuario = msj&.reply_to_message.from.id || msj.from.id
+        id_usuario = msj&.reply_to_message&.from&.id || msj.from.id
 
-        datos_usuario = crear_arreglo_datos_usuario(id_usuario)
+        datos = crear_arreglo_datos_usuario(id_usuario)
 
-        # TODO: SEGUIR ACÁ: hay que convertir ese arreglo en una tabla bonita
-        # y enviarla
+        título = "Historial de usuario de <code>#{id_usuario}</code>\n"
+
+        arr = []
+        # Código para agregar elemento en el array del tablero
+        agr_elemento = proc do |elemento|
+            "\n<code>#{elemento.first.strftime('%d/%m/%Y %T')}|</code> #{elemento.last}"
+        end
+
+        contador = arreglo_tablero(
+            arr: arr,
+            título: título,
+            contador: 0,
+            max_cant: 30,
+            max_tam: 1000,
+            agr_elemento: agr_elemento,
+            conjunto_iterable: lista_cambios_nombres(datos),
+            subtítulo: "\n<b>Nombres:</b>"
+        )
+
+        arreglo_tablero(
+            arr: arr,
+            título: título,
+            contador: contador,
+            max_cant: 30,
+            max_tam: 1000,
+            agr_elemento: agr_elemento,
+            conjunto_iterable: lista_cambios_usernames(datos),
+            subtítulo: "\n<b>Nombres de usuario:</b>",
+            inicio_en_subtítulo: true
+        )
+
+        # Armo botonera y envío
+        opciones = armar_botonera 0, arr.size, msj.from.id
+
+        respuesta = @tg.send_message(chat_id: msj.chat.id,
+                                     parse_mode: :html,
+                                     reply_markup: opciones,
+                                     text: arr.first)
+        return unless respuesta
+
+        respuesta = Telegram::Bot::Types::Message.new respuesta['result']
+        armar_lista(msj.chat.id, respuesta.message_id, arr)
     end
 
     def purgar_historial_datos_usuario(msj)
@@ -283,6 +321,55 @@ class Dankie
                               apellido: nil, username: username })
         end
 
+        # Los datos nil indican que se mantuvieron igual que en el estado anterior
+        # así que los mantengo
+        datos.each_cons(2) { |ant, sig| sig.each { |k, v| sig[k] = ant[k] unless v } }
+
         datos
+    end
+
+    # Lista donde cada campo es un array de dos campos [Time, nombre completo],
+    # ordenado de más nuevo a más viejo
+    def lista_cambios_nombres(datos)
+        lista = []
+        datos.map do |dato|
+            [Time.at(dato[:fecha]), [dato[:nombre], dato[:apellido]].join(' ').strip]
+        end
+             .each { |item| lista << item unless lista.last&.last == item.last }
+        lista.sort { |a, b| b.first <=> a.first }
+    end
+
+    def lista_cambios_usernames(datos)
+        lista = []
+        datos.map { |dato| [Time.at(dato[:fecha]), dato[:username]] }
+             .each { |item| lista << item unless lista.last&.last == item.last }
+        lista.sort { |a, b| b.first <=> a.first }
+    end
+
+    def armar_lista_datos_usuario(nombres, _usernames, id_usuario)
+        título = "Historial de nombres de <pre>#{id_usuario}</pre>\n"
+
+        arr = [título.dup]
+        contador = 0
+
+        nombres.each do |fecha, nombre|
+            if contador == 13 || arr.last.size >= 500
+                arr << título.dup
+                contador = 0
+            end
+
+            arr.last << "\n<pre>#{fecha.strftime('%d/%m/%Y %T')}|</pre> #{nombre}"
+            contador += 1
+        end
+
+        título = "Historial de nombres de usuario de <pre>#{id_usuario}</pre>\n"
+
+        if contador == 13 || arr.last.size >= 500
+            arr << título.dup
+            contador = 0
+        else
+            arr.last << "\n\n#{título}"
+        end
+        arr
     end
 end

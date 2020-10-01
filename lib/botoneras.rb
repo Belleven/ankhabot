@@ -114,7 +114,7 @@ class Dankie
             return Telegram::Bot::Types::InlineKeyboardMarkup.new inline_keyboard: arr
         end
 
-        rellenar_botones(página_actual, tamaño_máximo)
+        botones = rellenar_botones(página_actual, tamaño_máximo)
 
         botones.each do |botón|
             arr.first << Telegram::Bot::Types::InlineKeyboardButton.new(

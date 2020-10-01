@@ -49,34 +49,36 @@ class Dankie
         clave = "nombre:#{usuario.id}"
         hora = Time.now.to_i
 
-        if obtener_nombre_usuario(usuario.id) != usuario.first_name
+        unless obtener_nombre_usuario(usuario.id) == usuario.first_name
             @redis.rpush(clave, usuario.first_name)
             @redis.rpush("#{clave}:date", hora)
         end
 
         clave = "apellido:#{usuario.id}"
 
-        if obtener_apellido_usuario(usuario.id) != usuario.last_name
+        unless obtener_apellido_usuario(usuario.id) == usuario.last_name
             @redis.rpush(clave, usuario.last_name)
             @redis.rpush("#{clave}:date", hora)
         end
 
         clave = "username:#{usuario.id}"
 
-        if obtener_username_usuario(usuario.id) != usuario.username
-            @redis.rpush(clave, usuario.username)
-            @redis.rpush("#{clave}:date", hora)
-        end
+        return if obtener_username_usuario(usuario.id) == usuario.username
+
+        @redis.rpush(clave, usuario.username)
+        @redis.rpush("#{clave}:date", hora)
     end
 
-    def redis_eliminar_datos_usuario(usuario)
+    def redis_eliminar_datos_usuario(id_usuario)
         %w[nombre: apellido: username:]
-            .map { |w| w + usuario.to_s }
-            .product(['', ':time'])
+            .map { |w| w + id_usuario.to_s }
+            .product(['', ':date'])
             .map(&:join)
             .each { |clave| @redis.del(clave) }
     end
 
+    # Las siguientes tres funciones devuelven dicho campo, o
+    # un String vacío si el usuario no tiene dicho campo
     def obtener_nombre_usuario(id)
         @redis.lindex("nombre:#{id}", -1)
     end
@@ -89,21 +91,21 @@ class Dankie
         @redis.lindex("username:#{id}", -1)
     end
 
-    def nombres_usuario(id)
-        iterar_datos_usuario('nombre:', id)
+    def nombres_usuario(id, &block)
+        iterar_datos_usuario('nombre:', id, &block)
     end
 
-    def apellidos_usuario(id)
-        iterar_datos_usuario('apellido:', id)
+    def apellidos_usuario(id, &block)
+        iterar_datos_usuario('apellido:', id, &block)
     end
 
-    def usernames_usuario(id)
-        iterar_datos_usuario('username:', id)
+    def usernames_usuario(id, &block)
+        iterar_datos_usuario('username:', id, &block)
     end
 
     def iterar_datos_usuario(campo, id)
         datos = @redis.lrange(campo + id.to_s, 0, -1)
-        fechas = @redis.lrange(campo + id.to_s, 0, -1)&.map(&:to_i)
+        fechas = @redis.lrange("#{campo}#{id}:date", 0, -1)&.map(&:to_i)
 
         datos.each.with_index { |dato, i| yield dato, fechas[i] }
     end
