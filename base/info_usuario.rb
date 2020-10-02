@@ -167,6 +167,15 @@ class Dankie
                     arr)
     end
 
+    def purgar_historial_datos_usuario(msj)
+        redis_eliminar_datos_usuario(msj.from.id)
+
+        @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
+                         text: 'Ya eliminé tus nombres y eso nwn')
+    end
+
+    private
+
     def armar_arreglo_tablero_historial_datos(id_usuario, datos)
         título = "Historial de usuario de <code>#{id_usuario}</code>\n"
 
@@ -203,14 +212,6 @@ class Dankie
         arr
     end
 
-    def purgar_historial_datos_usuario(msj)
-        redis_eliminar_datos_usuario(msj.from.id)
-
-        @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
-                         text: 'Ya eliminé tus nombres y eso nwn')
-    end
-
-    private
 
     def calcular_arreglo_apodos(msj, apodos)
         título = "Apodos del grupete #{html_parser(msj.chat.title)}\n"
