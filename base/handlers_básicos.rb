@@ -18,7 +18,8 @@ class Dankie
 
     def informar_cambio_datos_en_grupo(msj)
         return if %w[private channel].include? msj.chat.type
-        # TODO return if hay una configuración de grupo para que no envíe esto
+
+        # TODO: return if hay una configuración de grupo para que no envíe esto
         # TODO return if hay una configuración de usuario para que no envíe esto
         # TODO considerar el caso donde el usuario recién ingresa al grupo
 
@@ -74,7 +75,8 @@ class Dankie
     def informar_cambio_datos_usuario(id_usuario, chat, cambios)
         return if cambios.empty?
         return if %w[private channel].include? chat.type
-        # TODO return if hay una configuración de grupo para que no envíe esto
+
+        # TODO: return if hay una configuración de grupo para que no envíe esto
         # TODO return if hay una configuración de usuario para que no envíe esto
 
         texto = obtener_enlace_usuario(id_usuario, chat.id)
