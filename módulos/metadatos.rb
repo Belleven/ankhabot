@@ -308,7 +308,7 @@ class Dankie
 
         texto << "\n\n - Dado:"
         texto << "#{tab} Emoji: #{dado.emoji}"
-        texto << "#{tab} Valor: <code>#{dato.value}</code>"
+        texto << "#{tab} Valor: <code>#{dado.value}</code>"
     end
 
     def agregar_multimedia(respuesta, msj, nivel)
