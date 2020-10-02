@@ -150,12 +150,31 @@ class Dankie
 
         datos = crear_arreglo_datos_usuario(id_usuario)
 
+        arr = armar_arreglo_tablero_historial_datos(id_usuario, datos)
+
+        # Armo botonera y envío
+        opciones = armar_botonera 0, arr.size, msj.from.id
+
+        respuesta = @tg.send_message(chat_id: msj.chat.id,
+                                     parse_mode: :html,
+                                     reply_markup: opciones,
+                                     text: arr.first,
+                                     disable_notification: true)
+        return unless respuesta
+
+        armar_lista(msj.chat.id,
+                    Telegram::Bot::Types::Message.new(respuesta['result']).message_id,
+                    arr)
+    end
+
+    def armar_arreglo_tablero_historial_datos(id_usuario, datos)
         título = "Historial de usuario de <code>#{id_usuario}</code>\n"
 
         arr = []
         # Código para agregar elemento en el array del tablero
         agr_elemento = proc do |elemento|
-            "\n<code>#{elemento.first.strftime('%d/%m/%Y %T')}|</code> #{elemento.last}"
+            "\n<code>#{elemento.first.strftime('%d/%m/%Y %T')}|</code> "\
+                "<i>#{html_parser elemento.last}</i>"
         end
 
         contador = arreglo_tablero(
@@ -177,22 +196,11 @@ class Dankie
             max_tam: 1000,
             agr_elemento: agr_elemento,
             conjunto_iterable: lista_cambios_usernames(datos),
-            subtítulo: "\n<b>Nombres de usuario:</b>",
+            subtítulo: "\n<b>Aliases:</b>",
             inicio_en_subtítulo: true
         )
 
-        # Armo botonera y envío
-        opciones = armar_botonera 0, arr.size, msj.from.id
-
-        respuesta = @tg.send_message(chat_id: msj.chat.id,
-                                     parse_mode: :html,
-                                     reply_markup: opciones,
-                                     text: arr.first)
-        return unless respuesta
-
-        armar_lista(msj.chat.id,
-                    Telegram::Bot::Types::Message.new(respuesta['result']).message_id,
-                    arr)
+        arr
     end
 
     def purgar_historial_datos_usuario(msj)

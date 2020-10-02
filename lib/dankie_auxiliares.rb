@@ -77,7 +77,7 @@ class Dankie
         usuario = @tg.get_chat_member(chat_id: id_chat, user_id: id_usuario)
         usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
 
-        redis_actualizar_datos usuario
+        redis_actualizar_datos_usuario usuario
         return "ay no c (#{id_usuario})" if usuario.first_name.empty?
 
         mención << "#{html_parser usuario.first_name}</a>"
@@ -317,6 +317,112 @@ class Dankie
                          text: texto,
                          disable_web_page_preview: true,
                          disable_notification: true)
+    end
+
+    # Se guardan nombre, apellido y usuario cada uno en una lista por user_id
+    # Hay dos listas por cada dato, una con el valor y otra con la fecha de cambio
+    # ejemplo: "nombre:100000" y "nombre:100000:date"
+    def redis_actualizar_datos_usuario(usuario)
+        hora = Time.now.to_i
+        cambios = []
+
+        unless obtener_nombre_usuario(usuario.id) == usuario.first_name
+            cambios << redis_actualizar_nombre_usuario(usuario.id,
+                                                       usuario.first_name,
+                                                       hora)
+        end
+
+        unless obtener_apellido_usuario(usuario.id) == usuario.last_name.to_s
+            cambios << redis_actualizar_apellido_usuario(usuario.id,
+                                                         usuario.last_name,
+                                                         hora)
+        end
+
+        unless obtener_username_usuario(usuario.id) == usuario.username.to_s
+            cambios << redis_actualizar_username_usuario(usuario.id,
+                                                         usuario.username,
+                                                         hora)
+        end
+
+        cambios.compact
+    end
+
+    def redis_eliminar_datos_usuario(id_usuario)
+        %w[nombre: apellido: username:]
+            .map { |w| w + id_usuario.to_s }
+            .product(['', ':date'])
+            .map(&:join)
+            .each { |clave| @redis.del(clave) }
+    end
+
+    def redis_actualizar_nombre_usuario(id, nombre, hora)
+        clave = "nombre:#{id}"
+        @redis.rpush(clave, nombre)
+        @redis.rpush("#{clave}:date", hora)
+        @redis.llen(clave) > 1 ? :nombre : nil
+    end
+
+    def redis_actualizar_apellido_usuario(id, apellido, hora)
+        clave = "apellido:#{id}"
+        @redis.rpush(clave, apellido)
+        @redis.rpush("#{clave}:date", hora)
+        @redis.llen(clave) > 1 ? :apellido : nil
+    end
+
+    def redis_actualizar_username_usuario(id, username, hora)
+        clave = "username:#{id}"
+        @redis.rpush(clave, username)
+        @redis.rpush("#{clave}:date", hora)
+        @redis.llen(clave) > 1 ? :username : nil
+    end
+
+    # Las siguientes tres funciones devuelven dicho campo, o
+    # un String vacío si el usuario no tiene dicho campo
+    def obtener_nombre_usuario(id)
+        @redis.lindex("nombre:#{id}", -1)
+    end
+
+    def obtener_apellido_usuario(id)
+        @redis.lindex("apellido:#{id}", -1)
+    end
+
+    def obtener_username_usuario(id)
+        @redis.lindex("username:#{id}", -1)
+    end
+
+    def nombres_usuario(id, &block)
+        if block_given?
+            iterar_datos_usuario('nombre:', id, &block)
+        else
+            to_enum :nombres_usuario, id
+        end
+    end
+
+    def apellidos_usuario(id, &block)
+        if block_given?
+            iterar_datos_usuario('apellido:', id, &block)
+        else
+            to_enum :apellidos_usuario, id
+        end
+    end
+
+    def usernames_usuario(id, &block)
+        if block_given?
+            iterar_datos_usuario('username:', id, &block)
+        else
+            to_enum :usernames_usuario, id
+        end
+    end
+
+    def iterar_datos_usuario(campo, id)
+        datos = @redis.lrange(campo + id.to_s, 0, -1)
+        fechas = @redis.lrange("#{campo}#{id}:date", 0, -1)&.map(&:to_i)
+
+        if block_given?
+            datos.each.with_index { |dato, i| yield dato, fechas[i] }
+        else
+            to_enum :iterar_datos_usuario, campo, id
+        end
     end
 
     # Método que mete un id_mensaje en una cola de mensajes que

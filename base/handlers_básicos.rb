@@ -6,15 +6,11 @@ class Dankie
     # Método recursivo que actualiza los nombres de usuarios en redis
     # Necesita ser público por los handlers
     def actualizar_datos_usuarios(msj)
-        redis_actualizar_datos_usuario msj.from
-
-        redis_actualizar_datos_usuario msj.forward_from if msj.forward_from
-
-        msj.new_chat_members.each do |usuario|
-            redis_actualizar_datos_usuario usuario
+        usuarios = [msj.from, msj.forward_from, msj.left_chat_member]
+        (usuarios + msj.new_chat_members).compact.each do |usuario|
+            informar_cambio_datos_usuario(usuario.id, msj.chat.id,
+                                          redis_actualizar_datos_usuario(usuario))
         end
-
-        redis_actualizar_datos_usuario msj.left_chat_member if msj.left_chat_member
 
         actualizar_datos_usuarios(msj.reply_to_message) if msj.reply_to_message
     end
@@ -42,71 +38,55 @@ class Dankie
 
     private
 
-    # Se guardan nombre, apellido y usuario cada uno en una lista por user_id
-    # Hay dos listas por cada dato, una con el valor y otra con la fecha de cambio
-    # ejemplo: "nombre:100000" y "nombre:100000:date"
-    def redis_actualizar_datos_usuario(usuario)
-        clave = "nombre:#{usuario.id}"
-        hora = Time.now.to_i
+    def informar_cambio_datos_usuario(id_usuario, id_chat, cambios)
+        return if cambios.empty?
 
-        unless obtener_nombre_usuario(usuario.id) == usuario.first_name
-            @redis.rpush(clave, usuario.first_name)
-            @redis.rpush("#{clave}:date", hora)
-        end
+        texto = obtener_enlace_usuario(id_usuario, id_chat)
+        texto << " cambió su información de usuario:\n"
 
-        clave = "apellido:#{usuario.id}"
+        texto << texto_cambio_nombre_usuario(id_usuario) if cambios.include? :nombre
 
-        unless obtener_apellido_usuario(usuario.id) == usuario.last_name
-            @redis.rpush(clave, usuario.last_name)
-            @redis.rpush("#{clave}:date", hora)
-        end
+        texto << texto_cambio_apellido_usuario(id_usuario) if cambios.include? :apellido
 
-        clave = "username:#{usuario.id}"
+        texto << texto_cambio_username_usuario(id_usuario) if cambios.include? :username
 
-        return if obtener_username_usuario(usuario.id) == usuario.username
-
-        @redis.rpush(clave, usuario.username)
-        @redis.rpush("#{clave}:date", hora)
+        @tg.send_message(chat_id: id_chat,
+                         parse_mode: :html,
+                         text: texto,
+                         disable_notification: true,
+                         disable_web_page_preview: true)
     end
 
-    def redis_eliminar_datos_usuario(id_usuario)
-        %w[nombre: apellido: username:]
-            .map { |w| w + id_usuario.to_s }
-            .product(['', ':date'])
-            .map(&:join)
-            .each { |clave| @redis.del(clave) }
+    def texto_cambio_nombre_usuario(id_usuario)
+        texto = "\n<b>Nombre:</b>\n<code>"
+        texto << nombres_usuario(id_usuario)
+                 .to_a
+                 .last(2)
+                 .map(&:first)
+                 .map { |s| html_parser s }
+                 .join(' ➜ ')
+        texto << '</code>'
     end
 
-    # Las siguientes tres funciones devuelven dicho campo, o
-    # un String vacío si el usuario no tiene dicho campo
-    def obtener_nombre_usuario(id)
-        @redis.lindex("nombre:#{id}", -1)
+    def texto_cambio_apellido_usuario(id_usuario)
+        texto = "\n<b>Apellido:</b>\n<code>"
+        texto << apellidos_usuario(id_usuario)
+                 .to_a
+                 .last(2)
+                 .map(&:first)
+                 .map { |s| s.empty? ? 'Ø' : html_parser(s) }
+                 .join(' ➜ ')
+        texto << '</code>'
     end
 
-    def obtener_apellido_usuario(id)
-        @redis.lindex("apellido:#{id}", -1)
-    end
-
-    def obtener_username_usuario(id)
-        @redis.lindex("username:#{id}", -1)
-    end
-
-    def nombres_usuario(id, &block)
-        iterar_datos_usuario('nombre:', id, &block)
-    end
-
-    def apellidos_usuario(id, &block)
-        iterar_datos_usuario('apellido:', id, &block)
-    end
-
-    def usernames_usuario(id, &block)
-        iterar_datos_usuario('username:', id, &block)
-    end
-
-    def iterar_datos_usuario(campo, id)
-        datos = @redis.lrange(campo + id.to_s, 0, -1)
-        fechas = @redis.lrange("#{campo}#{id}:date", 0, -1)&.map(&:to_i)
-
-        datos.each.with_index { |dato, i| yield dato, fechas[i] }
+    def texto_cambio_username_usuario(id_usuario)
+        texto = "\n<b>Alias:</b>\n<code>"
+        texto << usernames_usuario(id_usuario)
+                 .to_a
+                 .last(2)
+                 .map(&:first)
+                 .map { |s| s.empty? ? 'Ø' : html_parser(s) }
+                 .join(' ➜ ')
+        texto << '</code>'
     end
 end
