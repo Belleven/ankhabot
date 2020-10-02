@@ -2,17 +2,50 @@ class Dankie
     add_handler Handler::CallbackQuery.new(:editar_botonera_lista, 'lista')
     add_handler Handler::CallbackQuery.new(:acciones_inferiores_lista, 'opcioneslista')
     add_handler Handler::Mensaje.new(:actualizar_datos_usuarios)
+    add_handler Handler::Mensaje.new(:informar_cambio_datos_en_grupo)
 
     # Método recursivo que actualiza los nombres de usuarios en redis
     # Necesita ser público por los handlers
     def actualizar_datos_usuarios(msj)
         usuarios = [msj.from, msj.forward_from, msj.left_chat_member]
         (usuarios + msj.new_chat_members).compact.each do |usuario|
-            informar_cambio_datos_usuario(usuario.id, msj.chat.id,
+            informar_cambio_datos_usuario(usuario.id, msj.chat,
                                           redis_actualizar_datos_usuario(usuario))
         end
 
         actualizar_datos_usuarios(msj.reply_to_message) if msj.reply_to_message
+    end
+
+    def informar_cambio_datos_en_grupo(msj)
+        return if %w[private channel].include? msj.chat.type
+        # TODO return if hay una configuración de grupo para que no envíe esto
+        # TODO return if hay una configuración de usuario para que no envíe esto
+        # TODO considerar el caso donde el usuario recién ingresa al grupo
+
+        id_usuario = msj.from.id
+        id_chat = msj.chat.id
+
+        texto = obtener_enlace_usuario(id_usuario, id_chat)
+        texto << " cambió su información de usuario:\n"
+
+        cambios = []
+
+        { 'nombre' => :texto_cambio_nombre_usuario,
+          'apellido' => :texto_cambio_apellido_usuario,
+          'username' => :texto_cambio_username_usuario }.each do |clave, método|
+            unless @redis.sismember("informar_cambio:#{clave}:#{id_usuario}", id_chat)
+                cambios << send(método, id_usuario)
+                @redis.sadd("informar_cambio:#{clave}:#{id_usuario}", id_chat)
+            end
+        end
+
+        return if cambios.empty?
+
+        @tg.send_message(chat_id: id_chat,
+                         parse_mode: :html,
+                         text: texto + cambios.join,
+                         disable_notification: true,
+                         disable_web_page_preview: true)
     end
 
     # Necesita ser público por los handlers
@@ -38,19 +71,34 @@ class Dankie
 
     private
 
-    def informar_cambio_datos_usuario(id_usuario, id_chat, cambios)
+    def informar_cambio_datos_usuario(id_usuario, chat, cambios)
         return if cambios.empty?
+        return if %w[private channel].include? chat.type
+        # TODO return if hay una configuración de grupo para que no envíe esto
+        # TODO return if hay una configuración de usuario para que no envíe esto
 
-        texto = obtener_enlace_usuario(id_usuario, id_chat)
+        texto = obtener_enlace_usuario(id_usuario, chat.id)
         texto << " cambió su información de usuario:\n"
 
-        texto << texto_cambio_nombre_usuario(id_usuario) if cambios.include? :nombre
+        if cambios.include? :nombre
+            texto << texto_cambio_nombre_usuario(id_usuario)
+            @redis.del("informar_cambio:nombre:#{id_usuario}")
+            @redis.sadd("informar_cambio:nombre:#{id_usuario}", chat.id)
+        end
 
-        texto << texto_cambio_apellido_usuario(id_usuario) if cambios.include? :apellido
+        if cambios.include? :apellido
+            texto << texto_cambio_apellido_usuario(id_usuario)
+            @redis.del("informar_cambio:apellido:#{id_usuario}")
+            @redis.sadd("informar_cambio:apellido:#{id_usuario}", chat.id)
+        end
 
-        texto << texto_cambio_username_usuario(id_usuario) if cambios.include? :username
+        if cambios.include? :username
+            texto << texto_cambio_username_usuario(id_usuario)
+            @redis.del("informar_cambio:username:#{id_usuario}")
+            @redis.sadd("informar_cambio:username:#{id_usuario}", chat.id)
+        end
 
-        @tg.send_message(chat_id: id_chat,
+        @tg.send_message(chat_id: chat.id,
                          parse_mode: :html,
                          text: texto,
                          disable_notification: true,
