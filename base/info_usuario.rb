@@ -212,7 +212,6 @@ class Dankie
         arr
     end
 
-
     def calcular_arreglo_apodos(msj, apodos)
         título = "Apodos del grupete #{html_parser(msj.chat.title)}\n"
 

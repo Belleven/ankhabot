@@ -62,31 +62,31 @@ class Dankie
     # Función que chequea los requisitos y ejecuta finalmente el comando moderador
     def aplicar_moderación(msj, func_moderadora, msj_final, para_aplicar_restricción)
         return unless (miembro = cumple_requisitos(msj, para_aplicar_restricción))
+        return unless llamar_método_api(msj, miembro, func_moderadora)
 
-        if aplicar_moderación(msj, miembro, func_moderadora)
-            razón = if razón.nil?
-                        ''
-                    else
-                        ".\nRazón: #{razón}#{(razón[-1] == '.' ? '' : '.')}"
-                    end
-            nombre = obtener_enlace_usuario(miembro.user, msj.chat.id)
-            nombre ||= 'Usuario eliminado'
+        razón = if razón.nil?
+                    ''
+                else
+                    ".\nRazón: #{razón}#{(razón[-1] == '.' ? '' : '.')}"
+                end
+        nombre = obtener_enlace_usuario(miembro.user, msj.chat.id)
+        nombre ||= 'Usuario eliminado'
 
-            texto = "#{msj_final} #{nombre}#{razón}"
-            @tg.send_message(
-                chat_id: msj.chat.id,
-                text: texto,
-                parse_mode: :html,
-                disable_web_page_preview: true,
-                disable_notification: true
-            )
-        end
+        texto = "#{msj_final} #{nombre}#{razón}"
+        @tg.send_message(
+            chat_id: msj.chat.id,
+            text: texto,
+            parse_mode: :html,
+            disable_web_page_preview: true,
+            disable_notification: true
+        )
     end
 
-    def aplicar_moderación(msj, miembro, func_moderadora)
+    def llamar_método_api(msj, miembro, func_moderadora)
         func_moderadora.call(msj.chat.id, miembro.user.id)
     rescue Telegram::Bot::Exceptions::ResponseError => e
         manejar_excepciones_moderación(msj, e)
+        false
     end
 
     # Todos los requisitos que hay que cumplir para banear/kickear
@@ -187,25 +187,32 @@ class Dankie
             @tg.send_message(
                 chat_id: msj.chat.id,
                 reply_to_message_id: msj.message_id,
-                text: "No podés banear a un admin #{TROESMAS.sample}"
+                text: "No podés banear admines, #{TROESMAS.sample}"
             )
             return
         when /can't remove chat owner/
             @tg.send_message(
                 chat_id: msj.chat.id,
                 reply_to_message_id: msj.message_id,
-                text: "Uff pero estás tratando de banear a quien "\
-                      "maneja el grupete #{TROESMAS.sample}"
+                text: 'Uff pero estás tratando de banear a quien '\
+                      "maneja el grupete, #{TROESMAS.sample}"
+            )
+            return
+        when %r{not enough rights to restrict/unrestrict chat member}
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                reply_to_message_id: msj.message_id,
+                text: 'Necesito más permisos para hacer eso'
             )
             return
         end
-        
+
         @logger.error excepción.to_s, al_canal: true
         @tg.send_message(
-                chat_id: msj.chat.id,
-                text: 'Hubo un error re turbina, probablemente '\
-                        'no pude terminar de ejecutar el comando.',
-                reply_to_message_id: msj.message_id
+            chat_id: msj.chat.id,
+            text: 'Hubo un error re turbina, probablemente '\
+                    'no pude terminar de ejecutar el comando.',
+            reply_to_message_id: msj.message_id
         )
     end
 end
