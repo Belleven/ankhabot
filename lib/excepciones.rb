@@ -21,15 +21,14 @@ class ManejoExcepciones
         método = "manejar_error_#{excepción.error_code}".to_sym
         chat = args && args[:chat_id] ? "en #{args[:chat_id]}" : '(F en el chat)'
 
-        if respond_to?(método, true)
-            send(método, excepción.message, chat, args)
-        elsif args && args[:chat_id]
+        return send(método, excepción.message, chat, args) if respond_to?(método, true)
+
+        if args && args[:chat_id]
             @logger.warn('chat_id que causa la siguiente excepción '\
                          "desconocida: #{args[:chat_id]}", al_canal: true)
-            false
-        else
-            false
         end
+
+        false
     end
 
     def manejar_error_400(mensaje_error, chat, args)
