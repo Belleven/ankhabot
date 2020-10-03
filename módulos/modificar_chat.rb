@@ -123,7 +123,7 @@ class Dankie
             msj,
             texto,
             :set_chat_title,
-            { chat_id: chat_id, title: texto }
+            { chat_id: msj.chat.id, title: texto }
         )
     end
 
@@ -134,9 +134,8 @@ class Dankie
         cambiar_texto_chat(
             msj,
             texto,
-            :can_change_info,
             :set_chat_description,
-            { chat_id: chat_id, description: texto }
+            { chat_id: msj.chat.id, description: texto }
         )
     end
 
