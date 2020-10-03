@@ -108,6 +108,7 @@ class Dankie
     def sacar_foto(msj)
         quitar_elemento_chat(
             msj,
+            :can_change_info,
             :delete_chat_photo,
             { chat_id: msj.chat.id },
             'Foto eliminadísima'
@@ -270,7 +271,7 @@ class Dankie
             @tg.send_message(
                 chat_id: msj.chat.id,
                 reply_to_message_id: msj.message_id,
-                text: 'No puedo quitar algo que no tiene el chat'
+                text: 'No puedo quitar algo que el chat no tiene'
             )
             return
         end
