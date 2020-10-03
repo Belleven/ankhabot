@@ -9,8 +9,11 @@
         -comando purgar_historial_nombres para vaciar datos propios
         -IMPORTANTÍSIMO eliminar claves "nombre:*" y "usuario:*" en la base de datos
     -mejora en la captura de excepciones
-    -correcciones del rubocop
+    -correcciones del rubocop: no hay más ofensas
     -fran ascendido a dev
+    -refactorización y optimización de comandos de moderación y modificación del chat
+    -agregados nuevos campos en los objetos de /metadatos
+    -correcciones menores
 
 1.2
     -implementación básica de estadísticas de uso (sin visualización)

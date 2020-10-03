@@ -1,39 +1,64 @@
 class Dankie
-    add_handler Handler::Comando.new(:pin,
-                                     :anclar,
-                                     permitir_params: true,
-                                     chats_permitidos: %i[group supergroup])
+    add_handler Handler::Comando.new(
+        :pin,
+        :anclar,
+        permitir_params: true,
+        chats_permitidos: %i[group supergroup]
+    )
 
-    add_handler Handler::Comando.new(:anclar,
-                                     :anclar,
-                                     permitir_params: true,
-                                     chats_permitidos: %i[group supergroup],
-                                     descripción: 'Anclo el mensaje al que respondas '\
-                                                  "en el grupete (agregá ''tranca'' "\
-                                                  'para que no mande notificaciones '\
-                                                  'al hacerlo)')
+    add_handler Handler::Comando.new(
+        :anclar,
+        :anclar,
+        permitir_params: true,
+        chats_permitidos: %i[group supergroup],
+        descripción: 'Anclo el mensaje al que respondas '\
+                     "en el grupete (agregá ''tranca'' "\
+                     'para que no mande notificaciones '\
+                     'al hacerlo)'
+    )
+
     add_handler Handler::Comando.new(:unpin, :desanclar)
-    add_handler Handler::Comando.new(:desanclar, :desanclar,
-                                     chats_permitidos: %i[group supergroup],
-                                     descripción: 'Desanclo el mensaje anclado '\
-                                                  'en el grupete')
+
+    add_handler Handler::Comando.new(
+        :desanclar,
+        :desanclar,
+        chats_permitidos: %i[group supergroup],
+        descripción: 'Desanclo el mensaje anclado en el grupete'
+    )
+
     # add_handler Handler::Comando.new(:ponerfoto, :poner_foto,
     #                                  chats_permitidos: %i[group supergroup],
     #                                  descripción: 'Cambio la foto del grupete')
-    add_handler Handler::Comando.new(:sacarfoto, :sacar_foto,
-                                     chats_permitidos: %i[group supergroup],
-                                     descripción: 'Quito la foto del grupete')
-    add_handler Handler::Comando.new(:cambiartítulo, :cambiar_título,
-                                     permitir_params: true,
-                                     chats_permitidos: %i[group supergroup])
-    add_handler Handler::Comando.new(:cambiartitulo, :cambiar_título,
-                                     permitir_params: true,
-                                     chats_permitidos: %i[group supergroup],
-                                     descripción: 'Cambio el título del grupete')
-    add_handler Handler::Comando.new(:cambiardesc, :cambiar_descripción,
-                                     permitir_params: true,
-                                     chats_permitidos: %i[group supergroup],
-                                     descripción: 'Cambio la descripción del grupete')
+
+    add_handler Handler::Comando.new(
+        :sacarfoto,
+        :sacar_foto,
+        chats_permitidos: %i[group supergroup],
+        descripción: 'Quito la foto del grupete'
+    )
+
+    add_handler Handler::Comando.new(
+        :cambiartítulo,
+        :cambiar_título,
+        permitir_params: true,
+        chats_permitidos: %i[group supergroup]
+    )
+
+    add_handler Handler::Comando.new(
+        :cambiartitulo,
+        :cambiar_título,
+        permitir_params: true,
+        chats_permitidos: %i[group supergroup],
+        descripción: 'Cambio el título del grupete'
+    )
+
+    add_handler Handler::Comando.new(
+        :cambiardesc,
+        :cambiar_descripción,
+        permitir_params: true,
+        chats_permitidos: %i[group supergroup],
+        descripción: 'Cambio la descripción del grupete'
+    )
 
     # Comando /pin /anclar
     def anclar(msj, params)
@@ -50,163 +75,115 @@ class Dankie
 
         if cumple_req_modificar_chat(msj, true, :can_pin_messages,
                                      'No tengo permisos para pinear mensajes')
-            @tg.pin_chat_message(chat_id: msj.chat.id,
-                                 message_id: msj.reply_to_message.message_id,
-                                 disable_notification: notificar)
-        end
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        case e.to_s
-        when /not enough rights to pin a message/
-            error_permisos = 'Me restringieron los permisos o me sacaron el admin '\
-                          'mientras se ejecutaba el comando, y por '\
-                          'ahora no puedo anclar mensajes'
-            log_y_aviso(msj, error_permisos, al_canal: false)
-        when /CHAT_NOT_MODIFIED/
-            error_permisos = 'Estás tratando de hacer que ancle un mensaje que '\
-                             "ya está anclado #{TROESMAS.sample}"
-            log_y_aviso(msj, error_permisos, al_canal: false)
-        when /message to pin not found/
-            error_permisos = "No puedo anclar eso #{TROESMAS.sample}, "\
-                             'no encontré el mensaje'
-            log_y_aviso(msj, error_permisos, al_canal: false)
-        else
-            raise
+            args_modif = {
+                chat_id: msj.chat.id,
+                message_id: msj.reply_to_message.message_id,
+                disable_notification: notificar
+            }
+
+            modificar_chat(
+                :pin_chat_message,
+                args_modif,
+                :manejar_excepciones_anclar,
+                msj
+            )
         end
     end
 
     # /ponerfoto
-    def poner_foto(msj)
-        id_imagen = nil
-        # Si el comando viene en el 'caption' de una imagen
-        if !msj.photo.empty?
-            id_imagen = msj.photo[-1].file_id
-        elsif msj.reply_to_message
-
-            # Si están respondiendo a una imagen
-            if !msj.reply_to_message.photo.empty?
-                id_imagen = msj.reply_to_message.photo[-1].file_id
-            # Si están respondiendo el evento de chat de cambio de imagen del grupo
-            elsif !msj.reply_to_message.new_chat_photo.empty?
-                id_imagen = msj.reply_to_message.new_chat_photo[-1].file_id
-            end
-
-        end
-
-        if id_imagen.nil?
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: "Respondele a una imagen #{TROESMAS.sample}",
-                             reply_to_message_id: msj.message_id)
-            nil
-        elsif cumple_req_modificar_chat(msj, false, :can_change_info,
-                                        'No tengo permisos para cambiar '\
-                                        'la imagen del grupete')
-            # TODO: usar identificador de imagen para cada tipo posible
-            descargar_archivo_tg(id_archivo, '')
-
-            # TODO: descargar y subir el archivete
-            # lectura = ImageList.new("a.png")
-            # @tg.set_chat_photo(chat_id: msj.chat.id, photo: lectura)
-        end
-        # rescue
-        # case e.to_s
-        # when /asdfasdf/
-        # TODO: manejar excepciones virgochas
-        # else
-        #    raise
-        # end
-    end
+    # def poner_foto(msj) end
 
     # Comando /unpin /desanclar
     def desanclar(msj)
-        # Función a ejecutar
-        quitar = proc do |id_chat|
-            @tg.unpin_chat_message(chat_id: id_chat)
-        end
-        # Textos para responder
-        error_no_tiene = "No hay ningún mensaje anclado #{TROESMAS.sample}"
-        texto_éxito = 'Desancladísimo'
-        error_mientras = 'Desanclaron el mensaje mientras ejecutaba el '\
-                         "comando, #{TROESMAS.sample}"
-
-        quitar_elemento_chat(msj, quitar, :pinned_message, error_no_tiene,
-                             texto_éxito, error_mientras, :can_pin_messages)
+        quitar_elemento_chat(
+            msj,
+            :can_pin_messages,
+            :unpin_chat_message,
+            { chat_id: msj.chat.id },
+            'Desancladísimo'
+        )
     end
 
     # Comando /sacarfoto
     def sacar_foto(msj)
-        # Función a ejecutar
-        quitar = proc do |id_chat|
-            @tg.delete_chat_photo(chat_id: id_chat)
-        end
-        # Textos para responder
-        error_no_tiene = "No hay ninguna foto en el chat #{TROESMAS.sample}"
-        texto_éxito = 'Foto eliminadísima'
-        error_mientras = 'Sacaron la foto del grupete mientras ejecutaba el '\
-                         "comando, #{TROESMAS.sample}"
-
-        quitar_elemento_chat(msj, quitar, :photo, error_no_tiene,
-                             texto_éxito, error_mientras, :can_change_info)
+        quitar_elemento_chat(
+            msj,
+            :delete_chat_photo,
+            { chat_id: msj.chat.id },
+            'Foto eliminadísima'
+        )
     end
 
     # Comandos /cambiartitulo y /cambiartítulo (notar la tilde)
     def cambiar_título(msj, params)
-        modificador = proc do |chat_id, título|
-            @tg.set_chat_title(chat_id: chat_id, title: título)
-        end
-        cambiar_texto_chat(msj, params, modificador, :título_rep)
+        texto = params || msj&.reply_to_message&.text || msj&.reply_to_message&.caption
+
+        cambiar_texto_chat(
+            msj,
+            texto,
+            :set_chat_title,
+            { chat_id: chat_id, title: texto }
+        )
     end
 
     # Comando /cambiardesc
     def cambiar_descripción(msj, params)
-        modificador = proc do |chat_id, descripción|
-            @tg.set_chat_description(chat_id: chat_id, description: descripción)
-        end
-        cambiar_texto_chat(msj, params, modificador, :descripción_rep)
+        texto = params || msj&.reply_to_message&.text || msj&.reply_to_message&.caption
+
+        cambiar_texto_chat(
+            msj,
+            texto,
+            :can_change_info,
+            :set_chat_description,
+            { chat_id: chat_id, description: texto }
+        )
     end
 
     private
 
     # Chequea que sea en un grupo, que responda a un mensaje (si corresponde)
-    # y que tengan los permisos adecuados el bot y quien llama al comando.
-    def cumple_req_modificar_chat(msj, necesita_responder,
-                                  permiso, error_permisos)
-        # Esto es una implicación, recordar que p => q es equivalente a
-        # ¬p V q, y yo lo que quiero es que esto de verdadero cuando no se
-        # necesite responder (p = false) o cuando se necesite responder y
-        # se responda a un mensaje válido (p = true && q = true). Lo que no puede
-        # valer es que necesite responder y el mensaje no sea válido (p = true
-        # && q = false). Está hecho así para que se use esta función desde /desanclar
+    # y que tenga los permisos adecuados quien llama al comando.
+    def cumple_req_modificar_chat(msj, necesita_responder, permiso, error_permisos)
         (!necesita_responder || resp_msj_válido(msj)) &&
-            tiene_permisos(msj, @user.id, permiso, 'Necesito', error_permisos) &&
             tiene_permisos(msj, msj.from.id, permiso, 'Tenés que', error_permisos)
     end
 
     def resp_msj_válido(msj)
         if msj.reply_to_message.nil?
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: 'Tenés que responderle al mensaje '\
-                                     'que querés que ancle',
-                             reply_to_message_id: msj.message_id)
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                text: 'Tenés que responderle al mensaje que querés que ancle',
+                reply_to_message_id: msj.message_id
+            )
             return false
         end
+        true
+    end
 
-        chat = obtener_chat(msj.chat.id)
-        if chat.pinned_message &&
-           chat.pinned_message.message_id == msj.reply_to_message.message_id
+    # Para quitar algo del chat
+    def quitar_elemento_chat(msj, permiso, quitar, args_modif, texto_éxito)
+        if cumple_req_modificar_chat(msj, false, permiso,
+                                     'No tengo permisos para sacar eso')
 
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: 'Estás tratando de hacer que ancle un mensaje que '\
-                                     "ya está anclado #{TROESMAS.sample}",
-                             reply_to_message_id: msj.message_id)
-            false
-        else
-            true
+            modificado = modificar_chat(
+                quitar,
+                args_modif,
+                :manejar_excepciones_quitar,
+                msj
+            )
+
+            if modificado
+                @tg.send_message(
+                    chat_id: msj.chat.id,
+                    text: "#{texto_éxito} #{TROESMAS.sample}",
+                    reply_to_message_id: msj.message_id
+                )
+            end
         end
     end
 
     # Para camabiar un texto del chat
-    def cambiar_texto_chat(msj, params, modificador, texto_no_repetido)
-        texto = params || msj&.reply_to_message&.text || msj&.reply_to_message&.caption
+    def cambiar_texto_chat(msj, texto, método_cambio, args_cambio)
         # Me fijo si no hay parámetros
         if texto.nil? || texto.length.zero?
             @tg.send_message(chat_id: msj.chat.id,
@@ -219,84 +196,118 @@ class Dankie
                              reply_to_message_id: msj.message_id)
         # Chequeo que el texto que me pasan no sea el mismo que está actualmente
         # en el grupete
-        elsif !send(texto_no_repetido, msj, texto) &&
-              cumple_req_modificar_chat(msj, false, :can_change_info,
+        elsif cumple_req_modificar_chat(msj, false, :can_change_info,
                                         'No tengo permisos para cambiar eso')
-            # Cambio lo que tenga que cambiar
-            modificador.call(msj.chat.id, texto)
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: "Listo el pollo #{TROESMAS.sample}",
-                             reply_to_message_id: msj.message_id)
-        end
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        case e.to_s
-        when /not enough rights to (set|change) chat (title|description)/
-            error_permisos = 'Me restringieron los permisos o me sacaron el admin '\
-                          'mientras se ejecutaba el comando, y por '\
-                          'ahora no puedo cambiar nada'
-            log_y_aviso(msj, error_permisos, al_canal: false)
-        when /chat (title|description) is not modified/
-            error_permisos = 'Justo pusieron lo mismo que vos me pasaste mientras '\
-                             'procesaba el comando'
-            log_y_aviso(msj, error_permisos, al_canal: false)
-        else
-            raise
+
+            modificado = modificar_chat(
+                método_cambio,
+                args_cambio,
+                :manejar_excepciones_texto,
+                msj
+            )
+
+            if modificado
+                @tg.send_message(
+                    chat_id: msj.chat.id,
+                    text: "Listo el pollo #{TROESMAS.sample}",
+                    reply_to_message_id: msj.message_id
+                )
+            end
         end
     end
 
-    # Para quitar algo del chat
-    def quitar_elemento_chat(msj, quitar, elemento, error_no_tiene,
-                             texto_éxito, error_mientras, permiso)
-        if chat_tiene(msj, elemento, error_no_tiene) &&
-           cumple_req_modificar_chat(msj, false, permiso,
-                                     'No tengo permisos para sacar eso')
-            quitar.call(msj.chat.id)
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: "#{texto_éxito} #{TROESMAS.sample}",
-                             reply_to_message_id: msj.message_id)
-        end
+    def modificar_chat(modif_chat, args_modif, manejar_exc, msj)
+        @tg.send modif_chat, args_modif
     rescue Telegram::Bot::Exceptions::ResponseError => e
-        case e.to_s
-        when /not enough rights to (unpin a message|change chat photo)/
-            error_permisos = 'Me restringieron los permisos o me sacaron el admin '\
-                             'mientras se ejecutaba el comando, y por '\
-                             'ahora no puedo hacer eso'
-            log_y_aviso(msj, error_permisos, al_canal: false)
+        send manejar_exc, msj, e
+        nil
+    end
+
+    def manejar_excepciones_anclar(msj, excepción)
+        case excepción.message
+        when /not enough rights to pin a message/
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                reply_to_message_id: msj.message_id,
+                text: 'No tengo suficientes permisos para anclar un mensaje'
+            )
+            return
         when /CHAT_NOT_MODIFIED/
-            log_y_aviso(msj, error_mientras, al_canal: false)
-        else
-            raise
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                reply_to_message_id: msj.message_id,
+                text: 'Ese mensaje ya está anclado'
+            )
+            return
+        when /message to pin not found/
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                reply_to_message_id: msj.message_id,
+                text: 'No puedo anclar eso, no encontré el mensaje'
+            )
+            return
         end
+
+        @logger.error excepción.to_s, al_canal: true
+        @tg.send_message(
+            chat_id: msj.chat.id,
+            text: 'Hubo un error re turbina, probablemente '\
+                    'no pude terminar de ejecutar el comando.',
+            reply_to_message_id: msj.message_id
+        )
     end
 
-    def título_rep(msj, params)
-        if (se_repite = (msj.chat.title == params))
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: 'El título que me pasas es el mismo que ya tiene '\
-                                    "el chat, #{TROESMAS.sample}",
-                             reply_to_message_id: msj.message_id)
+    def manejar_excepciones_quitar(msj, excepción)
+        case excepción.message
+        when /not enough rights to (unpin a message|change chat photo)/
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                reply_to_message_id: msj.message_id,
+                text: 'No tengo suficientes permisos para hacer eso'
+            )
+            return
+        when /CHAT_NOT_MODIFIED/
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                reply_to_message_id: msj.message_id,
+                text: 'No puedo quitar algo que no tiene el chat'
+            )
+            return
         end
-        se_repite
+
+        @logger.error excepción.to_s, al_canal: true
+        @tg.send_message(
+            chat_id: msj.chat.id,
+            text: 'Hubo un error re turbina, probablemente '\
+                    'no pude terminar de ejecutar el comando.',
+            reply_to_message_id: msj.message_id
+        )
     end
 
-    def descripción_rep(msj, params)
-        chat = obtener_chat(msj.chat.id)
-        if (se_repite = (chat.description == params))
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: 'La descripción que me pasás es la misma que ya '\
-                                    "tiene el chat, #{TROESMAS.sample}",
-                             reply_to_message_id: msj.message_id)
+    def manejar_excepciones_texto(msj, excepción)
+        case excepción.message
+        when /not enough rights to (set|change) chat (title|description)/
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                reply_to_message_id: msj.message_id,
+                text: 'No tengo suficientes permisos para hacer eso'
+            )
+            return
+        when /chat (title|description) is not modified/
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                reply_to_message_id: msj.message_id,
+                text: 'Lo que me estás pasando es el mismo texto que ya está ahora'
+            )
+            return
         end
-        se_repite
-    end
 
-    def chat_tiene(msj, elemento, error_no_tiene)
-        chat = obtener_chat(msj.chat.id)
-        unless (tiene = chat.send(elemento))
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: error_no_tiene,
-                             reply_to_message_id: msj.message_id)
-        end
-        tiene
+        @logger.error excepción.to_s, al_canal: true
+        @tg.send_message(
+            chat_id: msj.chat.id,
+            text: 'Hubo un error re turbina, probablemente '\
+                    'no pude terminar de ejecutar el comando.',
+            reply_to_message_id: msj.message_id
+        )
     end
 end

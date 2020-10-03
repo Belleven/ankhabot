@@ -106,6 +106,38 @@ class TelegramAPI
         enviar :answer_callback_query, args
     end
 
+    def delete_message(args)
+        @client.api.delete_message args
+    end
+
+    def unban_chat_member(args)
+        @client.api.unban_chat_member args
+    end
+
+    def pin_chat_message(args)
+        @client.api.pin_chat_message args
+    end
+
+    def kick_chat_member(args)
+        @client.api.kick_chat_member args
+    end
+
+    def unpin_chat_message(args)
+        @client.api.unpin_chat_message args
+    end
+
+    def delete_chat_photo(args)
+        @client.api.delete_chat_photo args
+    end
+
+    def set_chat_title(args)
+        @client.api.set_chat_title args
+    end
+
+    def set_chat_description(args)
+        @client.api.set_chat_description args
+    end
+
     private
 
     def enviar(función_envío, args, acción = nil)
@@ -147,8 +179,8 @@ class TelegramAPI
             id_supergrupo = corte_al_inicio.split('}').first
 
             @client.logger.error("Error en #{args[:chat_id]}. El grupo se "\
-                                    'actualizó y ahora es unsupergrupo '\
-                                    "(#{id_supergrupo}).\n#{exc.message}",
+                                 'actualizó y ahora es unsupergrupo '\
+                                 "(#{id_supergrupo}).\n#{exc.message}",
                                  al_canal: true)
             args[:chat_id] = id_supergrupo.to_i
         else

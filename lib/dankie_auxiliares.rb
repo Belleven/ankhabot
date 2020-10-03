@@ -251,32 +251,27 @@ class Dankie
     # Chequea que el miembro sea admin y tenga los permisos adecuados
     def tiene_permisos(msj, id_usuario, permiso, error_no_admin, error_no_permisos)
         miembro = obtener_miembro(msj, id_usuario)
-        tiene_autorización = true
+        return false unless miembro
+        return true if miembro.status == 'creator'
 
-        if !miembro
-            tiene_autorización = false
-        elsif miembro.status != 'creator'
-            if miembro.status != 'administrator'
-                tiene_autorización = false
-                @tg.send_message(chat_id: msj.chat.id,
-                                 text: "#{error_no_admin} ser admin para hacer eso",
-                                 reply_to_message_id: msj.message_id)
-            # Chequeo si tiene el permiso
-            elsif !(miembro.send permiso)
-                tiene_autorización = false
-                @tg.send_message(chat_id: msj.chat.id,
-                                 text: error_no_permisos,
-                                 reply_to_message_id: msj.message_id)
-            end
+        if miembro.status != 'administrator'
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                text: "#{error_no_admin} ser admin para hacer eso",
+                reply_to_message_id: msj.message_id
+            )
+            return false
         end
-        tiene_autorización
-    end
 
-    def log_y_aviso(msj, error, al_canal: true)
-        @logger.error("#{error} en #{grupo_del_msj(msj)}", al_canal: al_canal)
-        @tg.send_message(chat_id: msj.chat.id,
-                         text: error,
-                         reply_to_message_id: msj.message_id)
+        # Chequeo si tiene el permiso
+        unless miembro.send permiso
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                text: error_no_permisos,
+                reply_to_message_id: msj.message_id
+            )
+        end
+        true
     end
 
     def enviar_lista(msj, conjunto_iterable, título_lista, crear_línea, error_vacío)
