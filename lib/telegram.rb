@@ -130,6 +130,7 @@ class TelegramAPI
         @client.api.delete_chat_photo args
     end
 
+    # rubocop:disable Naming/AccessorMethodName
     def set_chat_title(args)
         @client.api.set_chat_title args
     end
@@ -137,6 +138,7 @@ class TelegramAPI
     def set_chat_description(args)
         @client.api.set_chat_description args
     end
+    # rubocop:enable Naming/AccessorMethodName
 
     private
 
