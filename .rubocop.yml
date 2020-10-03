@@ -36,8 +36,5 @@ Naming/AsciiIdentifiers:
 Style/AsciiComments:
     Enabled: false
 
-Naming/AccessorMethodName:
-    Enabled: false
-
 Style/FrozenStringLiteralComment:
     EnforcedStyle: never
