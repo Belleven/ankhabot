@@ -53,11 +53,31 @@ class Dankie
     )
 
     add_handler Handler::Comando.new(
-        :cambiardesc,
+        :cambiardescripcion,
         :cambiar_descripción,
         permitir_params: true,
         chats_permitidos: %i[group supergroup],
         descripción: 'Cambio la descripción del grupete'
+    )
+
+    add_handler Handler::Comando.new(
+        :cambiardescripción,
+        :cambiar_descripción,
+        permitir_params: true,
+        chats_permitidos: %i[group supergroup]
+    )
+
+    add_handler Handler::Comando.new(
+        :borrardescripcion,
+        :borrar_descripción,
+        chats_permitidos: %i[group supergroup],
+        descripción: 'Borro la descripción del grupete'
+    )
+
+    add_handler Handler::Comando.new(
+        :borrardescripción,
+        :borrar_descripción,
+        chats_permitidos: %i[group supergroup]
     )
 
     # Comando /pin /anclar
@@ -85,7 +105,8 @@ class Dankie
                 :pin_chat_message,
                 args_modif,
                 :manejar_excepciones_anclar,
-                msj
+                msj,
+                'Ese mensaje ya está anclado'
             )
         end
     end
@@ -108,6 +129,7 @@ class Dankie
     def sacar_foto(msj)
         quitar_elemento_chat(
             msj,
+            :can_change_info,
             :delete_chat_photo,
             { chat_id: msj.chat.id },
             'Foto eliminadísima'
@@ -122,7 +144,7 @@ class Dankie
             msj,
             texto,
             :set_chat_title,
-            { chat_id: chat_id, title: texto }
+            { chat_id: msj.chat.id, title: texto }
         )
     end
 
@@ -133,10 +155,31 @@ class Dankie
         cambiar_texto_chat(
             msj,
             texto,
-            :can_change_info,
             :set_chat_description,
-            { chat_id: chat_id, description: texto }
+            { chat_id: msj.chat.id, description: texto }
         )
+    end
+
+    def borrar_descripción(msj)
+        if cumple_req_modificar_chat(msj, false, :can_change_info,
+                                     'No tengo permisos para borrar la descripción')
+
+            modificado = modificar_chat(
+                :set_chat_description,
+                { chat_id: msj.chat.id, description: '' },
+                :manejar_excepciones_texto,
+                msj,
+                'No hay ninguna descripción que borrar'
+            )
+
+            if modificado
+                @tg.send_message(
+                    chat_id: msj.chat.id,
+                    text: "Descripción borradísima #{TROESMAS.sample}",
+                    reply_to_message_id: msj.message_id
+                )
+            end
+        end
     end
 
     private
@@ -169,7 +212,8 @@ class Dankie
                 quitar,
                 args_modif,
                 :manejar_excepciones_quitar,
-                msj
+                msj,
+                'No puedo quitar algo que el chat no tiene'
             )
 
             if modificado
@@ -203,27 +247,30 @@ class Dankie
                 método_cambio,
                 args_cambio,
                 :manejar_excepciones_texto,
-                msj
+                msj,
+                'Lo que me estás pasando es el mismo texto que ya está ahora'
             )
 
             if modificado
                 @tg.send_message(
                     chat_id: msj.chat.id,
-                    text: "Listo el pollo #{TROESMAS.sample}",
-                    reply_to_message_id: msj.message_id
+                    reply_to_message_id: msj.message_id,
+                    parse_mode: :html,
+                    text: "Listo el pollo #{TROESMAS.sample}, "\
+                          "cambiado a <b>#{html_parser texto}</b>"
                 )
             end
         end
     end
 
-    def modificar_chat(modif_chat, args_modif, manejar_exc, msj)
+    def modificar_chat(modif_chat, args_modif, manejar_exc, msj, error_mismo_elem)
         @tg.send modif_chat, args_modif
     rescue Telegram::Bot::Exceptions::ResponseError => e
-        send manejar_exc, msj, e
+        send manejar_exc, msj, e, error_mismo_elem
         nil
     end
 
-    def manejar_excepciones_anclar(msj, excepción)
+    def manejar_excepciones_anclar(msj, excepción, error_mismo)
         case excepción.message
         when /not enough rights to pin a message/
             @tg.send_message(
@@ -236,7 +283,7 @@ class Dankie
             @tg.send_message(
                 chat_id: msj.chat.id,
                 reply_to_message_id: msj.message_id,
-                text: 'Ese mensaje ya está anclado'
+                text: error_mismo
             )
             return
         when /message to pin not found/
@@ -257,7 +304,7 @@ class Dankie
         )
     end
 
-    def manejar_excepciones_quitar(msj, excepción)
+    def manejar_excepciones_quitar(msj, excepción, error_ya_quitado)
         case excepción.message
         when /not enough rights to (unpin a message|change chat photo)/
             @tg.send_message(
@@ -270,7 +317,7 @@ class Dankie
             @tg.send_message(
                 chat_id: msj.chat.id,
                 reply_to_message_id: msj.message_id,
-                text: 'No puedo quitar algo que no tiene el chat'
+                text: error_ya_quitado
             )
             return
         end
@@ -284,7 +331,7 @@ class Dankie
         )
     end
 
-    def manejar_excepciones_texto(msj, excepción)
+    def manejar_excepciones_texto(msj, excepción, error_mismo_texto)
         case excepción.message
         when /not enough rights to (set|change) chat (title|description)/
             @tg.send_message(
@@ -297,7 +344,7 @@ class Dankie
             @tg.send_message(
                 chat_id: msj.chat.id,
                 reply_to_message_id: msj.message_id,
-                text: 'Lo que me estás pasando es el mismo texto que ya está ahora'
+                text: error_mismo_texto
             )
             return
         end

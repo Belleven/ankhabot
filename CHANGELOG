@@ -14,6 +14,7 @@
     -refactorización y optimización de comandos de moderación y modificación del chat
     -agregados nuevos campos en los objetos de /metadatos
     -correcciones menores
+    -comando borrardescripcion
 
 1.2
     -implementación básica de estadísticas de uso (sin visualización)
