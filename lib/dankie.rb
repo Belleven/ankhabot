@@ -26,13 +26,11 @@ class Dankie
     DEUS_VULT = File.readlines('resources/deus.txt').map(&:chomp).freeze
     # rubocop:disable Layout/MultilineArrayBraceLayout
     DEVS = Set.new([240_524_686, # Luke
-                    98_631_116, # M
+                    98_631_116,  # M
                     812_107_125, # Santi
                     267_832_653, # Galerazo
-                    196_535_916, # Ale
-                    298_088_760, # Mel
-                    36_557_595, # Bruno
-                    257_266_743 # Fran
+                    257_266_743, # Fran
+                    340_357_825  # Chiro
     ]).freeze
     # rubocop:enable Layout/MultilineArrayBraceLayout
 
