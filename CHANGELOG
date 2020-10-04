@@ -10,7 +10,8 @@
         -IMPORTANTÍSIMO eliminar claves "nombre:*" y "usuario:*" en la base de datos
     -mejora en la captura de excepciones
     -correcciones del rubocop: no hay más ofensas
-    -fran ascendido a dev
+    -fran y chiro ascendidos a devs
+    -sacados inactivos de devs
     -refactorización y optimización de comandos de moderación y modificación del chat
     -agregados nuevos campos en los objetos de /metadatos
     -correcciones menores
