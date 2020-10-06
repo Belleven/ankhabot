@@ -437,8 +437,7 @@ class Dankie
     def chequear_flood(arr)
         return true if arr.size.between? 0, 1
 
-        promedio = 0
-        arr.each { |i| promedio += i.to_r }
+        promedio = arr.inject(0r) { |acc, i| acc + i.to_r }
         promedio /= arr.size
         diferencia_ahora = Time.now.to_r - promedio
 

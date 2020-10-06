@@ -446,7 +446,7 @@ class Dankie
     def analizar_match_trigger(msj, regexp, texto, id_grupo)
         return unless chequear_flood(@trigger_flood[msj.chat.id])
 
-        match = Timeout.timeout(0.500) { regexp.match? texto }
+        match = Timeout.timeout(0.50) { regexp.match? texto }
         return unless match
 
         trigger = Trigger.new(id_grupo, regexp)
