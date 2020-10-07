@@ -1,3 +1,4 @@
+require 'tmpdir'
 require 'gruff'
 
 class Dankie
@@ -24,12 +25,6 @@ class Dankie
 
     add_handler Handler::Comando.new(
         :stats_bot,
-        :enviar_estadísticas_bot,
-        permitir_params: true
-    )
-
-    add_handler Handler::Comando.new(
-        :bot_stats,
         :enviar_estadísticas_bot,
         permitir_params: true
     )
@@ -94,8 +89,7 @@ class Dankie
         return unless validar_desarrollador(
             msj.from.id,
             msj.chat.id,
-            msj.message_id,
-            texto: 'Gomen ne, este comando es solo para los admins. >///<'
+            msj.message_id
         )
 
         unless (parámetros = params_enviar_estadísticas_bot(parámetros))
@@ -110,8 +104,8 @@ class Dankie
         desde = Time.now.to_i - (parámetros[:tiempo] * 600)
         desde -= desde % 600
 
-        parámetros[:gráficos].each do |param|
-            acumular_gráficos(param, gráficos, desde, 600, parámetros)
+        parámetros[:gráficos].each do |gráfico|
+            gráficos << elegir_gráfico(gráfico, desde, 600, parámetros)
         end
 
         gráficos.each do |img|
@@ -122,30 +116,30 @@ class Dankie
 
     private
 
-    def acumular_gráficos(param, gráficos, desde, número, parámetros)
-        case param
+    def elegir_gráfico(gráfico, desde, intervalo, parámetros)
+        case gráfico
         when /mensajes/
-            gráficos << gráfico_mensajes_total_bot(
+            gráfico_mensajes_total_bot(
                 desde,
-                número,
+                intervalo,
                 forzar_sobreescribir: parámetros[:sobreescribir]
             )
         when /chats/
-            gráficos << gráfico_cantidad_chats(
+            gráfico_cantidad_chats(
                 desde,
-                número,
+                intervalo,
                 forzar_sobreescribir: parámetros[:sobreescribir]
             )
         when /imágenes/
-            gráficos << gráfico_imágenes_enviadas(
+            gráfico_imágenes_enviadas(
                 desde,
-                número,
+                intervalo,
                 forzar_sobreescribir: parámetros[:sobreescribir]
             )
         when /procesado/
-            gráficos << gráfico_tiempo_procesado(
+            gráfico_tiempo_procesado(
                 desde,
-                número,
+                intervalo,
                 forzar_sobreescribir: parámetros[:sobreescribir]
             )
         end
@@ -394,7 +388,7 @@ class Dankie
             params[:hasta]
         )
 
-        datos.each { |nombre, arr| gráfico.data(nombre, arr) }
+        params[:datos].each { |nombre, arr| gráfico.data(nombre, arr) }
 
         archivo = params[:archivo]
         gráfico.write archivo

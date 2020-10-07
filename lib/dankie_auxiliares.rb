@@ -98,12 +98,12 @@ class Dankie
         false
     end
 
-    def validar_desarrollador(usuario_id, chat_id, mensaje_id,
-                              texto: 'Vos no podés usar esto pa')
+    def validar_desarrollador(usuario_id, chat_id, mensaje_id)
         # Chequeo que quien llama al comando sea o desarrollador
         unless DEVS.include?(usuario_id)
             @tg.send_message(chat_id: chat_id, reply_to_message_id: mensaje_id,
-                             text: texto)
+                             text: 'Gomen ne, este comando es solo para los admins.'\
+                                   ' >///<')
             return false
         end
 
