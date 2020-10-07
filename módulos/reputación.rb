@@ -84,7 +84,7 @@ class Dankie
             rep: @redis.zscore("rep:#{msj.chat.id}", msj.reply_to_message.from.id) || 0
         )
 
-        cambio = format(
+        diferencia = format(
             '<i>(%<signo>s%<rep>.3f)</i>.',
             signo: (cambio.positive? ? '+' : '-'),
             rep: delta_rep
@@ -95,6 +95,6 @@ class Dankie
         cambiado = cambio.positive? ? 'incrementado' : 'reducido'
 
         "El usuario #{usuario1} #{rep1} ha #{cambiado} la "\
-        "reputación de #{usuario2} #{rep2} #{cambio}"
+        "reputación de #{usuario2} #{rep2} #{diferencia}"
     end
 end
