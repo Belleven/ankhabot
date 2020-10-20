@@ -16,7 +16,9 @@ class ManejoExcepciones
     def manejar(excepción, args)
         return unless excepción.respond_to?(:error_code) &&
                       excepción.respond_to?(:message)
-        return false unless excepción.class == Telegram::Bot::Exceptions::ResponseError
+        unless excepción.instance_of?(Telegram::Bot::Exceptions::ResponseError)
+            return false
+        end
 
         método = "manejar_error_#{excepción.error_code}".to_sym
         chat = args && args[:chat_id] ? "en #{args[:chat_id]}" : '(F en el chat)'

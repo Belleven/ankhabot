@@ -121,7 +121,7 @@ class Dankie
     def manejar_excepción_asesina(excepción, msj = nil)
         return if @tg.capturar(excepción)
 
-        unless msj.nil? || msj.class == Telegram::Bot::Types::CallbackQuery
+        unless msj.nil? || msj.instance_of?(Telegram::Bot::Types::CallbackQuery)
             @logger.loggear_hora_excepción(msj, @tz.utc_offset, @tz.now)
         end
 
