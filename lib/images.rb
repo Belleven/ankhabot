@@ -33,7 +33,7 @@ class ImageSearcher
                 incrementar_uso_api
                 @logger.error resultado['error']
                 return :error
-            end   
+            end
         end
 
         incrementar_uso_api
