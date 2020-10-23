@@ -20,8 +20,8 @@ class Dankie
                              text: "Muy largo el texto, #{TROESMAS.sample}")
         else
             # Busco en google
-            resultados = @img.buscar_imagen args
-            analizar_resultados(resultados, args, msj)
+            # resultados = @img.buscar_imagen args
+            analizar_resultados((@img.buscar_imagen args), args, msj)
         end
     end
 
@@ -42,7 +42,7 @@ class Dankie
                 text: "No pude encontrar nada #{TROESMAS.sample}, "\
                       'probá con otra búsqueda'
             )
-        when :límite_diario
+        when :limite_diario
             @tg.send_message(
                 chat_id: msj.chat.id,
                 reply_to_message_id: msj.message_id,
