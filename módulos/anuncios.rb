@@ -9,15 +9,7 @@ class Dankie
     # Metodo que envia un mensaje a todos los grupos que estuvieron activos
     # y tienen habilitadas la opcion de anuncios
     def anuncios(msj, params)
-        return unless validar_desarrollador(msj.from.id, msj.chat.id, msj.message_id)
-
-        if params.nil?
-            mensaje_nil = 'Dale papu, tenes que poner algo en el anuncio'
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: mensaje_nil,
-                             reply_to_message_id: msj.message_id)
-            return
-        end
+        return unless validar_desarrollador(msj.from.id, msj.chat.id, msj.message_id) and mensaje_vacio(msj, params)
 
         # Avisa que se hizo un anuncio
         avisar_canal(msj.from.id, msj.chat.id)
@@ -45,10 +37,21 @@ class Dankie
         @redis.srem("chat:#{chat_type}:activos", chat_id)
         @redis.sadd("chat:#{chat_type}:eliminados", chat_id)
     end
-end
 
-def avisar_canal(id, chat_id)
-    dev = obtener_enlace_usuario(id, chat_id)
-    @logger.info("El desarrolador #{dev} ha mandado un anunción global.",
-                 al_canal: true, parsear_html: false)
+
+    def avisar_canal(id, chat_id)
+        dev = obtener_enlace_usuario(id, chat_id)
+        @logger.info("El desarrolador #{dev} ha mandado un anunción global.",
+                     al_canal: true, parsear_html: false)
+    end
+
+    def mensaje_vacio(msj, params)
+        if params.nil?
+            mensaje_nil = 'Dale papu, tenes que poner algo en el anuncio'
+            @tg.send_message(chat_id: msj.chat.id,
+                                text: mensaje_nil,
+                                reply_to_message_id: msj.message_id)
+        end
+        !params.nil?
+    end        
 end
