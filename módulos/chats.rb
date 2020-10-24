@@ -120,7 +120,7 @@ class Dankie
     end
 
     def analizar_excepción_estado_chat(exc)
-        texto = case exc.to_s
+        texto = case exc.message
                 when /chat not found/
                     "\nNunca estuve en este chat, o no existe"
                 when /bot was kicked from the (super)?group chat/
