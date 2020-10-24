@@ -20,11 +20,8 @@ class Dankie
         end
 
         # Recorro todos los grupos en la db y les envio el mensaje
-        tipos = %w[private group supergroup]
-
-        tipos.each do |tipo|
-            grupos = @redis.smembers("chat:#{tipo}:activos")
-            grupos.each do |grupete|
+        %w[private group supergroup].each do |tipo| 
+            @redis.smembers("chat:#{tipo}:activos").each do |grupete|
                 # Me fijo si esta habilitado el anuncio o es un privado
                 if (@redis.hget("configs:#{grupete}",
                                 'admite_anuncios').to_i == 1) || (tipo == 'private')
@@ -34,11 +31,8 @@ class Dankie
 
             # En caso que el id registrado en la base ya no sea vigente, lo elimino
             rescue Telegram::Bot::Exceptions::ResponseError => e
-                case e.message
-                when /bot is not a member of the (super)?group chat/
-                    remover_grupete(grupete, tipo)
-                when /bot was kicked from the (super)?group chat/
-                    remover_grupete(grupete, tipo)
+            	if (/ member | kicked | PEER_ID_INVALID /  =~ e.message)
+              		 remover_grupete(grupete, tipo)
                 end
             end
         end
