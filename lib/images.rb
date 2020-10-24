@@ -26,15 +26,14 @@ class ImageSearcher
                   rateLimitExceeded].include? resultado.dig('error', 'errors', 0,
                                                             'reason')
                 @logger.info('Alcancé el límite diario de imágenes')
-
                 incrementar_exceso_api
-                :límite_diario
+
+                return :límite_diario
             else
                 incrementar_uso_api
                 @logger.error resultado['error']
-                :error
+                return :error
             end
-            return
         end
 
         incrementar_uso_api
