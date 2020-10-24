@@ -50,5 +50,5 @@ end
 def avisar_canal(id, chat_id)
     dev = obtener_enlace_usuario(id, chat_id)
     @logger.info("El desarrolador #{dev} ha mandado un anunción global.",
-                 al_canal: true)
+                 al_canal: true, parsear_html: false)
 end
