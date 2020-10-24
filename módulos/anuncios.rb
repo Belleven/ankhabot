@@ -6,30 +6,46 @@ class Dankie
         descripción: 'Anuncios para hacer (solo devs)'
     )
 
+    # Metodo que envia un mensaje a todos los grupos que estuvieron activos
+    # y tienen habilitadas la opcion de anuncios
     def anuncios(msj, params)
-        return unless !params.nil? && DEVS.member?(msj.from.id)
+        return unless validar_desarrollador(msj.from.id, msj.chat.id, msj.message_id)
 
-        grupo_activos      = @redis.smembers('chat:group:activos')
-        supergrupo_activos = @redis.smembers('chat:supergroup:activos')
-        grupos = grupo_activos | supergrupo_activos
-        grupos.each do |grupete|
-            @tg.send_message(chat_id: grupete.to_i,
-                             text: params)
-        rescue Telegram::Bot::Exceptions::ResponseError => e
-            case e.to_s
-            when /bot is not a member of the (super)?group chat/
-                remover_grupete(grupete)
+        if params.nil?
+            mensaje_nil = 'Dale papu, tenes que poner algo en el anuncio'
+            @tg.send_message(chat_id: msj.chat.id,
+                             text: mensaje_nil,
+                             reply_to_message_id: msj.message_id)
+            return
+        end
+
+        # Recorro todos los grupos en la db y les envio el mensaje
+        tipos = %w[private group supergroup]
+
+        tipos.each do |tipo|
+            grupos = @redis.smembers("chat:#{tipo}:activos")
+            grupos.each do |grupete|
+                # Me fijo si esta habilitado el anuncio o es un privado
+                if (@redis.hget("configs:#{grupete}",
+                                'admite_anuncios').to_i == 1) || (tipo == 'private')
+                    @tg.send_message(chat_id: grupete.to_i,
+                                     text: params)
+                end
+
+            # En caso que el id registrado en la base ya no sea vigente, lo elimino
+            rescue Telegram::Bot::Exceptions::ResponseError => e
+                case e.message
+                when /bot is not a member of the (super)?group chat/
+                    remover_grupete(grupete, tipo)
+                when /bot was kicked from the (super)?group chat/
+                    remover_grupete(grupete, tipo)
+                end
             end
         end
     end
 
-    def remover_grupete(chat_id)
-        if @redis.smembers('chat:group:activos').member?(chat_id)
-            @redis.srem('chat:group:activos', chat_id)
-            @redis.sadd('chat:group:eliminados', chat_id)
-        else
-            @redis.srem('chat:supergroup:activos', chat_id)
-            @redis.sadd('chat:supergroup:eliminados', chat_id)
-        end
+    def remover_grupete(chat_id, chat_type)
+        @redis.srem("chat:#{chat_type}:activos", chat_id)
+        @redis.sadd("chat:#{chat_type}:eliminados", chat_id)
     end
 end
