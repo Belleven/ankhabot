@@ -19,6 +19,9 @@ class Dankie
             return
         end
 
+        # Avisa que se hizo un anuncio
+        avisar_canal(msj.from.id, msj.chat.id)
+
         # Recorro todos los grupos en la db y les envio el mensaje
         %w[private group supergroup].each do |tipo|
             @redis.smembers("chat:#{tipo}:activos").each do |grupete|
@@ -42,4 +45,10 @@ class Dankie
         @redis.srem("chat:#{chat_type}:activos", chat_id)
         @redis.sadd("chat:#{chat_type}:eliminados", chat_id)
     end
+end
+
+def avisar_canal(id, chat_id)
+    dev = obtener_enlace_usuario(id, chat_id)
+    @logger.info("El desarrolador #{dev} ha mandado un anunción global.",
+                 al_canal: true)
 end
