@@ -42,7 +42,7 @@ module Estadísticas
         def self.incr(clave, número = 1, hora: nil, intervalo: nil)
             return redis.incrby(clave, número).to_i unless intervalo && hora
 
-            redis.incrby("#{clave}:#{(hora / intervalo * intervalo)}", número).to_i
+            redis.incrby("#{clave}:#{hora / intervalo * intervalo}", número).to_i
         end
 
         # Lo mismo pero decrementa
@@ -71,7 +71,7 @@ module Estadísticas
         def self.add(clave, valor, hora: nil, intervalo: nil)
             return redis.sadd(clave, valor) unless intervalo && hora
 
-            redis.sadd("#{clave}:#{(hora / intervalo * intervalo)}", valor)
+            redis.sadd("#{clave}:#{hora / intervalo * intervalo}", valor)
         end
 
         def self.members(clave, desde: nil, intervalo: nil, hasta: nil)
@@ -116,7 +116,7 @@ module Estadísticas
 
             # Si la clave que se va a usar ahora no tiene elementos, entonces la
             # clave anterior ya se llenó y se pueden achicar sus datos
-            reducir_datos("#{clave}:#{(hora - intervalo)}") if redis.llen(clave).zero?
+            reducir_datos("#{clave}:#{hora - intervalo}") if redis.llen(clave).zero?
 
             redis.rpush(clave, tiempo)
         end

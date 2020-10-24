@@ -20,8 +20,8 @@ class Dankie
                              text: "Muy largo el texto, #{TROESMAS.sample}")
         else
             # Busco en google
-            resultados = @img.buscar_imagen args
-            analizar_resultados(resultados, args, msj)
+            # resultados = @img.buscar_imagen args
+            analizar_resultados((@img.buscar_imagen args), args, msj)
         end
     end
 

@@ -67,7 +67,7 @@ class Dankie
         razón = if razón.nil?
                     ''
                 else
-                    ".\nRazón: #{razón}#{(razón[-1] == '.' ? '' : '.')}"
+                    ".\nRazón: #{razón}#{razón[-1] == '.' ? '' : '.'}"
                 end
         nombre = obtener_enlace_usuario(miembro.user, msj.chat.id)
         nombre ||= 'Usuario eliminado'
