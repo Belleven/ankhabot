@@ -42,7 +42,7 @@ class Dankie
                 text: "No pude encontrar nada #{TROESMAS.sample}, "\
                       'probá con otra búsqueda'
             )
-        when :limite_diario
+        when :límite_diario
             @tg.send_message(
                 chat_id: msj.chat.id,
                 reply_to_message_id: msj.message_id,

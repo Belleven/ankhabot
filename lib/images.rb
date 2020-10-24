@@ -28,7 +28,7 @@ class ImageSearcher
                 @logger.info('Alcancé el límite diario de imágenes')
                 incrementar_exceso_api
 
-                return :limite_diario
+                return :límite_diario
             else
                 incrementar_uso_api
                 @logger.error resultado['error']
