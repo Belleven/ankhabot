@@ -16,6 +16,7 @@
     -agregados nuevos campos en los objetos de /metadatos
     -correcciones menores
     -comando borrardescripcion
+    -comando de anuncios para todos los grupos
 
 1.2
     -implementación básica de estadísticas de uso (sin visualización)
