@@ -12,7 +12,8 @@ class Dankie
 
     # Diccionario de Categorías. Uso: {clave de categoría => descripción}
     CATEGORIAS = { admite_triggers_globales: 'Admite Triggers Globales',
-                   admite_x2: 'Habilitar x2' }.freeze
+                   admite_x2: 'Habilitar x2',
+                   admite_anuncios: 'Habilitar anuncios' }.freeze
 
     def configuraciones(msg)
         error_msj = "Ese comando es solo para admins, #{TROESMAS.sample}."
