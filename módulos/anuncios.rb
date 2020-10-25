@@ -10,7 +10,8 @@ class Dankie
     # y tienen habilitadas la opcion de anuncios
     def anuncios(msj, params)
         return unless validar_desarrollador(msj.from.id, msj.chat.id,
-                                            msj.message_id) && mensaje_vacio(msj, params)
+                                            msj.message_id)
+        return if mensaje_vacío(msj, params)
 
         # Avisa que se hizo un anuncio
         avisar_canal(msj.from.id, msj.chat.id)
@@ -27,7 +28,10 @@ class Dankie
 
             # En caso que el id registrado en la base ya no sea vigente, lo elimino
             rescue Telegram::Bot::Exceptions::ResponseError => e
-                if / member | kicked | PEER_ID_INVALID / =~ e.message
+                no_es_miembro  = / bot is not a member of the/
+                fue_kickeado   = / bot was kicked from/
+                fue_bloqueado  = /  PEER_ID_INVALID /
+                if /#{no_es_miembro} | #{fue_kickeado} | #{fue_bloqueado}/x =~ e.message
                     remover_grupete(grupete, tipo)
                 end
             end
@@ -45,13 +49,14 @@ class Dankie
                      al_canal: true, parsear_html: false)
     end
 
-    def mensaje_vacio(msj, params)
+    def mensaje_vacío(msj, params)
         if params.nil?
-            mensaje_nil = 'Dale papu, tenes que poner algo en el anuncio'
+            mensaje_nil = 'Dale papu, ténes que poner algo en el anuncio'
             @tg.send_message(chat_id: msj.chat.id,
                              text: mensaje_nil,
                              reply_to_message_id: msj.message_id)
+            return true
         end
-        !params.nil?
+        false
     end
 end
