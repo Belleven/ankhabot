@@ -62,3 +62,6 @@ __pycache__
 
 # tremenda basura de macbook
 .DS_Store
+
+# Área de trabajo de VScode
+.vscode
