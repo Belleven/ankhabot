@@ -248,13 +248,13 @@ class Dankie
             end
         end
 
-        if !@redis.sismember("lista_negra:#{id_grupo}", id)
+        if @redis.sismember("lista_negra:#{id_grupo}", id)
+            quitar_de_lista_bloqueados(id_grupo, id, msj, id_chat)
+        else
             @tg.send_message(chat_id: id_chat,
                              reply_to_message_id: msj.message_id,
                              text: 'No puedo desbloquear a alguien que no '\
                                    'está en la lista negra')
-        else
-            quitar_de_lista_bloqueados(id_grupo, id, msj, id_chat)
         end
     end
 

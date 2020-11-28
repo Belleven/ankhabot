@@ -81,10 +81,10 @@ class DankieLogger
 
     def excepcion_texto(excepcion)
         texto_excepcion = excepcion.to_s
-        texto = if !(texto_excepcion.nil? || texto_excepcion.empty?)
-                    "(#{excepcion.class}) #{texto_excepcion}"
-                else
+        texto = if texto_excepcion.nil? || texto_excepcion.empty?
                     'EXCEPCIÓN SIN NOMBRE'
+                else
+                    "(#{excepcion.class}) #{texto_excepcion}"
                 end
 
         return texto, nil if excepcion.backtrace.nil?
@@ -187,10 +187,10 @@ class DankieLogger
         texto_excepcion = lineas + mensaje
 
         excepcion = exc.to_s
-        texto_excepcion << if !(excepcion.nil? || excepcion.empty?)
-                               excepcion
-                           else
+        texto_excepcion << if excepcion.nil? || excepcion.empty?
                                'ERROR SIN NOMBRE'
+                           else
+                               excepcion
                            end
 
         texto_excepcion << "\n#{lineas}#{lineas}#{exc.backtrace.join("\n")}\n"\
