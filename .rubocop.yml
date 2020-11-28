@@ -33,6 +33,9 @@ Metrics/PerceivedComplexity:
 Naming/AsciiIdentifiers:
     Enabled: false
 
+Naming/VariableNumber:
+    CheckMethodNames: false
+
 Style/AsciiComments:
     Enabled: false
 
