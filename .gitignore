@@ -65,3 +65,5 @@ __pycache__
 
 # Área de trabajo de VScode
 .vscode
+# tremenda basura de emacs
+.projectile 
