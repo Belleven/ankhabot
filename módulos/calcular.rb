@@ -1,5 +1,4 @@
 require 'ripper'
-require 'pp'
 
 class Dankie
     add_handler Handler::Comando.new(
@@ -15,6 +14,8 @@ class Dankie
         operación = operación || msj.reply_to_message&.text ||
                     msj.reply_to_message&.caption
 
+        operación&.gsub!(/\s+/, '')
+
         # ¿La operación posee parámetros válidos?
         return if operacón_incorrecta(msj, operación)
 
@@ -23,12 +24,12 @@ class Dankie
         operación.gsub! 'x', '*'
         operación.gsub! ',', '.'
 
-        # Sí es evaluable.
+        # Si es evaluable.
         begin
             # Calculo todo.
             operación_resultado = deducir(operación.to_s).to_s
 
-        # Y sí no.
+        # Y si no.
         rescue NoMethodError, ZeroDivisionError => e
             # Log y respuesta ante algún error.
             @logger.error(
@@ -39,12 +40,12 @@ class Dankie
             @tg.send_message(
                 chat_id: msj.chat.id,
                 reply_to_message_id: msj.message_id,
-                text: "Revisa tu operación, #{TROESMAS.sample}."
+                text: "Revisá tu operación, #{TROESMAS.sample}."
             )
             return
         end
 
-        # Sí el mensaje es demasiado largo.
+        # Si el mensaje es demasiado largo.
         if operación_resultado.length > 4096
             @tg.send_message(
                 chat_id: msj.chat.id,
@@ -52,7 +53,7 @@ class Dankie
                 text: 'Muy largo che.'
             )
         else
-            # Y sí no, envío el resultado.
+            # Y si no, envío el resultado.
             @tg.send_message(
                 chat_id: msj.chat.id,
                 reply_to_message_id: msj.message_id,
@@ -60,6 +61,8 @@ class Dankie
             )
         end
     end
+
+    private
 
     # Mensaje ante un ingreso incorrecto de parámetros.
     def operacón_incorrecta(msj, operación)
@@ -73,7 +76,7 @@ class Dankie
                 parse_mode: :html,
                 text: "Pasame una operación legal, #{TROESMAS.sample}.\n"\
                 "Es /calcular <i>operación</i>\n"\
-                'Sin espacios, letras o símbolos raros.'
+                'Sin letras o símbolos raros.'
             )
             return true
         end
@@ -122,14 +125,14 @@ class Dankie
         end
     end
 
-    # Sí el operador es binario.
+    # Si el operador es binario.
     # Evaluar con Reverse Polish Notation.
     def evaluar_binario(nodo)
         _s, izquierda, operador, derecha = nodo
 
         case operador
         when :* then evaluar(izquierda) * evaluar(derecha)
-        when :/ then evaluar(izquierda) / evaluar(derecha)
+        when :/ then evaluar(izquierda) / evaluar(derecha).to_f
         when :+ then evaluar(izquierda) + evaluar(derecha)
         when :- then evaluar(izquierda) - evaluar(derecha)
         when :** then evaluar(izquierda)**evaluar(derecha)

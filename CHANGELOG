@@ -3,6 +3,7 @@
     -sistema de reputación
     -comando xkcd
     -comando roll
+    -comando debug para devs
     -rediseñado cacheo de nombres de usuario:
         -los guarda en listas con la fecha de modificación
         -comando historial_nombres para doxxear gente
@@ -14,9 +15,13 @@
     -sacados inactivos de devs
     -refactorización y optimización de comandos de moderación y modificación del chat
     -agregados nuevos campos en los objetos de /metadatos
-    -correcciones menores
+    -MUCHAS correcciones menores
     -comando borrardescripcion
-    -comando de anuncios para todos los grupos
+    -comando de anuncios para todos los chats
+    -cambio en el bucle principal para poder cerrar el bot más rápido y no esperar 40 años a que termine de revisar si hay updates
+    -ahora se aceptan todo tipo de updates
+    -optimización en handlers
+    -ahora los handlers pueden tomar la update original
 
 1.2
     -implementación básica de estadísticas de uso (sin visualización)

@@ -18,6 +18,19 @@ class TelegramAPI
         @excepciones.capturar excepción
     end
 
+    # Acá dentro se podrían agregar excepciones si vemos que rompe mucho
+    def get_updates(args)
+        actualizaciones = @client.api.get_updates args
+
+        unless actualizaciones['ok']
+            @client.logger.error "Mala update:\n#{actualizaciones}"
+            return
+        end
+        return if actualizaciones['result'].empty?
+
+        actualizaciones
+    end
+
     def send_message(args)
         # Me fijo que haya un texto para mandar
         return unless args[:chat_id] && args[:text] && !args[:text].empty?
@@ -170,8 +183,6 @@ class TelegramAPI
     end
 
     def analizar_excepción_400_enviar(args, exc)
-        args[:reply_to_message_id] = nil
-
         if exc.message.include?('reply message not found')
             @client.logger.error('No puedo responder a un mensaje '\
                                     "borrado (ID: #{args[:reply_to_message_id]}) "\
@@ -188,6 +199,7 @@ class TelegramAPI
         else
             raise
         end
+        args[:reply_to_message_id] = nil
     end
 
     # Tengo acceso a toda la api de telegram (bot.api) desde esta clase

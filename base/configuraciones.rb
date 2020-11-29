@@ -1,14 +1,21 @@
 # Extensión de Dankie para ver y modificar configuraciones
 class Dankie
-    add_handler Handler::Comando.new(:configuraciones, :configuraciones,
-                                     chats_permitidos: %i[group supergroup],
-                                     descripción: 'Te muestro las configuraciones ' \
-                                     'del grupete')
+    add_handler Handler::Comando.new(
+        :configuraciones,
+        :configuraciones,
+        chats_permitidos: %i[group supergroup],
+        descripción: 'Te muestro las configuraciones del grupete'
+    )
 
-    add_handler Handler::CallbackQuery.new(:callback_config_seleccionada,
-                                           'config_seleccionada')
-    add_handler Handler::CallbackQuery.new(:callback_modificar_config,
-                                           'modificar_config')
+    add_handler Handler::CallbackQuery.new(
+        :callback_config_seleccionada,
+        'config_seleccionada'
+    )
+
+    add_handler Handler::CallbackQuery.new(
+        :callback_modificar_config,
+        'modificar_config'
+    )
 
     # Diccionario de Categorías. Uso: {clave de categoría => descripción}
     CATEGORIAS = { admite_triggers_globales: 'Admite Triggers Globales',
@@ -25,8 +32,7 @@ class Dankie
         @tg.send_message(chat_id: msg.chat.id,
                          text: respuesta,
                          reply_markup: opciones,
-                         parse_mode: :html,
-                         reply_to_message_id: msg&.reply_to_message&.message_id)
+                         parse_mode: :html)
     end
 
     def callback_config_seleccionada(callback)
