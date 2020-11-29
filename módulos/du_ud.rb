@@ -24,13 +24,7 @@ class Dankie
         # comprobar, si el UD está caído, búsqueda debería
         # ser un objeto nil.
         if búsqueda.nil?
-            return respuesta(msj,
-                             'Mmmm, puede ser que esté caído el UD ')
-        end
-        return respuesta(msj.chat.id, 'Ay no c') if búsqueda.empty?
-
-        if búsqueda.nil?
-            return respuesta(msj,
+            return respuesta(msj.chat.id,
                              'Mmmm, puede ser que esté caído el UD ')
         end
         return respuesta(msj.chat.id, 'Ay no c') if búsqueda.empty?
