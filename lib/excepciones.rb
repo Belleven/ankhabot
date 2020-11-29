@@ -36,6 +36,8 @@ class ManejoExcepciones
     def manejar_error_400(mensaje_error, chat, args)
         manejado = true
 
+        id_mensaje = conseguir_id_mensaje args
+
         case mensaje_error
         when /have no rights to send a message/
             @logger.error("Me restringieron los mensajes #{chat} y"\
@@ -52,14 +54,14 @@ class ManejoExcepciones
                           "\n#{mensaje_error}")
         when /message to delete not found/
             @logger.error(
-                "Traté de borrar un mensaje (id mensaje: #{args[:message_id]}) "\
-                "muy viejo (id chat: #{args[:chat_id]}).",
+                "Traté de borrar un mensaje (id mensaje: #{id_mensaje}) "\
+                "muy viejo (id chat: #{chat}).",
                 al_canal: false
             )
         when /message can't be deleted/
             @logger.error(
-                "No pude borrar un mensaje (id mensaje: #{args[:message_id]}) "\
-                "(id chat: #{args[:chat_id]}).",
+                "No pude borrar un mensaje (id mensaje: #{id_mensaje}) "\
+                "(id chat: #{chat}).",
                 al_canal: false
             )
         when /PEER_ID_INVALID/
@@ -74,7 +76,7 @@ class ManejoExcepciones
             manejado = false
         when /CHANNEL_PRIVATE/
             @logger.fatal('Error que todavía no se por que pasa pero tengo un '\
-                          "problema al mandar mensajes (id: #{args[:chat_id]}).")
+                          "problema al mandar mensajes (id: #{chat}).")
         else
             manejado = false
         end
@@ -116,5 +118,23 @@ class ManejoExcepciones
             manejado = false
         end
         manejado
+    end
+
+    def manejar_error_502(mensaje_error, _chat, _args)
+        manejado = true
+
+        case mensaje_error
+        when /Bad Gateway/
+            @logger.error 'Error de un servidor externo cuando los '\
+                          'servidores de telegram se intentaban '\
+                          "comunicar con ellos: \n#{mensaje_error}"
+        else
+            manejado = false
+        end
+        manejado
+    end
+
+    def conseguir_id_mensaje(args)
+        args && args[:message_id] ? args[:message_id] : 'no la tengo uwu'
     end
 end

@@ -3,6 +3,7 @@ class Dankie
                                           tipos: [:migrate_from_chat_id],
                                           chats_permitidos: %i[supergroup])
     add_handler Handler::Comando.new(:apodar, :dar_apodo,
+                                     permitir_params: true,
                                      chats_permitidos: %i[group supergroup],
                                      descripción: 'Te cambio el apodo (si sos admin, '\
                                                   'podés cambiárselo a otros)')
@@ -24,11 +25,10 @@ class Dankie
                                      descripción: 'Elimino tu historial de nombres '\
                                                   'y usernames')
 
-    def dar_apodo(msj)
+    def dar_apodo(msj, nuevo_apodo)
         chat_id = msj.chat.id
-        nuevo_apodo = get_command_params(msj)
 
-        if nuevo_apodo.nil? || nuevo_apodo.empty?
+        if nuevo_apodo.nil?
             texto_error = 'Si no me pasás un apodo, está jodida la '\
                           "cosa #{TROESMAS.sample}"
             @tg.send_message(chat_id: chat_id,

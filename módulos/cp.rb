@@ -1,13 +1,18 @@
-# Extensión de Dankie para generar mensajes cp
 class Dankie
-    add_handler Handler::EventoDeChat.new(:cp_supergrupo,
-                                          tipos: [:migrate_from_chat_id],
-                                          chats_permitidos: %i[supergroup])
+    add_handler Handler::EventoDeChat.new(
+        :cp_supergrupo,
+        tipos: [:migrate_from_chat_id],
+        chats_permitidos: %i[supergroup]
+    )
+
     add_handler Handler::Mensaje.new(:añadir_palabras_cp, tipos: [:text])
-    add_handler Handler::Comando.new(:cp, :cp,
-                                     descripción: 'Genero una posible '\
-                                                  'definición de la sigla cp, '\
-                                                  'usando texto del chat')
+
+    add_handler Handler::Comando.new(
+        :cp,
+        :cp,
+        descripción: 'Genero una posible definición de la sigla '\
+                     'cp usando texto del chat'
+    )
 
     def añadir_palabras_cp(msj)
         crear_variables(msj)

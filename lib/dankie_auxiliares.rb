@@ -101,9 +101,11 @@ class Dankie
     def validar_desarrollador(usuario_id, chat_id, mensaje_id)
         # Chequeo que quien llama al comando sea o desarrollador
         unless DEVS.include?(usuario_id)
-            @tg.send_message(chat_id: chat_id, reply_to_message_id: mensaje_id,
-                             text: 'Gomen ne, este comando es solo para los admins.'\
-                                   ' >///<')
+            @tg.send_message(
+                chat_id: chat_id,
+                reply_to_message_id: mensaje_id,
+                text: 'Gomen ne, este comando es solo para los admins. >///<'
+            )
             return false
         end
 
@@ -158,7 +160,7 @@ class Dankie
     def id_y_resto(msj)
         resultado = { id: nil, alias: nil, razón: nil }
 
-        if (args = get_command_params(msj))
+        if (args = obtener_params_comando(msj))
             valores = dame_entidades_texto(msj)
             chequeo_id_y_resto_entidades(args, valores, resultado) if valores
             chequeo_id_numerica_y_resto(args, resultado) unless resultado[:id]

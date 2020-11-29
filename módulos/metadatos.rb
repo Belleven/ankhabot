@@ -266,7 +266,7 @@ class Dankie
     end
 
     def agregar_contenido(respuesta, msj, nivel, pasar_entidades)
-        agregar_dado(msj.dice, respuesta, nivel) if msj.respond_to?(:dice) && msj.dice
+        agregar_dado(msj.dice, respuesta, nivel) if msj.dice
 
         # Agrego texto si hay
         agregar_texto(
