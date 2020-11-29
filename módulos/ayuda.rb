@@ -1,5 +1,3 @@
-require 'telegram/bot'
-
 class Dankie
     add_handler Handler::Comando.new(:ayuda, :ayuda, descripción: 'Mando la ayuda')
     add_handler Handler::Comando.new(:help, :ayuda)

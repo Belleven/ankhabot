@@ -450,43 +450,4 @@ class Dankie
         arr << tiempo
         arr.shift until arr.size <= 13
     end
-
-    def arreglo_tablero(params)
-        conjunto_iterable = params[:conjunto_iterable]
-        arr = params[:arr]
-        subtítulo = params[:subtítulo]
-        contador = params[:contador]
-        max_cant = params[:max_cant]
-        max_tam = params[:max_tam]
-
-        return if conjunto_iterable.nil? || conjunto_iterable.empty?
-
-        agregar_subtítulo(params)
-
-        # Itero sobre los elementos
-        conjunto_iterable.each do |elemento|
-            # Si es una página nueva agrego título y subtítulo
-            if arr.empty? || contador >= max_cant || arr.last.size >= max_tam
-                arr << params[:título].dup
-                arr.last << subtítulo.dup if subtítulo
-                contador = 0
-            end
-            # Agrego el elemento juju
-            arr.last << params[:agr_elemento].call(elemento)
-            contador += 1
-        end
-        # Devuelvo el contador para que pueda ser usado luego en futuras
-        # llamadas a esta función, recordar que los integers se pasan por
-        # copia
-        contador
-    end
-
-    def agregar_subtítulo(params)
-        if params[:inicio_en_subtítulo] && !params[:arr].empty? && params[:subtítulo] &&
-           params[:contador] < params[:max_cant] &&
-           params[:arr].last.size < params[:max_tam]
-            # Meto subtítulo si queda bien ponerlo en este caso
-            params[:arr].last << "\n#{params[:subtítulo].dup}"
-        end
-    end
 end

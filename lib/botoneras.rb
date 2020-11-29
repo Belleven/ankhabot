@@ -1,130 +1,48 @@
 class Dankie
-    # Las siguientes funciones son para manejar
-    # listas de n páginas de texto, media o caption
-    def editar_botonera_lista(callback)
-        match = callback.data.match(/lista:(?<id_usuario>\d+):(?<índice>\d+)/)
+    # Esto es como dankie_auxiliares pero con métodos auxiliares para botoneras
 
-        id_usuario = match[:id_usuario].to_i
-        id_chat = callback.message.chat.id
-        id_mensaje = callback.message.message_id
-        índice = match[:índice].to_i
+    private
 
-        metadatos = obtener_metadatos_lista(id_chat, id_mensaje)
+    ADVERTENCIA_NSFW = 'AgACAgQAAx0CSSYxEwABET8GX8BG8iQwKpLZgwGLfJrVY-jQkJ4AAgmrMRujPB'\
+                       'RQwRf4FTTSWGm-q3ojXQADAQADAgADeAADdkMDAAEeBA'.freeze
 
-        # valido id_usuario y que sea editable
-        if id_usuario != callback.from.id && metadatos[:editable_por] == 'dueño'
-            @tg.answer_callback_query(callback_query_id: callback.id,
-                                      text: 'Pedite tu propia lista, '\
-                                            "#{TROESMAS.sample}.")
-            return
-        end
+    def arreglo_tablero(params)
+        conjunto_iterable = params[:conjunto_iterable]
+        arr = params[:arr]
+        subtítulo = params[:subtítulo]
+        contador = params[:contador]
+        max_cant = params[:max_cant]
+        max_tam = params[:max_tam]
 
-        valor = obtener_elemento_lista(id_chat, id_mensaje, índice)
-        opciones = armar_botonera(
-            índice,
-            obtener_tamaño_lista(id_chat, id_mensaje),
-            id_usuario,
-            editable: metadatos[:editable_por] == 'todos'
-        )
+        return if conjunto_iterable.nil? || conjunto_iterable.empty?
 
-        if valor.nil?
-            @tg.edit_message_text(chat_id: id_chat,
-                                  message_id: id_mensaje,
-                                  text: 'Gomenasai, esta lista es muy vieja, '\
-                                        'pedí una lista nueva oniisan.')
-            return
-        end
+        agregar_subtítulo(params)
 
-        editar_según_el_tipo(metadatos, id_chat, id_mensaje, valor, opciones)
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        @logger.error e.to_s, al_canal: false
-    end
-
-    def acciones_inferiores_lista(callback)
-        match = callback.data.match(
-            /opcioneslista:(?<id_usuario>\d+):(?<índice>\d+)(:(?<acción>\w+))?/
-        )
-
-        id_usuario = match[:id_usuario].to_i
-        id_chat = callback.message.chat.id
-        id_mensaje = callback.message.message_id
-        índice = match[:índice].to_i
-
-        # valido id_usuario y que sea editable
-        if id_usuario != callback.from.id
-            @tg.answer_callback_query(callback_query_id: callback.id,
-                                      text: 'Vos no podés hacer eso, '\
-                                            "#{TROESMAS.sample}.")
-            return
-        end
-
-        resolver_acción_inferior_lista(
-            match: match,
-            callback: callback,
-            id_chat: id_chat,
-            id_mensaje: id_mensaje,
-            id_usuario: id_usuario,
-            índice: índice
-        )
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        @logger.error e.to_s, al_canal: false
-    end
-
-    # Guarda el arreglo en redis, tipo puede valer 'texto', 'photo', 'video',
-    # 'animation', 'audio', 'document' o 'caption'
-    # editable puede valer 'dueño' o 'todos'. son los que pueden tocar los  botones
-    def armar_lista(id_chat, id_msj, arreglo, tipo = 'texto', editable = 'dueño')
-        clave = "botonera:#{id_chat}:#{id_msj}"
-        @redis.rpush clave, arreglo
-        @redis.mapped_hmset "#{clave}:metadatos", tipo: tipo, editable_por: editable
-        # 86400 = 24*60*60 -> un día en segundos
-        @redis.expire clave, 86_400
-        @redis.expire "#{clave}:metadatos", 86_400
-    end
-
-    def obtener_elemento_lista(id_chat, id_msj, índice)
-        @redis.lindex "botonera:#{id_chat}:#{id_msj}", índice
-    end
-
-    def obtener_tamaño_lista(id_chat, id_msj)
-        @redis.llen "botonera:#{id_chat}:#{id_msj}"
-    end
-
-    def obtener_metadatos_lista(id_chat, id_msj)
-        h = @redis.hgetall("botonera:#{id_chat}:#{id_msj}:metadatos")
-        h.transform_keys!(&:to_sym)
-    end
-
-    def armar_botonera(página_actual, tamaño_máximo, id_usuario, editable: false)
-        return nil if tamaño_máximo == 1
-
-        página_actual = [página_actual, tamaño_máximo - 1].min # valido el rango
-
-        arr = [[]]
-        botones_abajo = crear_botones_abajo(editable, id_usuario, página_actual)
-
-        if tamaño_máximo <= 5
-            tamaño_máximo.times do |i|
-                arr.first << Telegram::Bot::Types::InlineKeyboardButton.new(
-                    text: página_actual == i ? "< #{i + 1} >" : (i + 1).to_s,
-                    callback_data: "lista:#{id_usuario}:#{i}"
-                )
+        # Itero sobre los elementos
+        conjunto_iterable.each do |elemento|
+            # Si es una página nueva agrego título y subtítulo
+            if arr.empty? || contador >= max_cant || arr.last.size >= max_tam
+                arr << params[:título].dup
+                arr.last << subtítulo.dup if subtítulo
+                contador = 0
             end
-            arr << botones_abajo
-            return Telegram::Bot::Types::InlineKeyboardMarkup.new inline_keyboard: arr
+            # Agrego el elemento juju
+            arr.last << params[:agr_elemento].call(elemento)
+            contador += 1
         end
+        # Devuelvo el contador para que pueda ser usado luego en futuras
+        # llamadas a esta función, recordar que los integers se pasan por
+        # copia
+        contador
+    end
 
-        botones = rellenar_botones(página_actual, tamaño_máximo)
-
-        botones.each do |botón|
-            arr.first << Telegram::Bot::Types::InlineKeyboardButton.new(
-                text: botón.first,
-                callback_data: "lista:#{id_usuario}:#{botón.last}"
-            )
+    def agregar_subtítulo(params)
+        if params[:inicio_en_subtítulo] && !params[:arr].empty? && params[:subtítulo] &&
+           params[:contador] < params[:max_cant] &&
+           params[:arr].last.size < params[:max_tam]
+            # Meto subtítulo si queda bien ponerlo en este caso
+            params[:arr].last << "\n#{params[:subtítulo].dup}"
         end
-
-        arr << botones_abajo
-        Telegram::Bot::Types::InlineKeyboardMarkup.new(inline_keyboard: arr)
     end
 
     # Método que manda una botonera preguntando si se quiere enviar un nsfw.
@@ -143,118 +61,12 @@ class Dankie
         respuesta = @tg.send_photo(chat_id: id_chat,
                                    caption: 'El contenido que querés ver es NSFW. '\
                                             '¿Ver de todas formas?',
-                                   photo: 'https://i.imgur.com/I7buUmr.jpg',
+                                   photo: ADVERTENCIA_NSFW,
                                    reply_markup: botones)
         return false unless respuesta
 
         respuesta = Telegram::Bot::Types::Message.new respuesta['result']
 
         respuesta.message_id
-    end
-
-    private
-
-    def crear_botones_abajo(editable, id_usuario, página_actual)
-        [
-            Telegram::Bot::Types::InlineKeyboardButton.new(
-                text: (editable ? "\u{1F513}" : "\u{1F512}"),
-                callback_data: "opcioneslista:#{id_usuario}:#{página_actual}:"\
-                               "#{editable ? 'noedit' : 'edit'}"
-            ),
-            Telegram::Bot::Types::InlineKeyboardButton.new(
-                text: "\u274C",
-                callback_data: "opcioneslista:#{id_usuario}:#{página_actual}:borrar"
-            )
-        ]
-    end
-
-    def resolver_acción_inferior_lista(params)
-        callback = params[:callback]
-        id_chat = params[:id_chat]
-        id_mensaje = params[:id_mensaje]
-        id_usuario = params[:id_usuario]
-        índice = params[:índice]
-
-        case params[:match][:acción]
-        when 'borrar'
-            @tg.answer_callback_query(callback_query_id: callback.id,
-                                      text: 'Mensaje borrado.')
-            @tg.delete_message(chat_id: id_chat, message_id: id_mensaje)
-        when 'edit'
-            @redis.hset("botonera:#{id_chat}:#{id_mensaje}:metadatos",
-                        'editable_por', 'todos')
-            @tg.answer_callback_query(callback_query_id: callback.id,
-                                      text: 'Botonera ahora es presionable por todos.')
-            opciones = armar_botonera(índice, obtener_tamaño_lista(id_chat, id_mensaje),
-                                      id_usuario, editable: true)
-            @tg.edit_message_reply_markup(chat_id: id_chat, message_id: id_mensaje,
-                                          reply_markup: opciones)
-        when 'noedit'
-            @redis.hset("botonera:#{id_chat}:#{id_mensaje}:metadatos",
-                        'editable_por', 'dueño')
-            @tg.answer_callback_query(callback_query_id: callback.id,
-                                      text: 'Botonera ahora solo es presionable '\
-                                      'por el que la pidió.')
-            opciones = armar_botonera(índice, obtener_tamaño_lista(id_chat, id_mensaje),
-                                      id_usuario, editable: false)
-            @tg.edit_message_reply_markup(chat_id: id_chat, message_id: id_mensaje,
-                                          reply_markup: opciones)
-        end
-    end
-
-    def rellenar_botones(página_actual, tamaño_máximo)
-        botones = []
-
-        if página_actual < 3
-            4.times do |i|
-                botones << [página_actual == i ? "<#{i + 1}>" : (i + 1).to_s, i]
-            end
-            botones << ["#{tamaño_máximo} >>", tamaño_máximo - 1]
-        elsif página_actual > (tamaño_máximo - 4)
-            botones << ['<< 1', 0]
-            ((tamaño_máximo - 4)..(tamaño_máximo - 1)).each do |i|
-                botones << [página_actual == i ? "<#{i + 1}>" : (i + 1).to_s, i]
-            end
-        else
-            botones << ['<< 1', 0]
-            botones << ["< #{página_actual}", página_actual - 1]
-            botones << ["< #{página_actual + 1} >", página_actual]
-            botones << ["#{página_actual + 2} >", página_actual + 1]
-            botones << ["#{tamaño_máximo} >>", tamaño_máximo - 1]
-        end
-        botones
-    end
-
-    def editar_según_el_tipo(metadatos, id_chat, id_mensaje, valor, opciones)
-        case metadatos[:tipo]
-        when 'texto'
-            @tg.edit_message_text(
-                chat_id: id_chat,
-                parse_mode: :html,
-                message_id: id_mensaje,
-                disable_web_page_preview: true,
-                disable_notification: true,
-                text: valor,
-                reply_markup: opciones
-            )
-        when 'caption'
-            @tg.edit_message_caption(
-                chat_id: id_chat,
-                message_id: id_mensaje,
-                parse_mode: :html,
-                caption: valor,
-                reply_markup: opciones
-            )
-        else
-            @tg.edit_message_media(
-                chat_id: id_chat,
-                message_id: id_mensaje,
-                media: {
-                    type: metadatos[:tipo],
-                    media: valor
-                }.to_json,
-                reply_markup: opciones
-            )
-        end
     end
 end
