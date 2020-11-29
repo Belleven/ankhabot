@@ -22,6 +22,9 @@
     -ahora se aceptan todo tipo de updates
     -optimización en handlers
     -ahora los handlers pueden tomar la update original
+    -cambio para que se pueda pasar un flag al iniciar el bot para que ignore todas las updates atrasadas (menos una)
+    -comando ud
+    -comando calcular
 
 1.2
     -implementación básica de estadísticas de uso (sin visualización)

@@ -46,6 +46,9 @@ def modificar_base
 
     # Acá meter funciones para modificar la BD, NO OLVIDARSE de borrarlos después
     # Por ejemplo: redis.del("agregar:5")
+    #
+    # redis.flushdb
+    #
     # redis.keys('*').each do |clave|
     #   redis.del(clave)
     # end

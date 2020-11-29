@@ -55,22 +55,19 @@ class Dankie
     end
 
     def enviar_estadísticas_grupo(msj, parámetros)
-        tiempo = :día
-        case parámetros
-        when /d[ií]a/i
-            tiempo = :día
-        when /semana/i
-            tiempo = :semana
-        when /mes/i
-            tiempo = :mes
-        end
+        tiempo = case parámetros
+                 when /semana/i
+                     'la última semana'
+                 when /mes/i
+                     'el último mes'
+                 else
+                     'el último día'
+                 end
 
-        texto = 'Uso del bot en '
-        texto << { día: 'el último día', semana: 'la última semana',
-                   mes: 'el último mes' }[tiempo]
-
-        @tg.send_message(chat_id: msj.chat.id,
-                         text: texto)
+        @tg.send_message(
+            chat_id: msj.chat.id,
+            text: "Uso del bot en #{tiempo}"
+        )
     end
 
     def enviar_estadísticas_bot(msj, parámetros)

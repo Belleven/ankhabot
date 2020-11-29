@@ -77,7 +77,7 @@ class Dankie
 
         # Primero pongo el link invisible así lo toma para la preview.
         imagen = temazo.dig('image', -1, '#text')
-        imagen = imagen.empty? ? 'https://i.imgur.com/fwu2ESz.png' : imagen
+        imagen = imagen.empty? ? IMAGEN_POR_DEFECTO : imagen
 
         nombre = args || obtener_enlace_usuario(msj.from.id, msj.chat.id)
         nombre ||= 'si salta este texto estamos mal'
@@ -114,6 +114,8 @@ class Dankie
     end
 
     private
+
+    IMAGEN_POR_DEFECTO = 'https://i.imgur.com/fwu2ESz.png'.freeze
 
     def usuario_last_fm_params(msj)
         if (usuario = @redis.get("lastfm:#{msj.from.id}"))

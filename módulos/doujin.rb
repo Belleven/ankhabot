@@ -51,27 +51,29 @@ class Dankie
         id_chat = callback.message.chat.id
         id_mensaje = callback.message.message_id
 
-        if id_usuario != callback.from.id # TODO: validar admins ????
+        if id_usuario != callback.from.id
             @tg.answer_callback_query(callback_query_id: callback.id,
                                       text: 'Vos no podés hacer eso, '\
                                             "#{TROESMAS.sample}.")
             return
         end
 
+        clave = "botonera:#{id_chat}:#{id_mensaje}"
+        return unless @redis.exists?("activo_nsfw:#{id_chat}:#{id_mensaje}")
+        return if botonera_expirada(id_chat, id_mensaje, callback.id, clave)
+
         case match[:acción]
         when 'Borrar'
-            @tg.answer_callback_query(callback_query_id: callback.id)
-            @tg.delete_message(chat_id: id_chat, message_id: id_mensaje)
+            borrar_claves_y_msj_doujin(id_chat, id_mensaje, clave)
         when 'Mostrar'
+            @redis.del "activo_nsfw:#{id_chat}:#{id_mensaje}"
+
             botones = armar_botonera(
                 0,
                 obtener_tamaño_lista(id_chat, id_mensaje),
                 id_usuario
             )
 
-            @tg.answer_callback_query(
-                callback_query_id: callback.id
-            )
             @tg.edit_message_media(
                 chat_id: id_chat,
                 reply_markup: botones,
@@ -83,14 +85,36 @@ class Dankie
             )
         end
     rescue Telegram::Bot::Exceptions::ResponseError => e
-        @logger.error e.to_s, al_canal: false
+        @logger.error e.to_s, al_canal: true
     end
 
     private
+
+    def botonera_expirada(id_chat, id_mensaje, id_callback, clave)
+        unless @redis.exists?(clave) && @redis.exists?("#{clave}:metadatos")
+
+            @tg.answer_callback_query(
+                callback_query_id: id_callback,
+                text: 'Este porno chino ya expiró, pedite otro'
+            )
+            borrar_claves_y_msj_doujin(id_chat, id_mensaje, clave)
+            return true
+        end
+
+        false
+    end
+
+    def borrar_claves_y_msj_doujin(id_chat, id_mensaje, clave)
+        @redis.del clave
+        @redis.del "#{clave}:metadatos"
+        @redis.del "activo_nsfw:#{id_chat}:#{id_mensaje}"
+        @tg.delete_message(chat_id: id_chat, message_id: id_mensaje)
+    end
 
     def enviar_doujin(doujin, id_chat, id_usuario)
         id_mensaje = preguntar_nsfw(id_chat, id_usuario, 'doujin_nsfw')
 
         armar_lista(id_chat, id_mensaje, [doujin.cover, *doujin.pages], 'photo')
+        @redis.set "activo_nsfw:#{id_chat}:#{id_mensaje}", 1
     end
 end
