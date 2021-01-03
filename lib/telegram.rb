@@ -153,6 +153,10 @@ class TelegramAPI
     end
     # rubocop:enable Naming/AccessorMethodName
 
+    def get_chat_member(args)
+        @client.api.get_chat_member args
+    end
+
     private
 
     def enviar(función_envío, args, acción = nil)

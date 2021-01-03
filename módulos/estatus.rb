@@ -11,8 +11,9 @@ class Dankie
     def estatus(msj)
         return unless (miembro = miembro_válido(msj))
 
-        traducción = { 'member' => 'MIEMBRO COMÚN', 'kicked' => 'BANEADO',
-                       'left' => 'FUERA DEL GRUPO (PUEDE VOLVER CUANDO QUIERA)',
+        traducción = { 'member' => 'MIEMBRO COMÚN',
+                       'kicked' => 'BANEADO',
+                       'left' => 'FUERA DEL GRUPO',
                        'creator' => 'CREADOR DEL GRUPETE',
                        'administrator' => 'ADMINISTRADOR',
                        'restricted' => 'USUARIO RESTRINGIDO' }
@@ -75,7 +76,7 @@ class Dankie
         miembro = obtener_miembro(msj, id_usuario)
 
         if alias_usuario &&
-           (!miembro.user.username || miembro.user.username != alias_usuario)
+           (!miembro&.user&.username || miembro.user.username != alias_usuario)
 
             @tg.send_message(chat_id: msj.chat.id,
                              text: 'No reconozco ese alias, lo más probable es que '\

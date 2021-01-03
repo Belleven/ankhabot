@@ -1,75 +1,113 @@
 class Dankie
-    add_handler Handler::Comando.new(:kick, :rajar,
-                                     chats_permitidos: %i[group supergroup])
-    add_handler Handler::Comando.new(:rajar, :rajar,
-                                     chats_permitidos: %i[group supergroup],
-                                     descripción: 'Echo al usuario del grupo')
-    add_handler Handler::Comando.new(:ban, :ban,
-                                     chats_permitidos: %i[supergroup])
-    add_handler Handler::Comando.new(:nisban, :ban,
-                                     chats_permitidos: %i[supergroup],
-                                     descripción: 'Baneo al usuario del grupo')
-    add_handler Handler::Comando.new(:unban, :desban,
-                                     chats_permitidos: %i[supergroup])
-    add_handler Handler::Comando.new(:desbanificar, :desban,
-                                     chats_permitidos: %i[supergroup],
-                                     descripción: 'Desbaneo al usuario del grupo')
+    add_handler Handler::Comando.new(
+        :kick,
+        :rajar,
+        chats_permitidos: %i[group supergroup]
+    )
+
+    add_handler Handler::Comando.new(
+        :rajar,
+        :rajar,
+        chats_permitidos: %i[group supergroup],
+        descripción: 'Echo al usuario del grupo'
+    )
+
+    add_handler Handler::Comando.new(
+        :ban,
+        :ban,
+        chats_permitidos: %i[supergroup]
+    )
+
+    add_handler Handler::Comando.new(
+        :nisban,
+        :ban,
+        chats_permitidos: %i[supergroup],
+        descripción: 'Baneo al usuario del grupo'
+    )
+
+    add_handler Handler::Comando.new(
+        :unban,
+        :desban,
+        chats_permitidos: %i[supergroup]
+    )
+
+    add_handler Handler::Comando.new(
+        :desbanificar,
+        :desban,
+        chats_permitidos: %i[supergroup],
+        descripción: 'Desbaneo al usuario del grupo'
+    )
 
     # Comando /rajar /kick
     def rajar(msj)
-        # Función para moderar el grupete
-        case msj.chat.type
-        when 'supergroup'
-            func_moderadora = proc do |chat_id, id_afectada|
-                # Por alguna razón misteriosa la función unban_chat_member
-                # kickea en supergrupos
-                @tg.unban_chat_member(chat_id: chat_id, user_id: id_afectada)
-            end
-        when 'group'
-            func_moderadora = proc do |chat_id, id_afectada|
-                # Por alguna razón misteriosa esta función solo kickea
-                # en grupos normales
-                @tg.kick_chat_member(chat_id: chat_id, user_id: id_afectada)
-            end
+        # https://core.telegram.org/bots/api#unbanchatmember
+        if msj.chat.type == 'supergroup'
+            aplicar_moderación(
+                msj,
+                :unban_chat_member,
+                'Ni nos vimos',
+                { para_aplicar_restricción: true, expulsando: true }
+            )
+            return
         end
-        msj_final = 'Ni nos vimos'
 
-        aplicar_moderación(msj, func_moderadora, msj_final, true)
+        # Esto es en un grupo, no hay que volver a chequear nada
+        # https://core.telegram.org/bots/api#kickchatmember
+        aplicar_moderación(
+            msj,
+            :kick_chat_member,
+            'Ni nos vimos',
+            { para_aplicar_restricción: true }
+        )
     end
 
     # Comando /ban /nisban
     def ban(msj)
-        func_moderadora = proc do |chat_id, id_afectada|
-            @tg.kick_chat_member(chat_id: chat_id, user_id: id_afectada)
-        end
-        msj_final = 'Pero mirá el ban que te comiste'
-
-        aplicar_moderación(msj, func_moderadora, msj_final, true)
+        aplicar_moderación(
+            msj,
+            :kick_chat_member,
+            'Pero mirá el ban que te comiste',
+            { para_aplicar_restricción: true }
+        )
     end
 
     # Comando /unban /desbanificar
     def desban(msj)
-        func_moderadora = proc do |chat_id, id_afectada|
-            @tg.unban_chat_member(chat_id: chat_id, user_id: id_afectada)
-        end
-        msj_final = 'Ya podés meterte de nuevo, pero no vuelvas a mandarte cagadas'
-
-        aplicar_moderación(msj, func_moderadora, msj_final, false)
+        aplicar_moderación(
+            msj,
+            :unban_chat_member,
+            'Ya podés meterte de nuevo (o seguir si estabas), pero no te mandes cagadas',
+            { para_aplicar_restricción: false, args_api: { only_if_banned: true } }
+        )
     end
 
     private
 
     # Función que chequea los requisitos y ejecuta finalmente el comando moderador
-    def aplicar_moderación(msj, func_moderadora, msj_final, para_aplicar_restricción)
-        return unless (miembro = cumple_requisitos(msj, para_aplicar_restricción))
-        return unless llamar_método_api(msj, miembro, func_moderadora)
+    def aplicar_moderación(msj, método, msj_final, extra_args)
+        resultados = cumple_requisitos(
+            msj,
+            extra_args[:para_aplicar_restricción],
+            extra_args[:expulsando]
+        )
+        return unless (miembro = resultados[:miembro])
 
+        # miembro puede ser un objeto usuario o un entero que representa una id
+        args_moderación = {
+            chat_id: msj.chat.id,
+            user_id: (miembro.id if miembro.respond_to?(:id)) || miembro
+        }
+        args_moderación.merge!(extra_args[:args_api] || {})
+        return unless llamar_método_api(msj, método, args_moderación)
+
+        razón = resultados[:razón]
         razón = if razón.nil?
                     ''
                 else
                     ".\nRazón: #{razón}#{razón[-1] == '.' ? '' : '.'}"
                 end
-        nombre = obtener_enlace_usuario(miembro.user, msj.chat.id)
+
+        nombre = obtener_enlace_usuario(miembro, msj.chat.id)
         nombre ||= 'Usuario eliminado'
 
         texto = "#{msj_final} #{nombre}#{razón}"
@@ -82,34 +120,37 @@ class Dankie
         )
     end
 
-    def llamar_método_api(msj, miembro, func_moderadora)
-        func_moderadora.call(msj.chat.id, miembro.user.id)
+    def llamar_método_api(msj, método_moderación, args_moderación)
+        @tg.send método_moderación, args_moderación
     rescue Telegram::Bot::Exceptions::ResponseError => e
         manejar_excepciones_moderación(msj, e)
         false
     end
 
     # Todos los requisitos que hay que cumplir para banear/kickear
-    def cumple_requisitos(msj, para_aplicar_restricción)
+    def cumple_requisitos(msj, para_aplicar_restricción, expulsando)
         # Chequeo que esté pasando una id para afectar
-        return unless (valores = dar_id_afectada(msj, para_aplicar_restricción))
+        return false unless (valores = dar_id_afectada(msj, para_aplicar_restricción))
 
         id_afectada = valores[:id]
+        return false unless id_afectada
+
         razón = valores[:razón]
-
-        return unless id_afectada
-
         if razón && razón.length > 233
             @tg.send_message(
                 chat_id: msj.chat.id,
                 text: "No puedo ejecutar el comando\nRazón: la razón es muy larga.",
                 reply_to_message_id: msj.message_id
             )
-            nil
+            false
         else
             # Chequeo que el usuario que llamó al comando sea admin.
             # Además devuelve el chat_member del usuario afectado.
-            chequear_usuario(msj, id_afectada, valores[:alias])
+            {
+                miembro: chequear_usuarios(msj, id_afectada, valores[:alias],
+                                           valores[:usuario], expulsando),
+                razón: razón
+            }
         end
     end
 
@@ -153,7 +194,7 @@ class Dankie
         valores
     end
 
-    def chequear_usuario(msj, id_afectada, alias_id)
+    def chequear_usuarios(msj, id_afectada, alias_id, usuario, expulsando)
         # Chequeo que quien llame al comando sea admin y
         # tenga permisos para restringir usuarios
         permisos = tiene_permisos(
@@ -164,32 +205,57 @@ class Dankie
             'No tenés permisos para restringir/suspender usuarios'
         )
 
-        if permisos && (miembro = obtener_miembro(msj, id_afectada))
-            if alias_id &&
-               (!miembro.user.username || miembro.user.username != alias_id)
+        return false unless permisos
 
+        # Si estoy expulsando a alguien de un supergrupo, tengo que chequear que sea
+        # miembro porque si está baneado, al aplicarle "unban_chat_member", se desbanea
+        # Es un hack para ese caso este if de acá abajo, además de eso está "optimizado"
+        # para que reuse el resultado de obtener_miembro en caso de que tenga que
+        # validar el alias más abajo, así nos ahorramos un pedido a la api
+        if expulsando
+            return false unless (miembro = obtener_miembro(msj, id_afectada))
+
+            if miembro.status == 'kicked'
                 @tg.send_message(
                     chat_id: msj.chat.id,
-                    text: 'No reconozco ese alias, lo más probable '\
-                          'es que haya sido cambiado recientemente',
-                    reply_to_message_id: msj.message_id
+                    reply_to_message_id: msj.message_id,
+                    text: 'No puedo expulsar a alguien que ya banearon uwu'
                 )
-            else
-                return miembro
+                return false
             end
         end
-        nil
+
+        return miembro&.user || usuario || id_afectada unless alias_id
+
+        validar_alias(msj, id_afectada, alias_id, miembro)
+    end
+
+    def validar_alias(msj, id_afectada, alias_id, miembro)
+        # Acá se pide el chat_member para chequear que el id obtenido por el alias que
+        # enviaron (id que se consigue de la base de datos porque telegram no permite
+        # conseguir id dado un alias) sea el correcto, ya que puede pasar que alguien
+        # cambie su alias y que el bot no se de cuenta porque no le llega ninguna
+        # update donde se refleje, y no queremos banear a la persona incorrecta.
+        miembro ||= obtener_miembro(msj, id_afectada)
+        return miembro.user if miembro&.user&.username == alias_id
+
+        @tg.send_message(
+            chat_id: msj.chat.id,
+            reply_to_message_id: msj.message_id,
+            text: 'No reconozco ese alias, lo más probable '\
+                  'es que haya sido cambiado recientemente'
+        )
+        false
     end
 
     def manejar_excepciones_moderación(msj, excepción)
-        case excepción.message
+        case (mensaje_error = excepción.message)
         when /user is an administrator of the chat/
             @tg.send_message(
                 chat_id: msj.chat.id,
                 reply_to_message_id: msj.message_id,
                 text: "No podés banear admines, #{TROESMAS.sample}"
             )
-            return
         when /can't remove chat owner/
             @tg.send_message(
                 chat_id: msj.chat.id,
@@ -197,22 +263,52 @@ class Dankie
                 text: 'Uff pero estás tratando de banear a quien '\
                       "maneja el grupete, #{TROESMAS.sample}"
             )
-            return
         when %r{not enough rights to restrict/unrestrict chat member}
             @tg.send_message(
                 chat_id: msj.chat.id,
                 reply_to_message_id: msj.message_id,
                 text: 'Necesito más permisos para hacer eso'
             )
-            return
+        when /invalid user_id specified/, /USER_ID_INVALID/
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                reply_to_message_id: msj.message_id,
+                text: 'Esa ID es inválida o de alguien que no está en el grupo'
+            )
+        when /user not found/, /USER_NOT_PARTICIPANT/
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                reply_to_message_id: msj.message_id,
+                text: 'No puedo expulsar a alguien que no está en el chat'
+            )
+        when /can't restrict self/
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                reply_to_message_id: msj.message_id,
+                text: 'Ni se te ocurra 2'
+            )
+        else
+            manejar_excepciones_grupo_y_extras(msj, mensaje_error)
         end
+    end
 
-        @logger.error excepción.to_s, al_canal: true
-        @tg.send_message(
-            chat_id: msj.chat.id,
-            text: 'Hubo un error re turbina, probablemente '\
-                    'no pude terminar de ejecutar el comando.',
-            reply_to_message_id: msj.message_id
-        )
+    def manejar_excepciones_grupo_y_extras(msj, mensaje_error)
+        case mensaje_error
+        when /CHAT_ADMIN_REQUIRED/
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                reply_to_message_id: msj.message_id,
+                text: 'O estoy tratando de banear admines o no tengo los '\
+                      'permisos suficientes, en cualquier caso no puedo hacer nada'
+            )
+        else
+            @logger.error mensaje_error, al_canal: true
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                text: 'Hubo un error re turbina, probablemente '\
+                        'no pude terminar de ejecutar el comando.',
+                reply_to_message_id: msj.message_id
+            )
+        end
     end
 end
