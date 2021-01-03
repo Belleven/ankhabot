@@ -324,21 +324,18 @@ class Dankie
         cambios = []
 
         unless obtener_nombre_usuario(usuario.id) == usuario.first_name
-            cambios << redis_actualizar_nombre_usuario(usuario.id,
-                                                       usuario.first_name,
-                                                       hora)
+            cambios << redis_actualizar_dato_usuario(usuario.id, usuario.first_name,
+                                                     :nombre, hora)
         end
 
         unless obtener_apellido_usuario(usuario.id) == usuario.last_name.to_s
-            cambios << redis_actualizar_apellido_usuario(usuario.id,
-                                                         usuario.last_name,
-                                                         hora)
+            cambios << redis_actualizar_dato_usuario(usuario.id, usuario.last_name,
+                                                     :apellido, hora)
         end
 
         unless obtener_username_usuario(usuario.id) == usuario.username.to_s
-            cambios << redis_actualizar_username_usuario(usuario.id,
-                                                         usuario.username,
-                                                         hora)
+            cambios << redis_actualizar_dato_usuario(usuario.id, usuario.username,
+                                                     :username, hora)
         end
 
         cambios.compact
@@ -352,25 +349,11 @@ class Dankie
             .each { |clave| @redis.del(clave) }
     end
 
-    def redis_actualizar_nombre_usuario(id, nombre, hora)
-        clave = "nombre:#{id}"
-        @redis.rpush(clave, nombre)
+    def redis_actualizar_dato_usuario(id, dato, tipo_de_dato, hora)
+        clave = "#{tipo_de_dato}:#{id}"
+        @redis.rpush(clave, dato)
         @redis.rpush("#{clave}:date", hora)
-        @redis.llen(clave) > 1 ? :nombre : nil
-    end
-
-    def redis_actualizar_apellido_usuario(id, apellido, hora)
-        clave = "apellido:#{id}"
-        @redis.rpush(clave, apellido)
-        @redis.rpush("#{clave}:date", hora)
-        @redis.llen(clave) > 1 ? :apellido : nil
-    end
-
-    def redis_actualizar_username_usuario(id, username, hora)
-        clave = "username:#{id}"
-        @redis.rpush(clave, username)
-        @redis.rpush("#{clave}:date", hora)
-        @redis.llen(clave) > 1 ? :username : nil
+        @redis.llen(clave) > 1 ? tipo_de_dato : nil
     end
 
     # Las siguientes tres funciones devuelven dicho campo, o

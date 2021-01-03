@@ -1,31 +1,32 @@
 class Dankie
     add_handler Handler::Mensaje.new(:actualizar_datos_usuarios)
-    add_handler Handler::Mensaje.new(:informar_cambio_datos_en_grupo)
+    add_handler Handler::Mensaje.new(
+        :informar_cambio_datos_en_grupo,
+        chats_permitidos: %w[group supergroup]
+    )
 
     # Método recursivo que actualiza los nombres de usuarios en redis
     # Necesita ser público por los handlers
     def actualizar_datos_usuarios(msj)
         usuarios = [msj.from, msj.forward_from, msj.left_chat_member]
         (usuarios + msj.new_chat_members).compact.each do |usuario|
-            informar_cambio_datos_usuario(usuario.id, msj.chat,
-                                          redis_actualizar_datos_usuario(usuario))
+            informar_cambio_datos_usuario(
+                usuario.id,
+                msj.chat,
+                redis_actualizar_datos_usuario(usuario)
+            )
         end
 
         actualizar_datos_usuarios(msj.reply_to_message) if msj.reply_to_message
     end
 
     def informar_cambio_datos_en_grupo(msj)
-        return if %w[private channel].include? msj.chat.type
-
         # TODO: return if hay una configuración de grupo para que no envíe esto
         # TODO return if hay una configuración de usuario para que no envíe esto
         # TODO considerar el caso donde el usuario recién ingresa al grupo
 
         id_usuario = msj.from.id
         id_chat = msj.chat.id
-
-        texto = obtener_enlace_usuario(id_usuario, id_chat)
-        texto << " cambió su información de usuario:\n"
 
         cambios = []
 
@@ -39,6 +40,16 @@ class Dankie
         end
 
         return if cambios.empty?
+
+        # Si es la primera vez que se ve en este grupete entonces marco como que se
+        # informó el cambio pero sin enviar ningun mensaje, la próxima ya se manda
+        unless @redis.sismember("contacto_grupo:#{id_usuario}", id_chat)
+            @redis.sadd("contacto_grupo:#{id_usuario}", id_chat)
+            return
+        end
+
+        texto = obtener_enlace_usuario(id_usuario, id_chat)
+        texto << " cambió su información de usuario:\n"
 
         @tg.send_message(chat_id: id_chat,
                          parse_mode: :html,
@@ -73,6 +84,8 @@ class Dankie
     def informar_cambio_datos_usuario(id_usuario, chat, cambios)
         return if cambios.empty?
         return if %w[private channel].include? chat.type
+
+        @redis.sadd("contacto_grupo:#{id_usuario}", chat.id)
 
         # TODO: return if hay una configuración de grupo para que no envíe esto
         # TODO return if hay una configuración de usuario para que no envíe esto
