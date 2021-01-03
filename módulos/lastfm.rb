@@ -103,7 +103,7 @@ class Dankie
                                      reply_markup: opciones, parse_mode: :html,
                                      reply_to_message_id: msj.message_id,
                                      disable_web_page_preview: true)
-        return unless respuesta
+        return unless respuesta && respuesta['ok']
 
         respuesta = Telegram::Bot::Types::Message.new respuesta['result']
         armar_lista(msj.chat.id, respuesta.message_id, arr, 'texto', 'todos')

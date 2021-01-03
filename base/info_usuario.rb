@@ -127,7 +127,7 @@ class Dankie
             disable_web_page_preview: true,
             disable_notification: true
         )
-        return unless respuesta
+        return unless respuesta && respuesta['ok']
 
         armar_lista(
             msj.chat.id,
@@ -160,7 +160,7 @@ class Dankie
                                      reply_markup: opciones,
                                      text: arr.first,
                                      disable_notification: true)
-        return unless respuesta
+        return unless respuesta && respuesta['ok']
 
         armar_lista(msj.chat.id,
                     Telegram::Bot::Types::Message.new(respuesta['result']).message_id,

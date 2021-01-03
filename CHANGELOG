@@ -10,6 +10,7 @@
         -comando purgar_historial_nombres para vaciar datos propios
         -IMPORTANTÍSIMO eliminar claves "nombre:*" y "usuario:*" en la base de datos
     -mejora en la captura de excepciones
+    -pole desactivable desde las opciones
     -correcciones del rubocop: no hay más ofensas
     -fran y chiro ascendidos a devs
     -sacados inactivos de devs

@@ -11,6 +11,8 @@ class Dankie
                                      descripción: 'Muestro el ranking de Nisman')
 
     def pole(msj)
+        return unless validar_permiso_pole(msj.chat.id)
+
         id_chat = msj.chat.id
         id_usuario = msj.from.id
 
@@ -34,11 +36,11 @@ class Dankie
     def enviar_ranking_pole(msj)
         poles = @redis.zrevrange("pole:#{msj.chat.id}", 0, -1, with_scores: true)
 
-        if poles.nil? || poles.empty?
+        if poles.empty?
             @tg.send_message(
                 chat_id: msj.chat.id,
                 text: 'No hay poles en este grupo.',
-                message_id: msj.message_id
+                reply_to_message_id: msj.message_id
             )
             return
         end
@@ -68,6 +70,12 @@ class Dankie
 
     private
 
+    def validar_permiso_pole(chat_id)
+        Configuración.redis ||= @redis
+        puede = Configuración.config(chat_id, :admite_pole)
+        puede.nil? ? true : puede.to_i.positive?
+    end
+
     def mandar_pole_y_crear_botonera(msj, arr)
         respuesta = @tg.send_message(
             chat_id: msj.chat.id,
@@ -78,7 +86,7 @@ class Dankie
             disable_web_page_preview: true,
             disable_notification: true
         )
-        return unless respuesta
+        return unless respuesta && respuesta['ok']
 
         respuesta = Telegram::Bot::Types::Message.new respuesta['result']
         armar_lista(msj.chat.id, respuesta.message_id, arr, 'texto', 'todos')
@@ -96,9 +104,7 @@ class Dankie
                 contador = 0
             end
 
-            unless (enlace_usuario = obtener_enlace_usuario(pole.first, msj.chat.id))
-                @redis.zrem "pole:#{msj.chat.id}", pole.first
-            end
+            enlace_usuario = obtener_enlace_usuario(pole.first, msj.chat.id)
 
             arr.last << "\n<code>#{format("%#{dígitos}d", pole[1].to_i)}</code> "
             arr.last << (enlace_usuario || '<i>Usuario eliminado</i>')
