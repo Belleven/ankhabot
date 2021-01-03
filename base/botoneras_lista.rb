@@ -44,7 +44,7 @@ class Dankie
 
     def acciones_inferiores_lista(callback)
         match = callback.data.match(
-            /opcioneslista:(?<id_usuario>\d+):(?<índice>\d+)(:(?<acción>\w+))?/
+            /opcioneslista:(?<id_usuario>\d+):(?<índice>\d+):(?<acción>\w+)/
         )
 
         id_usuario = match[:id_usuario].to_i

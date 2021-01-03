@@ -3,6 +3,11 @@
 
 ## Installation
 
+Ensure to have installed the following linux packages
+	make
+	gcc
+	pkg-config
+	imagemagick
 
     $ git clone git@gitlab.com:lukeovalle/dankiebot.git
     $ cd dankiebot
@@ -21,16 +26,33 @@ if you don't have bundle installed in your master race:
 
 if this warning shows "WARNING: You don't have /home/USER/.gem/ruby/2.7.0/bin in your PATH, gem executables will not run. (with USER being your user dou, and not necesary be 2.7.0)
 
+you have to add this as en enviroment variable (in manjaro case is in the file /home/USER/.bashrc)
+add this line at the end
+
+	export PATH="`ruby -e 'puts Gem.user_dir'`/bin:$PATH"
+
+Close and open terminal again, and execute gem install bundler
+
 
 And then execute:
 
     $ bundle install
 
+if "Following files may not be writable, so sudo is needed:..." shows:
+
+	$ sudo bundle install
+
+And if in the sudo... shows "find_spec_for_exe: can't find gem bundler (>= 0.a) with executable bundle (Gem::GemNotFoundException)"
+
+	$ gem update --system
+
+and then again
+
+	$ sudo bundle install
 
 Redis server installation (for debian, if you use another magic distro you would know wich package manager you have to use):
 
 	$  sudo apt-get install redis
-
 
 Change the default por to 42069:
 First open /etc/redis.conf with your favourite text editor, here I will user nano but you can use whathever shit you want
@@ -58,12 +80,12 @@ Then you have to restart redis (the redis.config explains how to do it)
 
 Start redis
 
-	$ systemctl start redis.server
+	$ systemctl start redis.service
 
 
 And enable if you are a big pajero like me and don't want to start the server every time you turn on the bot (instead the server will start with the pc)
 
-	$ systemctl enable redis.server
+	$ systemctl enable redis.service
 
 
 ## Config
