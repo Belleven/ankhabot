@@ -79,7 +79,7 @@ class Dankie
                                      text: arr.first,
                                      disable_web_page_preview: true,
                                      disable_notification: true)
-        return unless respuesta
+        return unless respuesta && respuesta['ok']
 
         respuesta = Telegram::Bot::Types::Message.new respuesta['result']
         armar_lista(msj.chat.id, respuesta.message_id, arr)

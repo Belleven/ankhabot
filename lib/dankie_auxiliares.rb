@@ -411,32 +411,51 @@ class Dankie
         end
     end
 
+    # Método que envía un mensaje de texto y lo carga en la cola de spam
+    def enviar_mensaje_y_a_spam(args)
+        enviado = @tg.send_message(args)
+
+        return unless enviado && enviado['ok']
+
+        enviado = Telegram::Bot::Types::Message.new(enviado['result'])
+
+        añadir_a_cola_spam(enviado.chat.id, enviado.message_id)
+    end
+
     # Método que mete un id_mensaje en una cola de mensajes que
     # son borrados despues de cierto límite, para evitar el spam.
     def añadir_a_cola_spam(id_chat, id_mensaje)
-        borrado = nil
+        borrado = []
         @redis.rpush "spam:#{id_chat}", id_mensaje
-        if @redis.llen("spam:#{id_chat}") > 24
-            id_mensaje = @redis.lpop("spam:#{id_chat}").to_i
-            borrado = @tg.delete_message(chat_id: id_chat, message_id: id_mensaje)
+        while @redis.llen("spam:#{id_chat}") > 24
+            begin
+                id_borrar = @redis.lpop("spam:#{id_chat}").to_i
+                borrado << @tg.delete_message(chat_id: id_chat, message_id: id_borrar)
+            rescue Telegram::Bot::Exceptions::ResponseError => e
+                canal = e.message !~ /message can't be deleted/
+                @logger.warn('No pude borrar un mensaje. '\
+                             "mensaje: #{id_borrar}, chat: #{id_chat}, "\
+                             "error: #{e.message}",
+                             al_canal: canal)
+            end
         end
         borrado
     end
 
     # Función que recibe un arreglo de Time o unix-time y verifica si se mandaron
     # muchos mensajes seguidos. Devuelve true o false
-    def chequear_flood(arr)
+    def chequear_flood(arr, diferencia = 89)
         return true if arr.size.between? 0, 1
 
         promedio = arr.inject(0r) { |acc, i| acc + i.to_r }
         promedio /= arr.size
         diferencia_ahora = Time.now.to_r - promedio
 
-        diferencia_ahora > 89
+        diferencia_ahora > diferencia
     end
 
     def incremetar_arr_flood(arr, tiempo)
         arr << tiempo
-        arr.shift until arr.size <= 13
+        arr.shift until arr.size <= 7
     end
 end

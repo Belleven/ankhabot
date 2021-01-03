@@ -12,10 +12,7 @@ class Dankie
 
         mensaje = generar_mensaje(mensaje, texto)
 
-        resp = @tg.send_message(chat_id: msj.chat.id, text: mensaje)
-        return unless resp && resp['ok']
-
-        añadir_a_cola_spam(msj.chat.id, resp.dig('result', 'message_id').to_i)
+        enviar_mensaje_y_a_spam(chat_id: msj.chat.id, text: mensaje)
     end
 
     private

@@ -46,7 +46,6 @@ class Dankie
         match = callback.data.match(
             /opcioneslista:(?<id_usuario>\d+):(?<índice>\d+):(?<acción>\w+)/
         )
-
         id_usuario = match[:id_usuario].to_i
         id_chat = callback.message.chat.id
         id_mensaje = callback.message.message_id
