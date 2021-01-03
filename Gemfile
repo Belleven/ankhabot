@@ -20,5 +20,6 @@ gem 'urbandict'
 
 group :test do
     gem 'rubocop'
+    gem 'rubocop-rake'
     gem 'rubocop_runner'
 end

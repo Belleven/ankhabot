@@ -84,18 +84,8 @@ class Dankie
         mención
     end
 
-    def natural(numero)
-        if numero.length < 25
-            begin
-                num = Integer(numero)
-            rescue StandardError
-                return false
-            end
-
-            return num if num.positive?
-        end
-
-        false
+    def natural(número)
+        /\A\d*[1-9]\d*\z/.match?(número) ? número.to_i : false
     end
 
     def validar_desarrollador(usuario_id, chat_id, mensaje_id)
@@ -104,7 +94,7 @@ class Dankie
             @tg.send_message(
                 chat_id: chat_id,
                 reply_to_message_id: mensaje_id,
-                text: 'Gomen ne, este comando es solo para los admins. >///<'
+                text: 'Gomen ne, este comando es solo para los admins del bot. >///<'
             )
             return false
         end
@@ -121,9 +111,11 @@ class Dankie
         # Si no lo es, manda mensaje de error
         if (status != 'administrator') && (status != 'creator')
             unless text.nil?
-                @tg.send_message(chat_id: chat_id,
-                                 reply_to_message_id: mensaje_id,
-                                 text: text)
+                @tg.send_message(
+                    chat_id: chat_id,
+                    reply_to_message_id: mensaje_id,
+                    text: text
+                )
             end
             return false
         end
@@ -158,7 +150,7 @@ class Dankie
     # La gente se asustaría si viera lo mugriento que era este método antes
     # de la refactorización que le hice hoy 30/09/2020 d.C.
     def id_y_resto(msj)
-        resultado = { id: nil, alias: nil, razón: nil }
+        resultado = { id: nil, alias: nil, razón: nil, usuario: nil }
 
         if (args = obtener_params_comando(msj))
             valores = dame_entidades_texto(msj)
@@ -168,6 +160,7 @@ class Dankie
 
         if resultado[:id].nil? && msj.reply_to_message
             resultado[:id] = msj.reply_to_message.from.id
+            resultado[:usuario] = msj.reply_to_message.from
         end
 
         resultado
@@ -199,6 +192,7 @@ class Dankie
             resultado[:id] = obtener_id_de_alias(resultado[:alias])
         when 'text_mention'
             resultado[:id] = entidad.user.id
+            resultado[:usuario] = entidad.user
         end
     end
 
@@ -213,8 +207,9 @@ class Dankie
     def chequeo_id_numerica_y_resto(args, resultado)
         lista_palabras = args.split
 
-        if natural(primer_palabra = lista_palabras.first)
-            resultado[:id] = primer_palabra
+        if (id_numérica = natural(lista_palabras.first))
+            resultado[:id] = id_numérica
+
             if lista_palabras.length > 1
                 resultado[:razón] = lista_palabras[1..].join(' ')
             end
@@ -230,18 +225,29 @@ class Dankie
         miembro = miembro['result']
         Telegram::Bot::Types::ChatMember.new(miembro)
     rescue Telegram::Bot::Exceptions::ResponseError => e
-        case e.to_s
+        case e.message
+        when /invalid user_id specified/
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                text: "Esa ID (#{id_usuario}) es inválida",
+                reply_to_message_id: msj.message_id
+            )
+        when /user not found/
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                text: 'Quien tenga esa ID nunca estuvo en contacto con este chat',
+                reply_to_message_id: msj.message_id
+            )
         when /USER_ID_INVALID/
-            @logger.error("Me dieron una id inválida en #{grupo_del_msj(msj)}")
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: 'Disculpame pero no puedo reconocer esta '\
-                                   "id: #{id_usuario}. O es inválida, o es de "\
-                                   'alguien que nunca estuvo en este chat.',
-                             reply_to_message_id: msj.message_id)
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                reply_to_message_id: msj.message_id,
+                text: "Disculpame pero no puedo reconocer esta id: #{id_usuario}. "\
+                      'O es inválida, o es de alguien que nunca estuvo en este chat.'
+            )
         else
             raise
         end
-
         nil
     end
 
