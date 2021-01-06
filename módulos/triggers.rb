@@ -328,7 +328,7 @@ class Dankie
 
     def triggers_supergrupo(msj)
         # Para cada trigger en el grupete tengo que cambiar su clave y la clave
-        # de la metada
+        # de la metadata
         @redis.smembers("triggers:#{msj.migrate_from_chat_id}").each do |trigger|
             modificar_miembros_conj_triggers(msj, trigger)
         end
@@ -336,17 +336,11 @@ class Dankie
         # Hay que cambiar la clave del conjunto de triggers del grupete
         cambiar_claves_supergrupo(msj.migrate_from_chat_id, msj.chat.id, 'triggers:')
 
-        # Hay que cambiar los datos de las claves de triggers temporales
-        # Tremenda virgueada esto, pero no queda otra papá, por lo menos
-        # no con como tenemos las claves ahora y no pienso cambiar el diseño
-        # de la bbdd porque me da paja pelearme con el luke soladri por eso
-        @redis.keys('*').each do |clave|
-            next unless clave.start_with?('triggers:settrigger:') ||
-                        clave.start_with?('triggers:deltrigger:')
-            next unless @redis.hget(clave, 'id_grupo') == msj.migrate_from_chat_id.to_s
-
-            @redis.hset(clave, 'id_grupo', msj.chat.id.to_s)
-        end
+        # Hay que cambiar los id_grupo de los triggers temporales
+        cambiar_claves_triggers_temporales(msj.migrate_from_chat_id, msj.chat.id,
+                                           'settrigger')
+        cambiar_claves_triggers_temporales(msj.migrate_from_chat_id, msj.chat.id,
+                                           'deltrigger')
     end
 
     private
@@ -553,7 +547,8 @@ class Dankie
         if id_grupo == :global
             loggear = "Trigger #{regexp} sugerido para ser global por #{id_usuario} "
             loggear << "en el chat #{msj.chat.id}"
-            contador = Trigger.confirmar_poner_trigger(msj.chat.id, regexp, id_msj)
+            contador = Trigger.confirmar_poner_trigger(msj.chat.id, msj.chat.type,
+                                                       regexp, id_msj)
         else
             loggear = "Trigger #{regexp} agregado por #{id_usuario} "
             loggear << "en el chat #{msj.chat.id}"
@@ -651,7 +646,7 @@ class Dankie
 
     # Función para enviar un mensaje de logging y confirmar si se borra un trigger
     def confirmar_borrar_trigger_global(regexp, chat, fecha, id_usuario, id_msj)
-        id_regexp = Trigger.confirmar_borrar_trigger(chat.id, regexp, id_msj)
+        id_regexp = Trigger.confirmar_borrar_trigger(chat.id, chat.type, regexp, id_msj)
         regexp_sanitizada = html_parser Trigger.regexp_a_str(regexp)
 
         arr = [[
@@ -721,7 +716,7 @@ class Dankie
         Trigger.redis ||= @redis
 
         return if trigger_existe?(msj, regexp, params)
-        return if trigger_temporal?(msj, regexp, grupo)
+        return if trigger_temporal?(msj, regexp)
 
         contador = poner_trigger(regexp, msj.reply_to_message, grupo,
                                  msj.from.id, msj.message_id)
@@ -776,8 +771,8 @@ class Dankie
         false
     end
 
-    def trigger_temporal?(msj, regexp, grupo)
-        if grupo == :global && Trigger.temporal?(regexp)
+    def trigger_temporal?(msj, regexp)
+        if Trigger.temporal?(regexp)
             texto = 'Alguien ya está poniendo un trigger con esa expresión '
             texto << "regular, #{TROESMAS.sample}."
             @tg.send_message(chat_id: msj.chat.id, text: texto,
@@ -800,6 +795,16 @@ class Dankie
         texto << "quiere #{acción} el trigger: "
         texto << " <code>#{regexp_sanitizada}</code>\n"
         texto
+    end
+
+    def cambiar_claves_triggers_temporales(vieja_id, nueva_id, tipo_temp)
+        clave_temp = "triggers:#{tipo_temp}_temporales_ids:#{vieja_id}"
+
+        @redis.smembers(clave_temp).each do |id_temporal|
+            @redis.hset("triggers:#{tipo_temp}:#{id_temporal}", 'id_grupo', nueva_id)
+        end
+
+        @redis.del clave_temp
     end
 end
 
@@ -866,7 +871,7 @@ class Trigger
 
     # Método que toma un trigger y devuleve un id, así es identificable a la hora de
     # aceptarlo
-    def self.confirmar_poner_trigger(id_grupo, regexp, id_msj)
+    def self.confirmar_poner_trigger(id_grupo, tipo_chat, regexp, id_msj)
         # Este es un entero con signo de 64 bits así que hay más de 16 trillones de
         # valores posibles
         contador = @redis.incr 'triggers:contador'
@@ -874,35 +879,60 @@ class Trigger
                             regexp: regexp,
                             id_grupo: id_grupo,
                             id_msj: id_msj)
-        contador
-    end
 
-    # Ver si existe un temporal
-    def self.existe_temporal?(id)
-        @redis.exists?("triggers:settrigger:#{id}") ||
-            @redis.exists?("triggers:deltrigger:#{id}")
+        if tipo_chat == 'group'
+            @redis.sadd("triggers:settrigger_temporales_ids:#{id_grupo}", contador)
+        end
+
+        contador
     end
 
     # Método que mueve las claves de un trigger temporal a la lista de trigger globales.
     def self.confirmar_trigger(contador)
         hash = @redis.hgetall "triggers:settrigger:#{contador}"
         hash.transform_keys!(&:to_sym)
+
         @redis.del "triggers:settrigger:#{contador}"
+        @redis.srem "triggers:settrigger_temporales_ids:#{hash[:id_grupo]}", contador
+
         @redis.srem 'triggers:temp:global', hash[:regexp]
         @redis.sadd 'triggers:global', hash[:regexp]
+
         @redis.rename("trigger:temp:global:#{hash[:regexp]}",
                       "trigger:global:#{hash[:regexp]}")
+
         @redis.rename("trigger:temp:global:#{hash[:regexp]}:metadata",
                       "trigger:global:#{hash[:regexp]}:metadata")
+
         hash[:regexp] = Trigger.str_a_regexp hash[:regexp]
         hash
+    end
+
+    # Método que toma un trigger y devuelve un id, así es identificable a la hora de
+    # borrarlo.
+    def self.confirmar_borrar_trigger(id_grupo, tipo_chat, regexp, id_msj)
+        contador = @redis.incr 'triggers:contador'
+        @redis.sadd 'triggers:temp:deltrigger', regexp_a_str(regexp)
+        @redis.mapped_hmset("triggers:deltrigger:#{contador}",
+                            regexp: regexp_a_str(regexp),
+                            id_grupo: id_grupo,
+                            id_msj: id_msj)
+
+        if tipo_chat == 'group'
+            @redis.sadd("triggers:deltrigger_temporales_ids:#{id_grupo}", contador)
+        end
+
+        contador
     end
 
     # Método que borra un trigger temporal al ser rechazado
     def self.rechazar_trigger(contador)
         hash = @redis.hgetall "triggers:settrigger:#{contador}"
         hash.transform_keys!(&:to_sym)
+
         @redis.del "triggers:settrigger:#{contador}"
+        @redis.srem "triggers:deltrigger_temporales_ids:#{hash[:id_grupo]}", contador
+
         @redis.srem 'triggers:temp:global', hash[:regexp]
         @redis.del "trigger:temp:global:#{hash[:regexp]}"
         @redis.del "trigger:temp:global:#{hash[:regexp]}:metadata"
@@ -927,16 +957,10 @@ class Trigger
         descartar_temporal id_trigger
     end
 
-    # Método que toma un trigger y devuelve un id, así es identificable a la hora de
-    # borrarlo.
-    def self.confirmar_borrar_trigger(id_grupo, regexp, id_msj)
-        contador = @redis.incr 'triggers:contador'
-        @redis.sadd 'triggers:temp:deltrigger', regexp_a_str(regexp)
-        @redis.mapped_hmset("triggers:deltrigger:#{contador}",
-                            regexp: regexp_a_str(regexp),
-                            id_grupo: id_grupo,
-                            id_msj: id_msj)
-        contador
+    # Ver si existe un temporal
+    def self.existe_temporal?(id)
+        @redis.exists?("triggers:settrigger:#{id}") ||
+            @redis.exists?("triggers:deltrigger:#{id}")
     end
 
     # Método que devuelve la regexp de un trigger para borrar.
@@ -945,11 +969,6 @@ class Trigger
         hash.transform_keys!(&:to_sym)
         hash[:regexp] = Trigger.str_a_regexp hash[:regexp]
         hash
-    end
-
-    # Método que informa si existe un temporal de deltrigger global
-    def self.temporal_deltrigger(regexp)
-        @redis.sismember('triggers:temp:deltrigger', regexp_a_str(regexp))
     end
 
     def self.borrar_global_resuelto(regexp)
@@ -961,6 +980,11 @@ class Trigger
         regexp = @redis.hget "triggers:deltrigger:#{id_trigger}", regexp
         @redis.srem 'trigger:temp:deltrigger', regexp
         @redis.del "triggers:deltrigger:#{id_trigger}"
+    end
+
+    # Método que informa si existe un temporal de deltrigger global
+    def self.temporal_deltrigger(regexp)
+        @redis.sismember('triggers:temp:deltrigger', regexp_a_str(regexp))
     end
 
     # Itera sobre el conjunto de triggers tanto globales como de grupo.
@@ -987,14 +1011,12 @@ class Trigger
 
         return id_grupo if @redis.sismember("triggers:#{id_grupo}", regexp)
         return :global if @redis.sismember('triggers:global', regexp)
-
-        nil
     end
 
     # Devuelve los triggers de un grupo
     def self.triggers_grupo_ordenados(id_grupo)
         elementos = @redis.smembers("triggers:#{id_grupo}")
-        return nil if elementos.nil?
+        return if elementos.nil?
 
         elementos.sort
     end
