@@ -181,6 +181,8 @@ class TelegramAPI
 
             retry
         else
+            # Esto es para poder loggear el chat_id y luego hace raise para que no
+            # continue con la ejecución normal
             @excepciones.loggear(e, args)
             raise
         end
@@ -196,7 +198,7 @@ class TelegramAPI
             id_supergrupo = corte_al_inicio.split('}').first
 
             @client.logger.error("Error en #{args[:chat_id]}. El grupo se "\
-                                 'actualizó y ahora es unsupergrupo '\
+                                 'actualizó y ahora es un supergrupo '\
                                  "(#{id_supergrupo}).\n#{exc.message}",
                                  al_canal: true)
             args[:chat_id] = id_supergrupo.to_i

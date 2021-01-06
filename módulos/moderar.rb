@@ -90,14 +90,10 @@ class Dankie
             extra_args[:para_aplicar_restricción],
             extra_args[:expulsando]
         )
+        return unless resultados
         return unless (miembro = resultados[:miembro])
 
-        # miembro puede ser un objeto usuario o un entero que representa una id
-        args_moderación = {
-            chat_id: msj.chat.id,
-            user_id: (miembro.id if miembro.respond_to?(:id)) || miembro
-        }
-        args_moderación.merge!(extra_args[:args_api] || {})
+        args_moderación = dame_args_moderación(msj, miembro, extra_args)
         return unless llamar_método_api(msj, método, args_moderación)
 
         razón = resultados[:razón]
@@ -107,13 +103,11 @@ class Dankie
                     ".\nRazón: #{razón}#{razón[-1] == '.' ? '' : '.'}"
                 end
 
-        nombre = obtener_enlace_usuario(miembro, msj.chat.id)
-        nombre ||= 'Usuario eliminado'
+        nombre = obtener_enlace_usuario(miembro, msj.chat.id) || 'Usuario eliminado'
 
-        texto = "#{msj_final} #{nombre}#{razón}"
         @tg.send_message(
             chat_id: msj.chat.id,
-            text: texto,
+            text: "#{msj_final} #{nombre}#{razón}",
             parse_mode: :html,
             disable_web_page_preview: true,
             disable_notification: true
@@ -246,6 +240,16 @@ class Dankie
                   'es que haya sido cambiado recientemente'
         )
         false
+    end
+
+    def dame_args_moderación(msj, miembro, extra_args)
+        # miembro puede ser un objeto usuario o un entero que representa una id
+        args_moderación = {
+            chat_id: msj.chat.id,
+            user_id: (miembro.id if miembro.respond_to?(:id)) || miembro
+        }
+        args_moderación.merge!(extra_args[:args_api] || {})
+        args_moderación
     end
 
     def manejar_excepciones_moderación(msj, excepción)

@@ -131,6 +131,8 @@ class Dankie
                     "\nEse usuario me tiene bloqueado o nunca iniciamos conversación"
                 when /bot can't send messages to bots/
                     "\nEse usuario es un bot, no le puedo hablar"
+                when /user is deactivated/
+                    "\nEse usuario es una cuenta eliminada"
                 else
                     "\nSaltó este otro error y no puedo saber si "\
                             "estoy en el chat: #{exc}"
