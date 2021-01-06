@@ -47,6 +47,8 @@ class Dankie
             anunciar(callback.from, callback.message.chat.id,
                      conseguir_changelog_version_actual)
             resultado = 'aceptado'
+            # Actualizo la version de redis
+            @redis.set('versión', VERSIÓN)
         else
             resultado = 'rechazado'
         end
@@ -75,9 +77,6 @@ class Dankie
                 callback_data: 'anunciar_cambio:rechazar'
             )
         ]]
-
-        # Actualizo la version de redis
-        @redis.set('versión', VERSIÓN)
 
         # Mando el tablero para aceptar o rechazarlo
         opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new inline_keyboard: arr
