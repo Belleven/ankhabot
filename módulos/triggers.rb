@@ -454,15 +454,6 @@ class Dankie
         end
     end
 
-    def dev_responde_callback(callback)
-        unless DEVS.member? callback.from.id
-            @tg.answer_callback_query(callback_query_id: callback.id,
-                                      text: 'Solo devs pueden usar esto')
-            return false
-        end
-        true
-    end
-
     def analizar_match_trigger(msj, regexp, texto, id_grupo)
         return unless chequear_flood(@trigger_flood[msj.chat.id])
 

@@ -39,6 +39,8 @@ class Dankie
     def callback_confirmar_anuncio_changelog(callback)
         match = callback.data.match(/anunciar_cambio:(?<acción>.+)/)
 
+        return unless dev_responde_callback(callback)
+
         # En caso que se acepte, se procede a anunciar a todos
         # los grupos el cambio de versión
         if match[:acción] == 'confirmar'

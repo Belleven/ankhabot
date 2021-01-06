@@ -2,8 +2,7 @@ class Dankie
     add_handler Handler::Comando.new(
         :anuncio,
         :anuncios,
-        permitir_params: true,
-        descripción: 'Anuncios para hacer (solo devs)'
+        permitir_params: true
     )
 
     add_handler Handler::Comando.new(:anunciar, :anuncios, permitir_params: true)

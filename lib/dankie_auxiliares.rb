@@ -102,6 +102,17 @@ class Dankie
         true
     end
 
+    def dev_responde_callback(callback)
+        unless DEVS.member? callback.from.id
+            @tg.answer_callback_query(callback_query_id: callback.id,
+                                      text: 'Solo devs pueden usar esto')
+            return false
+        end
+        true
+    end
+
+
+
     def es_admin(usuario_id, chat_id, mensaje_id, text = nil, _id = nil)
         member = @tg.get_chat_member(chat_id: chat_id, user_id: usuario_id)
         member = Telegram::Bot::Types::ChatMember.new(member['result'])
