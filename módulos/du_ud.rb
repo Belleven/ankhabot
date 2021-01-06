@@ -17,6 +17,14 @@ class Dankie
         # Caso input vacía.
         return respuesta(msj.chat.id, 'Tirame algo') if params.nil?
 
+        # Filtro en caso que haya caracteres no alfanumericos
+        params.gsub!(/\W+/, '')
+
+        if params.empty?
+            return respuesta(msj.chat.id, 'Tu busqueda no es válida,'\
+                    ' tiene que tener al menos un caracter o un número')
+        end
+
         # Tomo el mensaje de entrada y busco una definición.
         búsqueda = UrbanDictionary.define(params)
         # Caso búsqueda sin resultados, ya sea porque no existe la
