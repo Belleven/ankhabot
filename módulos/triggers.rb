@@ -12,37 +12,63 @@ TIPOS_MMEDIA = { text: :send_message,
                  document: :send_document }.freeze
 
 class Dankie
-    add_handler Handler::Mensaje.new(:chequear_triggers,
-                                     permitir_editados: false,
-                                     ignorar_comandos: true,
-                                     chats_permitidos: %i[group supergroup])
-    add_handler Handler::Comando.new(:settrigger, :validar_poner_trigger_local,
-                                     permitir_params: true,
-                                     descripción: 'Agrega un trigger al bot',
-                                     chats_permitidos: %i[group supergroup])
-    add_handler Handler::Comando.new(:setglobal, :validar_poner_trigger_global,
-                                     permitir_params: true,
-                                     descripción: 'Agrega un trigger global al bot')
-    add_handler Handler::Comando.new(:deltrigger, :validar_borrar_trigger,
-                                     permitir_params: true,
-                                     descripción: 'Borra un trigger')
-    add_handler Handler::Comando.new(:triggers, :listar_triggers,
-                                     permitir_params: true,
-                                     # parámetros: params_triggers,
-                                     descripción: 'Envía la lista de triggers')
-    add_handler Handler::Comando.new(:infotrigger, :enviar_info_trigger,
-                                     permitir_params: true,
-                                     descripción: 'Envía información del trigger')
-    add_handler Handler::Comando.new(:triggered, :triggered,
-                                     permitir_params: false,
-                                     descripción: 'Muestra que triggers reaccionan'\
-                                     ' al mensaje respsondido')
-    add_handler Handler::CallbackQuery.new(:callback_set_trigger_global, 'settrigger')
-    add_handler Handler::CallbackQuery.new(:callback_del_trigger_global, 'deltrigger')
-
-    add_handler Handler::EventoDeChat.new(:triggers_supergrupo,
-                                          tipos: [:migrate_from_chat_id],
-                                          chats_permitidos: %i[supergroup])
+    add_handler Handler::Mensaje.new(
+        :chequear_triggers,
+        permitir_editados: false,
+        ignorar_comandos: true,
+        chats_permitidos: %i[group supergroup]
+    )
+    add_handler Handler::Comando.new(
+        :settrigger,
+        :validar_poner_trigger_local,
+        permitir_params: true,
+        descripción: 'Agrega un trigger al bot',
+        chats_permitidos: %i[group supergroup]
+    )
+    add_handler Handler::Comando.new(
+        :setglobal,
+        :validar_poner_trigger_global,
+        permitir_params: true,
+        descripción: 'Agrega un trigger global al bot'
+    )
+    add_handler Handler::Comando.new(
+        :deltrigger,
+        :validar_borrar_trigger,
+        permitir_params: true,
+        descripción: 'Borra un trigger'
+    )
+    add_handler Handler::Comando.new(
+        :triggers,
+        :listar_triggers,
+        permitir_params: true,
+        # parámetros: params_triggers,
+        descripción: 'Envía la lista de triggers'
+    )
+    add_handler Handler::Comando.new(
+        :infotrigger,
+        :enviar_info_trigger,
+        permitir_params: true,
+        descripción: 'Envía información del trigger'
+    )
+    add_handler Handler::Comando.new(
+        :triggered,
+        :triggered,
+        permitir_params: false,
+        descripción: 'Muestra que triggers reaccionan al mensaje respsondido'
+    )
+    add_handler Handler::CallbackQuery.new(
+        :callback_set_trigger_global,
+        'settrigger'
+    )
+    add_handler Handler::CallbackQuery.new(
+        :callback_del_trigger_global,
+        'deltrigger'
+    )
+    add_handler Handler::EventoDeChat.new(
+        :triggers_supergrupo,
+        tipos: [:migrate_from_chat_id],
+        chats_permitidos: %i[supergroup]
+    )
 
     def chequear_triggers(msj)
         return unless (texto = msj.text || msj.caption)

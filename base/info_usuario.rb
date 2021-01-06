@@ -1,29 +1,43 @@
 class Dankie
-    add_handler Handler::EventoDeChat.new(:info_usuario_supergrupo,
-                                          tipos: [:migrate_from_chat_id],
-                                          chats_permitidos: %i[supergroup])
-    add_handler Handler::Comando.new(:apodar, :dar_apodo,
-                                     permitir_params: true,
-                                     chats_permitidos: %i[group supergroup],
-                                     descripción: 'Te cambio el apodo (si sos admin, '\
-                                                  'podés cambiárselo a otros)')
-    add_handler Handler::Comando.new(:borrarapodo, :borrar_apodo,
-                                     chats_permitidos: %i[group supergroup],
-                                     descripción: 'Te borro el apodo (si sos admin, '\
-                                                  'podés borrar el de cualquiera)')
-    add_handler Handler::Comando.new(:vos, :obtener_info,
-                                     descripción: 'Devuelvo tu información (o la '\
-                                                  'del usuario al que le respondas)')
-    add_handler Handler::Comando.new(:apodos, :apodos,
-                                     chats_permitidos: %i[group supergroup],
-                                     descripción: 'Te doy los apodos del grupete')
-    add_handler Handler::Comando.new(:historial_nombres, :historial_datos_usuario,
-                                     descripción: 'Envío el historial de nombres '\
-                                                  'y usernames del usuario')
-    add_handler Handler::Comando.new(:purgar_historial_nombres,
-                                     :purgar_historial_datos_usuario,
-                                     descripción: 'Elimino tu historial de nombres '\
-                                                  'y usernames')
+    add_handler Handler::EventoDeChat.new(
+        :info_usuario_supergrupo,
+        tipos: [:migrate_from_chat_id],
+        chats_permitidos: %i[supergroup]
+    )
+    add_handler Handler::Comando.new(
+        :apodar,
+        :dar_apodo,
+        permitir_params: true,
+        chats_permitidos: %i[group supergroup],
+        descripción: 'Te cambio el apodo (si sos admin, podés cambiárselo a otros)'
+    )
+    add_handler Handler::Comando.new(
+        :borrarapodo,
+        :borrar_apodo,
+        chats_permitidos: %i[group supergroup],
+        descripción: 'Te borro el apodo (si sos admin, podés borrar el de cualquiera)'
+    )
+    add_handler Handler::Comando.new(
+        :vos,
+        :obtener_info,
+        descripción: 'Devuelvo tu información (o la del usuario al que le respondas)'
+    )
+    add_handler Handler::Comando.new(
+        :apodos,
+        :apodos,
+        chats_permitidos: %i[group supergroup],
+        descripción: 'Te doy los apodos del grupete'
+    )
+    add_handler Handler::Comando.new(
+        :historial_nombres,
+        :historial_datos_usuario,
+        descripción: 'Envío el historial de nombres y usernames del usuario'
+    )
+    add_handler Handler::Comando.new(
+        :purgar_historial_nombres,
+        :purgar_historial_datos_usuario,
+        descripción: 'Elimino tu historial de nombres y usernames'
+    )
 
     def dar_apodo(msj, nuevo_apodo)
         chat_id = msj.chat.id
