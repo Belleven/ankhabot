@@ -432,11 +432,10 @@ class Dankie
                 id_borrar = @redis.lpop("spam:#{id_chat}").to_i
                 borrado << @tg.delete_message(chat_id: id_chat, message_id: id_borrar)
             rescue Telegram::Bot::Exceptions::ResponseError => e
-                canal = e.message !~ /message can't be deleted/
                 @logger.warn('No pude borrar un mensaje. '\
                              "mensaje: #{id_borrar}, chat: #{id_chat}, "\
                              "error: #{e.message}",
-                             al_canal: canal)
+                             al_canal: false)
             end
         end
         borrado
