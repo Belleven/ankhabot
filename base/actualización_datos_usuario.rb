@@ -99,8 +99,8 @@ class Dankie
                 next unless @redis.sismember("informar_cambio:#{nombre}:#{id_usuario}",
                                              id_vieja)
 
-                @redis.sadd("informar_cambio:#{clave}:#{id_usuario}", id_nueva)
-                @redis.srem("informar_cambio:#{clave}:#{id_usuario}", id_vieja)
+                @redis.sadd("informar_cambio:#{nombre}:#{id_usuario}", id_nueva)
+                @redis.srem("informar_cambio:#{nombre}:#{id_usuario}", id_vieja)
             end
 
             if @redis.sismember("contacto_grupo:#{id_usuario}", id_vieja)
