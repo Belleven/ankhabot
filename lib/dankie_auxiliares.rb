@@ -111,8 +111,6 @@ class Dankie
         true
     end
 
-
-
     def es_admin(usuario_id, chat_id, mensaje_id, text = nil, _id = nil)
         member = @tg.get_chat_member(chat_id: chat_id, user_id: usuario_id)
         member = Telegram::Bot::Types::ChatMember.new(member['result'])
