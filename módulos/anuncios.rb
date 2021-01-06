@@ -14,9 +14,13 @@ class Dankie
         return unless validar_desarrollador(msj.from.id, msj.chat.id, msj.message_id)
         return if mensaje_vacío(msj, params)
 
-        # Avisa que se hizo un anuncio
-        avisar_canal_comienzo(msj.from, msj.chat.id)
+        anunciar(msj.from, msj.chat.id, params)
+    end
 
+    def anunciar(from, chat_id, params)
+        # Avisa que se hizo un anuncio
+        avisar_canal_comienzo(from, chat_id)
+        # guardar_fecha_envio(msj.from.id, msj.chat.id)
         # Recorro todos los grupos en la db y les envio el mensaje
         %w[private group supergroup].each do |tipo|
             @redis.smembers("chat:#{tipo}:activos").each do |grupete|

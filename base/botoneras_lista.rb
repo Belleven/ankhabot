@@ -14,6 +14,7 @@ class Dankie
 
         valor = obtener_elemento_lista(id_chat, id_mensaje, índice)
         metadatos = obtener_metadatos_lista(id_chat, id_mensaje)
+        botones_personalizados = devolver_lista_botones(id_chat, id_mensaje)
 
         chequeos = cumple_chequeos_botonera_lista(
             valor,
@@ -28,6 +29,7 @@ class Dankie
             índice,
             obtener_tamaño_lista(id_chat, id_mensaje),
             id_usuario,
+            botones_personalizados: botones_personalizados,
             editable: metadatos[:editable_por] == 'todos'
         )
 
@@ -50,6 +52,7 @@ class Dankie
         id_chat = callback.message.chat.id
         id_mensaje = callback.message.message_id
         índice = match[:índice].to_i
+        botones_personalizados = devolver_lista_botones(id_chat, id_mensaje)
 
         edit = @redis.hget "botonera:#{id_chat}:#{id_mensaje}:metadatos", 'editable_por'
         return unless validar_acciones_inferiores_lista(edit, id_usuario,
@@ -61,7 +64,8 @@ class Dankie
             id_chat: id_chat,
             id_mensaje: id_mensaje,
             id_usuario: id_usuario,
-            índice: índice
+            índice: índice,
+            botones_personalizados: botones_personalizados
         )
     rescue Telegram::Bot::Exceptions::ResponseError => e
         @logger.error e.to_s, al_canal: false
@@ -104,18 +108,39 @@ class Dankie
         true
     end
 
-    def armar_botonera(página_actual, tamaño_máximo, id_usuario, editable: false)
-        return nil if tamaño_máximo == 1
+    def reportar_tamaño_no_coinciden(página_actual, tamaño_máximo,
+                                     id_usuario, botones_personalizados: [])
+        @logger.error(
+            "Error con los botones personalizados, el tamaño no coincide
+                    Página actual: #{página_actual}
+                    Tamaño Máximo: #{tamaño_máximo}
+                    id_usuario: #{id_usuario}
+                    Tamaño botones: #{botones_personalizados.size}
+                    Botones Personalizados#{botones_personalizados}", al_canal: true
+        )
+    end
+
+    def armar_botonera(página_actual, tamaño_máximo,
+                       id_usuario, botones_personalizados: [], editable: false)
+        return if tamaño_máximo == 1
 
         página_actual = [página_actual, tamaño_máximo - 1].min # valido el rango
 
         arr = [[]]
         botones_abajo = crear_botones_abajo(editable, id_usuario, página_actual)
 
+        botones_personalizados = [*1..tamaño_máximo] if botones_personalizados.empty?
+
+        if botones_personalizados.size != tamaño_máximo
+            reportar_tamaño_no_coinciden(página_actual, tamaño_máximo, id_usuario,
+                                         botones_personalizados: botones_personalizados)
+        end
+
         if tamaño_máximo <= 5
             tamaño_máximo.times do |i|
+                botones = botones_personalizados[i]
                 arr.first << Telegram::Bot::Types::InlineKeyboardButton.new(
-                    text: página_actual == i ? "< #{i + 1} >" : (i + 1).to_s,
+                    text: página_actual == i ? "< #{botones} >" : botones.to_s,
                     callback_data: "lista:#{id_usuario}:#{i}"
                 )
             end
@@ -123,7 +148,7 @@ class Dankie
             return Telegram::Bot::Types::InlineKeyboardMarkup.new inline_keyboard: arr
         end
 
-        botones = rellenar_botones(página_actual, tamaño_máximo)
+        botones = rellenar_botones(página_actual, tamaño_máximo, botones_personalizados)
 
         botones.each do |botón|
             arr.first << Telegram::Bot::Types::InlineKeyboardButton.new(
@@ -204,6 +229,7 @@ class Dankie
         id_mensaje = params[:id_mensaje]
         id_usuario = params[:id_usuario]
         índice = params[:índice]
+        botones_personalizados = params[:botones_personalizados]
 
         case params[:match][:acción]
         when 'borrar'
@@ -216,7 +242,9 @@ class Dankie
             @redis.hset("botonera:#{id_chat}:#{id_mensaje}:metadatos",
                         'editable_por', 'todos')
             opciones = armar_botonera(índice, obtener_tamaño_lista(id_chat, id_mensaje),
-                                      id_usuario, editable: true)
+                                      id_usuario,
+                                      botones_personalizados: botones_personalizados,
+                                      editable: true)
             @tg.edit_message_reply_markup(chat_id: id_chat, message_id: id_mensaje,
                                           reply_markup: opciones)
             @tg.answer_callback_query(callback_query_id: callback.id,
@@ -224,8 +252,11 @@ class Dankie
         when 'noedit'
             @redis.hset("botonera:#{id_chat}:#{id_mensaje}:metadatos",
                         'editable_por', 'dueño')
-            opciones = armar_botonera(índice, obtener_tamaño_lista(id_chat, id_mensaje),
-                                      id_usuario, editable: false)
+            opciones = armar_botonera(índice,
+                                      obtener_tamaño_lista(id_chat, id_mensaje),
+                                      id_usuario,
+                                      botones_personalizados: botones_personalizados,
+                                      editable: false)
             @tg.edit_message_reply_markup(chat_id: id_chat, message_id: id_mensaje,
                                           reply_markup: opciones)
             @tg.answer_callback_query(callback_query_id: callback.id,
@@ -255,27 +286,51 @@ class Dankie
         ]
     end
 
-    def rellenar_botones(página_actual, tamaño_máximo)
+    def completar_secuencia_botones(botones,
+                                    página_actual, inicial, final, nombres_botones)
+        (inicial..final).each do |i|
+            nombre = nombres_botones[i]
+            botones << [página_actual == i ? "<#{nombre}>" : nombre.to_s, i]
+        end
+        botones
+    end
+
+    # Metodo que cambia que el comportamiento de los botones
+    # página_actual -> int: Indica la pagina actual que
+    # se esta mirando en la botonera
+    # tamaño_máximo -> int: Indica el maximo de paginas que se
+    # puede tener
+    # nombres_botones -> list[str]: Lista que tiene en cada posicion
+    # un nombre para la pagina de esa posición
+    def rellenar_botones(página_actual, tamaño_máximo, nombres_botones)
         botones = []
 
         if página_actual < 3
-            4.times do |i|
-                botones << [página_actual == i ? "<#{i + 1}>" : (i + 1).to_s, i]
-            end
-            botones << ["#{tamaño_máximo} >>", tamaño_máximo - 1]
+            botones = completar_secuencia_botones(botones, página_actual, 0, 4,
+                                                  nombres_botones)
+            botones << ["#{nombres_botones[tamaño_máximo - 1]} >>", tamaño_máximo - 1]
         elsif página_actual > (tamaño_máximo - 4)
-            botones << ['<< 1', 0]
-            ((tamaño_máximo - 4)..(tamaño_máximo - 1)).each do |i|
-                botones << [página_actual == i ? "<#{i + 1}>" : (i + 1).to_s, i]
-            end
+            botones << ["<#{nombres_botones[0]}", 0]
+            inicial = tamaño_máximo - 4
+            botones = completar_secuencia_botones(botones, página_actual,
+                                                  inicial, inicial + 3, nombres_botones)
         else
-            botones << ['<< 1', 0]
-            botones << ["< #{página_actual}", página_actual - 1]
-            botones << ["< #{página_actual + 1} >", página_actual]
-            botones << ["#{página_actual + 2} >", página_actual + 1]
-            botones << ["#{tamaño_máximo} >>", tamaño_máximo - 1]
+            botones << ["<#{nombres_botones[0]}", 0]
+            botones << ["<#{nombres_botones[página_actual - 1]}", página_actual - 1]
+            botones << ["< #{nombres_botones[página_actual]} >", página_actual]
+            botones << ["#{nombres_botones[página_actual + 1]}>", página_actual + 1]
+            botones << ["#{nombres_botones[tamaño_máximo - 1]} >>", tamaño_máximo - 1]
         end
         botones
+    end
+
+    # Guarda la lista de botones personalizados en Redis
+    def armar_lista_botones(id_chat, id_msj, nombres_botones)
+        return if nombres_botones.empty?
+
+        clave_botones = "botonera:#{id_chat}:#{id_msj}:lista_botones"
+        @redis.rpush clave_botones, nombres_botones
+        @redis.expire clave_botones, 86_400
     end
 
     # Guarda el arreglo en redis, tipo puede valer 'texto', 'photo', 'video',
@@ -285,11 +340,43 @@ class Dankie
         return unless arreglo.length >= 2
 
         clave = "botonera:#{id_chat}:#{id_msj}"
+
         @redis.rpush clave, arreglo
         @redis.mapped_hmset "#{clave}:metadatos",
                             tipo: tipo, editable_por: editable, índice: 0
         # 86400 = 24*60*60 -> un día en segundos
+
         @redis.expire clave, 86_400
         @redis.expire "#{clave}:metadatos", 86_400
+    end
+
+    # Si existe en la base de datos la lista de botontes personalizados
+    # entonces la devuelve, en caso contrario, devuelve la lista vacia
+    def devolver_lista_botones(id_chat, id_mensaje)
+        @redis.lrange("botonera:#{id_chat}:#{id_mensaje}:lista_botones", 0, -1)
+    end
+
+    def mandar_botonera(msj, búsqueda, número_versiones: [], editable: 'dueño')
+        respuesta = @tg.send_message(
+            chat_id: msj.chat.id,
+            text: búsqueda.first,
+            reply_markup: armar_botonera(0, búsqueda.size, msj.from.id,
+                                         botones_personalizados: número_versiones,
+                                         editable: false),
+            parse_mode: :html,
+            reply_to_message_id: msj.message_id,
+            disable_web_page_preview: true,
+            disable_notification: true
+        )
+        return unless respuesta && respuesta['ok']
+
+        respuesta = Telegram::Bot::Types::Message.new respuesta['result']
+        armar_lista(msj.chat.id, respuesta.message_id, búsqueda, 'texto',
+                    editable)
+
+        return unless número_versiones
+
+        armar_lista_botones(msj.chat.id, respuesta.message_id,
+                            número_versiones)
     end
 end

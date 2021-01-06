@@ -29,32 +29,15 @@ class Dankie
         end
         return respuesta(msj.chat.id, 'Ay no c') if búsqueda.empty?
 
-        mandar_búsqueda(msj, búsqueda)
+        # La búsqueda viene como un array con varias definiciones,
+        # esta función se encarga de agrupar todo de manera coherente.
+        búsqueda = ordenar_resultados(búsqueda)
+        mandar_botonera(msj, búsqueda)
     end
 
     def respuesta(id, text = '')
         @tg.send_message(chat_id: id,
                          text: "#{text}, #{TROESMAS.sample}.")
-    end
-
-    def mandar_búsqueda(msj, búsqueda)
-        # La búsqueda viene como un array con varias definiciones,
-        # esta función se encarga de agrupar todo de manera coherente.
-        búsqueda = ordenar_resultados(búsqueda)
-        respuesta = @tg.send_message(
-            chat_id: msj.chat.id,
-            text: búsqueda.first,
-            reply_markup: armar_botonera(0, búsqueda.size, msj.from.id,
-                                         editable: false),
-            parse_mode: :html,
-            reply_to_message_id: msj.message_id,
-            disable_web_page_preview: true,
-            disable_notification: true
-        )
-        return unless respuesta && respuesta['ok']
-
-        respuesta = Telegram::Bot::Types::Message.new respuesta['result']
-        armar_lista(msj.chat.id, respuesta.message_id, búsqueda, 'texto', 'dueño')
     end
 
     def ordenar_resultados(búsqueda)

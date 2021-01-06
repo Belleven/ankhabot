@@ -6,9 +6,10 @@ class Dankie
         texto = "ola, soy @#{@user.username} y puedo hacer todo esto :0\n"
         texto << "versión: <code>#{VERSIÓN}</code>\n"
 
-        Dankie.comandos.each do |_comando, handler|
-            texto << "/#{handler.cmd} - #{handler.descripción}\n" if handler.descripción
-        end
+        handlers = Dankie.comandos.values.filter(&:descripción)
+        handlers.sort! { |handler_a, handler_b| handler_a.cmd <=> handler_b.cmd }
+        handlers.map! { |handler| "/#{handler.cmd} - #{handler.descripción}" }
+        texto << handlers.join("\n")
 
         @tg.send_message(
             chat_id: msj.chat.id,

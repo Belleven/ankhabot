@@ -26,6 +26,7 @@ class Dankie
     REKT = File.readlines('resources/rekt.txt', encoding: 'UTF-8').map(&:chomp).freeze
     CALLEFUEGOS = File.readlines('resources/callefuegos.txt').map(&:chomp).freeze
     DEUS_VULT = File.readlines('resources/deus.txt').map(&:chomp).freeze
+    CHANGELOG = './CHANGELOG'.freeze
     DEVS = Set.new(
         [
             240_524_686, # Luke
@@ -102,7 +103,6 @@ class Dankie
 
     def run
         @logger.info 'Bot tomando updates...'
-
         última = nil
         procesando = false
         apagar_programa = false
@@ -118,6 +118,10 @@ class Dankie
                          'para apagar el bot...'
             apagar_programa = true
         end
+
+        procesando = true
+        correr_antes_de_updates
+        procesando = false
 
         loop do
             actualizaciones = @tg.get_updates(
@@ -165,6 +169,43 @@ class Dankie
     end
 
     private
+
+    def correr_antes_de_updates
+        # Inializo la clase de configuraciones
+        Configuración.redis ||= @redis
+
+        # Compruebo si la version del Bot concuerda con la del changelog
+        @logger.info 'Comprobando versión...'
+        comprobar_version
+    end
+
+    def comprobar_version
+        archivo = File.open(CHANGELOG, 'r') { |f| archivo = f.read }
+        versión_changelog = archivo.scan(/\AVersión (\d(\.\d)*)\s*\n/).first.first
+
+        if VERSIÓN != versión_changelog
+            abort('La versión del bot y del changelog difieren')
+            # raise "ERROR: La versión del bot difiere de la del changelog /"
+            #        "Asi no pienso seguir!"
+            # fail
+        end
+
+        ultima_version_informada = version_redis
+        if ultima_version_informada.nil? || ultima_version_informada != VERSIÓN
+            confirmar_anuncio_changelog(ultima_version_informada, VERSIÓN)
+            @logger.info 'Se ha detectado un cambio de versión para informar'
+        else
+            @logger.info '¡Versión actualizada!'
+        end
+    end
+
+    def actualizar_version_redis
+        @redis.set('versión', VERSIÓN)
+    end
+
+    def version_redis
+        @redis.get('versión')
+    end
 
     def inicializar_apis_externas(args)
         @img = ImageSearcher.new args[:google_image_key], args[:google_image_cx],
