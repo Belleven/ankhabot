@@ -35,7 +35,8 @@ class Dankie
                           (bot\ was\ blocked\ by\ the\ user)|
                           (chat\ not\ found)|
                           (PEER_ID_INVALID)|
-                          (bot\ is\ not\ a\ member\ of\ the\ channel\ chat)/x
+                          (bot\ is\ not\ a\ member\ of\ the\ channel\ chat)/x |
+                         (user is deactivated)
 
                 if regexp.match? e.message
                     remover_grupete(grupete, tipo)
