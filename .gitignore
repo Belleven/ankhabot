@@ -59,3 +59,11 @@ __pycache__
 
 # byebug debugger
 *byebug*
+
+# tremenda basura de macbook
+.DS_Store
+
+# Área de trabajo de VScode
+.vscode
+# tremenda basura de emacs
+.projectile 

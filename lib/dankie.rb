@@ -1,667 +1,402 @@
-require_relative 'versión.rb'
-require_relative 'handlers.rb'
-require_relative 'logger.rb'
-require_relative 'telegram.rb'
-require_relative 'images.rb'
-require_relative 'last_fm_parser.rb'
-require_relative 'botoneras.rb'
-require_relative 'configuración.rb'
+require_relative 'versión'
+require_relative 'handlers'
+require_relative 'logger'
+require_relative 'telegram'
+require_relative 'images'
+require_relative 'last_fm_parser'
+require_relative 'botoneras'
+require_relative 'configuración'
+require_relative 'estadísticas'
+require_relative 'excepciones'
+require_relative 'dankie_auxiliares'
 require 'redis'
 require 'tzinfo'
 require 'set'
 require 'securerandom'
-require 'stats'
 require 'ruby_reddit_api'
 require 'cgi'
 
 class Dankie
-    attr_reader :tg, :logger, :redis, :reddit, :user
-    TROESMAS = File.readlines('resources/troesmas.txt', encoding: 'UTF-8').map(&:chomp)
-    TROESMAS.freeze
+    # El único lugar donde se usa el logger por fuera del bot es en handlers, las
+    # otras cosas no vi que se usaran
+    attr_reader :logger
+
+    TROESMAS = File.readlines('resources/troesmas.txt', encoding: 'UTF-8')
+                   .map(&:chomp).freeze
     REKT = File.readlines('resources/rekt.txt', encoding: 'UTF-8').map(&:chomp).freeze
     CALLEFUEGOS = File.readlines('resources/callefuegos.txt').map(&:chomp).freeze
     DEUS_VULT = File.readlines('resources/deus.txt').map(&:chomp).freeze
-    DEVS = Set.new([240_524_686, # Luke
-                    98_631_116,  # M
-                    812_107_125, # Santi
-                    267_832_653, # Galerazo
-                    196_535_916, # Ale
-                    298_088_760, # Mel
-                    36_557_595   # Bruno
-    ]).freeze
+    CHANGELOG = './CHANGELOG'.freeze
+    DEVS = Set.new(
+        [
+            240_524_686, # Luke
+            812_107_125, # Santi
+            267_832_653, # Galerazo
+            257_266_743, # Fran
+            340_357_825  # Chiro
+        ]
+    ).freeze
+
+    class << self
+        attr_reader :comandos, :inlinequery, :callback_queries, :handlers_generales
+    end
 
     def self.add_handler(handler)
-        @comandos ||= {}
-        @handlers ||= []
+        case handler
 
-        if handler.is_a? Handler::Comando
+        when Handler::Comando
+            @comandos ||= {}
             @comandos[handler.cmd] = handler
+
+        when Handler::Mensaje, Handler::EventoDeChat
+            @handlers_generales ||= []
+            @handlers_generales << handler
+
+        when Handler::CallbackQuery
+            @callback_queries ||= {}
+            @callback_queries[handler.clave] = handler
+
+        when Handler::InlineQuery
+            @inlinequery ||= []
+            @inlinequery << handler
+
         else
-            @handlers << handler
+            puts "Handler inválido: #{handler}"
         end
-    end
-
-    def self.handlers
-        @handlers ||= []
-    end
-
-    def self.comandos
-        @comandos ||= {}
-    end
-
-    # Creo que esto es un dispatch si entendí bien
-    def dispatch(msj)
-        # Handlers generales, no los de comando si no los de mensajes/eventos de chat
-        self.class.handlers.each do |handler|
-            handler.ejecutar(self, msj) if handler.verificar(self, msj)
-        end
-
-        # Handlers de comando
-        return unless msj.is_a? Telegram::Bot::Types::Message
-
-        self.class.comandos[get_command(msj)]&.ejecutar(self, msj)
     end
 
     # Recibe un Hash con los datos de config.yml
     def initialize(args)
         @canal = args[:canal_logging]
+
         # Tanto tg como dankielogger usan un cliente para mandar mensajes
         # Y además tg usa un logger
-        logger = Logger.new $stderr
-        @logger = DankieLogger.new logger, @canal
+        @logger = DankieLogger.new(args[:archivo_logging], @canal)
         @tg = TelegramAPI.new args[:tg_token], @logger
         @logger.inicializar_cliente @tg.client
 
-        # Creo dos instancias de Redis, una base de datos general y una de stats
-        dbs = 2.times.map do |i|
-            Redis.new(port: args[:redis_port], host: args[:redis_host],
-                      password: args[:redis_pass], db: i)
-        end
-        @redis = dbs.first
-        Stats.redis = dbs.last
+        # Creo dos instancias de Redis, una base de datos general y una de estadísticas
+        @redis = Redis.new(
+            port: args[:redis_port],
+            host: args[:redis_host],
+            password: args[:redis_pass],
+            db: 0
+        )
+        Estadísticas::Base.redis = Redis.new(
+            port: args[:redis_port],
+            host: args[:redis_host],
+            password: args[:redis_pass],
+            db: 1
+        )
 
-        @img = ImageSearcher.new args[:google_image_key], args[:google_image_cx],
-                                 args[:google_image_gl], @logger
         @user = Telegram::Bot::Types::User.new @tg.get_me['result']
-        @lastfm = LastFM::Api.new args[:last_fm_api]
-        @tz = TZInfo::Timezone.get args[:timezone]
-        @redditApi = Reddit::Api.new
+
+        inicializar_apis_externas args
+
+        Telegram::Bot::Types::Base.attr_accessor :datos_crudos
+
+        return unless /\A--(no|s(in|altear))-updates\z/i.match? ARGV.first
+
+        @redis.set('datos_bot:id_actualización_inicial', -1)
     end
 
     def run
-        # Ciclo principal
-        @tg.client.listen do |msj|
-            # Registra cuanto tiempo tarda en ejecutar el loop del bot
-            # ejemplo: tiempo_procesado_loop-2020-12-25
-            Stats.time('tiempo_procesado_loop-' + Time.now.strftime('%Y-%m-%d')) do
-                loop_principal(msj)
-            end
-        end
-    end
+        @logger.info 'Bot tomando updates...'
+        última = nil
+        procesando = false
+        apagar_programa = false
 
-    def loop_principal(msj)
-        # Si se cerró una encuesta, no hago nada más que loggear
-        if msj.is_a?(Telegram::Bot::Types::Poll)
-            información = 'Se acaba de cerrar esta encuesta:'
-            agregar_encuesta(información, msj, 1, false)
-            @logger.info información
-            return
+        # La idea de esto es que se muera el bot recién después de procesar
+        # el bloque de updates, en un futuro lo que quiero hacer (cuando esté
+        # todo en paralelo con corrutinas o lo que sea) es que se muera el bot
+        # sí y solo sí ningún comando se esté ejecutando
+        Signal.trap('INT') do
+            apagar_bot unless procesando
+            @logger.info 'Esperando a procesar última update '\
+                         "(#{última.nil? ? 'no hubo ninguna todavía' : última}) "\
+                         'para apagar el bot...'
+            apagar_programa = true
         end
 
-        # Chequeo que msj sea un mensaje válido, y que quien lo manda no
-        # esté bloqueado por el bot, o restringido del bot en el chat
-        return unless msj&.from&.id
-        return if @redis.sismember('lista_negra:global', msj.from.id.to_s)
-        return if msj.is_a?(Telegram::Bot::Types::Message) &&
-                  @redis.sismember("lista_negra:#{msj.chat.id}", msj.from.id.to_s)
+        procesando = true
+        correr_antes_de_updates
+        procesando = false
 
-        # Le paso el mensaje a los handlers correspondientes
-        dispatch(msj)
+        loop do
+            actualizaciones = @tg.get_updates(
+                # Si la clave no existe, el .to_i convierte el nil en 0
+                offset: @redis.get('datos_bot:id_actualización_inicial').to_i,
+                timeout: 7,
+                url: 'https://api.telegram.org'
+            )
+
+            next unless actualizaciones
+
+            # El tan odiadio GIL de ruby nos asegura que no va a haber condiciones
+            # de carrera entre estas tres líneas y el código dentro del Signal.trap
+            procesando = true
+            procesar_actualizaciones(actualizaciones)
+            procesando = false
+
+            return apagar_bot if apagar_programa
+        end
     rescue Faraday::ConnectionFailed, Faraday::TimeoutError,
            HTTPClient::ReceiveTimeoutError, Net::OpenTimeout => e
-        begin
-            texto, backtrace = @logger.excepcion_texto(e)
-            @logger.error texto, al_canal: true, backtrace: backtrace
-        rescue StandardError => e
-            @logger.fatal "EXCEPCIÓN LEYENDO LA EXCEPCIÓN\n#{e}", al_canal: true
-        end
+        @logger.fatal "Error de conección, no hay internés: #{e.class}", al_canal: false
+        return apagar_bot if apagar_programa
+
         retry
     rescue StandardError => e
-        begin
-            texto, backtrace = @logger.excepcion_texto(e)
-            @logger.fatal texto, al_canal: true, backtrace: backtrace
-        rescue StandardError => e
-            @logger.fatal "EXCEPCIÓN LEYENDO LA EXCEPCIÓN\n#{e}", al_canal: true
-        end
+        manejar_excepción_asesina(e)
+        return apagar_bot if apagar_programa
 
-        # Sacar este raise cuando el bot deje de ser testeadísimo
-        # lo puse porque luke dice que es pesado cuando se pone a mandar
-        # errores en el grupete.
-        #       raise
+        retry
     end
 
-    # Permite iterar sobre los comandos del bot, y sus descripciones
-    def self.commands
-        @comandos.each_value do |comando|
-            yield comando.cmd, comando.descripción if comando.descripción
-        end
-    end
-
-    def html_parser(texto)
-        CGI.escapeHTML(texto)
-    end
-
-    def get_command(msj)
-        cmd = _parse_command(msj)
-        cmd[:command]
+    def obtener_comando(msj)
+        cmd = _parsear_comando(msj)
+        cmd[:comando]
     end
 
     # Este método analiza parámetros en el mensaje. se podría hacer una combinación
     # tomando parámetros de acá y usar un mensaje respondido como el resto del
     # argumento, pero eso no se hace acá porque podría ser peligroso en algunos
     # comandos.
-    def get_command_params(msj)
-        cmd = _parse_command(msj)
+    def obtener_params_comando(msj)
+        cmd = _parsear_comando(msj)
         cmd[:params]
-    end
-
-    def chat_inválido(msj, válidos)
-        return if msj.chat.type == 'channel'
-
-        traducciones = { 'private' => 'privado', 'group' => 'grupos',
-                         'supergroup' => 'supergrupos', 'channel' => 'canales' }
-
-        texto = "Este comando es válido solo en #{traducciones[válidos.first]}"
-
-        if válidos.length == 2
-            texto << " y #{traducciones[válidos[1]]}"
-        elsif válidos.length == 3
-            texto << ", #{traducciones[válidos[1]]} y #{traducciones[válidos[2]]}"
-        end
-
-        @tg.send_message(chat_id: msj.chat.id,
-                         reply_to_message_id: msj.message_id,
-                         text: texto)
-    end
-
-    # Método recursivo que actualiza los nombres de usuarios en redis
-    def actualizar_datos_usuarios(msj)
-        redis_actualizar_datos msj.from
-
-        redis_actualizar_datos msj.forward_from if msj.forward_from
-
-        msj.new_chat_members.each do |usuario|
-            redis_actualizar_datos usuario
-        end
-
-        redis_actualizar_datos msj.left_chat_member if msj.left_chat_member
-
-        actualizar_datos_usuarios(msj.reply_to_message) if msj.reply_to_message
     end
 
     private
 
-    def redis_actualizar_datos(usuario)
-        clave = "nombre:#{usuario.id}"
+    def correr_antes_de_updates
+        # Inializo la clase de configuraciones
+        Configuración.redis ||= @redis
 
-        if @redis.get(clave) != usuario.first_name
-            @redis.set clave, usuario.first_name, ex: 60 * 60 * 24
+        # Compruebo si la version del Bot concuerda con la del changelog
+        @logger.info 'Comprobando versión...'
+        comprobar_version
+    end
+
+    def comprobar_version
+        archivo = File.open(CHANGELOG, 'r') { |f| archivo = f.read }
+        versión_changelog = archivo.scan(/\AVersión (\d(\.\d)*)\s*\n/).first.first
+
+        if VERSIÓN != versión_changelog
+            abort('La versión del bot y del changelog difieren')
+            # raise "ERROR: La versión del bot difiere de la del changelog /"
+            #        "Asi no pienso seguir!"
+            # fail
         end
 
-        clave = "usuario:#{usuario.id}"
-
-        if @redis.get(clave) != usuario.username
-            @redis.set clave, usuario.username, ex: 60 * 60 * 24
+        ultima_version_informada = version_redis
+        if ultima_version_informada.nil? || ultima_version_informada != VERSIÓN
+            confirmar_anuncio_changelog(ultima_version_informada, VERSIÓN)
+            @logger.info 'Se ha detectado un cambio de versión para informar'
+        else
+            @logger.info '¡Versión actualizada!'
         end
+    end
+
+    def actualizar_version_redis
+        @redis.set('versión', VERSIÓN)
+    end
+
+    def version_redis
+        @redis.get('versión')
+    end
+
+    def inicializar_apis_externas(args)
+        @img = ImageSearcher.new args[:google_image_key], args[:google_image_cx],
+                                 args[:google_image_gl], @logger
+
+        @lastfm = LastFM::Api.new args[:last_fm_api]
+        @tz = TZInfo::Timezone.get args[:timezone]
+        @reddit_api = Reddit::Api.new
+    end
+
+    # En un futuro este método puede lanar una corrutina por update
+    def procesar_actualizaciones(actualizaciones)
+        actualizaciones['result'].each do |actualización|
+            Estadísticas::Temporizador.time('tiempo_loop', intervalo: 600) do
+                act = Telegram::Bot::Types::Update.new(actualización)
+                @logger.info "Procesando update #{act.update_id}"
+                mensaje = act.current_message
+
+                mensaje.datos_crudos = actualización
+                loop_principal(mensaje)
+            end
+        end
+
+        próxima_update = actualizaciones['result'].last['update_id'].next
+        @redis.set 'datos_bot:id_actualización_inicial', próxima_update
+    end
+
+    # En el futuro concurrente de la dankie, acá vamos a estar en paralelo
+    # analizando una update, además se puede agregar otro hilo o algo así que
+    # las analice de forma sincrónica
+    def loop_principal(msj)
+        return if actualización_de_usuario_bloqueado? msj
+
+        despachar msj
+    # Acá está bueno handlear excepciones de updates porque si rompe más arriba
+    # se puede romper el bucle donde se analizan las otras updates y como pueden
+    # venir de hasta 100 no queremos que pase eso
+    rescue StandardError => e
+        manejar_excepción_asesina(e, msj)
+    end
+
+    # Creo que esto es un dispatch si entendí bien
+    def despachar(msj)
+        case msj
+
+        when Telegram::Bot::Types::Message
+            # Handlers generales, no los de comando si no
+            # los de mensajes/eventos de chat
+            Dankie.handlers_generales.each do |handler|
+                next unless handler.verificar(self, msj)
+
+                handler.ejecutar self, msj
+            end
+
+            datos = _parsear_comando(msj)
+            Dankie.comandos[datos[:comando]]&.ejecutar self, msj, datos
+
+        when Telegram::Bot::Types::CallbackQuery
+            clave = msj.data.split(':').first
+            Dankie.callback_queries[clave].ejecutar self, msj
+
+        when Telegram::Bot::Types::InlineQuery
+            Dankie.inlinequery.each do |handler|
+                handler.ejecutar self, msj
+            end
+        else
+            actualizaciones_poco_usuales msj
+        end
+    end
+
+    def actualizaciones_poco_usuales(msj)
+        case msj
+        when Telegram::Bot::Types::ChosenInlineResult
+            @logger.info 'Llegó el resultado elegido inline, '\
+                         "id: #{msj.result_id}", al_canal: true
+
+        # Si se cerró una encuesta, no hago nada más que loggear
+        when Telegram::Bot::Types::Poll
+            @logger.info "Se acaba de cerrar una encuesta con id: #{msj.id}"
+
+        when Telegram::Bot::Types::PollAnswer
+            @logger.info "Recibí una PollAnswer como update: #{msj}",
+                         al_canal: true
+
+        when Telegram::Bot::Types::ShippingQuery
+            @logger.info "Recibí una ShippingQuery con id: #{msj.id}",
+                         al_canal: true
+
+        when Telegram::Bot::Types::PreCheckoutQuery
+            @logger.info "Recibí una PreCheckoutQuery con id: #{msj.id}",
+                         al_canal: true
+
+        else
+            @logger.error "Update desconocida: #{msj.class}\n"\
+                          "#{msj.inspect}", al_canal: true
+        end
+    end
+
+    def manejar_excepción_asesina(excepción, msj = nil)
+        return if @tg.capturar(excepción)
+
+        if msj.respond_to?(:date)
+            @logger.loggear_hora_excepción(msj, @tz.utc_offset, @tz.now)
+        end
+
+        texto, backtrace = @logger.excepcion_texto(excepción)
+        @logger.fatal texto, al_canal: true, backtrace: backtrace
+    rescue StandardError => e
+        begin
+            @logger.fatal "EXCEPCIÓN: #{e}\n\n#{@logger.excepcion_texto(e).last}\n\n"\
+                          "LEYENDO LA EXCEPCIÓN: #{excepción}\n\n"\
+                          "#{@logger.excepcion_texto(excepción).last}",
+                          al_canal: true
+        rescue StandardError => e
+            puts "\nFATAL: Múltiples excepciones\n#{excepción}\n\n#{e}\n\n#{e}"
+        end
+    end
+
+    # Por ahora esto es para loggear que se va a apagar, pero en un futuro capaz
+    # si hay que hacer más cosas se puede agregar acá
+    def apagar_bot
+        puts "\nApagando bot..."
+        exit
+    end
+
+    def actualización_de_usuario_bloqueado?(msj)
+        (msj.respond_to?(:from) &&
+        @redis.sismember('lista_negra:global', msj.from.id.to_s)) ||
+            (msj.respond_to?(:chat) &&
+            @redis.sismember("lista_negra:#{msj.chat.id}",
+                             msj.from.id.to_s))
     end
 
     # Analiza un texto y se fija si es un comando válido, devuelve el comando
     # y el resto del texto
-    def _parse_command(msj)
-        unless (text = msj.text || msj.caption)
-            return { command: nil, params: nil }
-        end
+    def _parsear_comando(msj)
+        respuesta = { comando: nil, params: nil }
 
-        return { command: nil, params: nil } if text.size <= 1
+        return respuesta unless (texto = msj.text || msj.caption)
+        return respuesta if texto.size <= 1
 
-        command = nil
-        params = nil
+        # "/cmd params" o "/cmd@bot params"
+        return comando_barra(texto) if texto.start_with? '/'
 
-        if text.start_with? '/' # "/cmd params" o "/cmd@bot params"
-            command, params = text.split ' ', 2
-            command.downcase!
-            command.gsub!(%r{^/([a-z]+)(@#{@user.username.downcase})?}, '\\1')
+        # "!cmd params" o ">cmd params"
+        return comando_símbolo(texto) if ['!', '>', '$', '.'].include? texto[0]
 
-        elsif ['!', '>', '$', '.'].include? text[0] # "!cmd params" o ">cmd params"
-            command, params = text.split ' ', 2
-            command = command[1..-1]
-            command.downcase!
+        parsear_otros_comandos(texto, msj, respuesta)
+    end
+
+    def parsear_otros_comandos(texto, msj, respuesta)
+        # ["usuario", "comando", "params"]
+        arr = texto.split(' ', 3)
+        arr.first.downcase!
+
+        if (arr.size > 1) && arr.first.casecmp(@user.username[0..-4]).zero?
+            comando_alias arr
+        # Responde al bot
+        elsif msj.reply_to_message&.from&.id == @user.id
+            comando_respuesta_bot texto
         else
-            arr = text.split(' ', 3) # ["user", "comando", "params"]
-            arr.first.downcase!
-            if (arr.size > 1) && arr.first.casecmp(@user.username[0..-4]).zero?
-                command = arr[1].downcase.to_sym
-                params = arr[2]
-            # Responde al bot
-            elsif msj.reply_to_message&.from&.id == @user.id
-                command, params = text.split ' ', 2
-                command.downcase!
-            end
-        end
-
-        { command: command&.to_sym, params: params }
-    end
-
-    # Método que recibe un User o un id_usuario, un Chat o un id_chat y devuelve
-    # un enlace al usuario pasado, un texto si hubo un error o nil si el usuario
-    # borró su cuenta.
-    def obtener_enlace_usuario(usuario, chat, con_apodo: true)
-        id_chat = chat.is_a?(Telegram::Bot::Types::Chat) ? chat.id : chat
-
-        if usuario.is_a?(Telegram::Bot::Types::User)
-            id_usuario = usuario.id
-            alias_usuario = usuario.username
-        else
-            id_usuario = usuario
-
-            alias_usuario = @redis.get "usuario:#{id_usuario}"
-            unless alias_usuario
-                usuario = @tg.get_chat_member(chat_id: id_chat, user_id: usuario)
-                usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
-                alias_usuario = usuario.username
-                redis_actualizar_datos usuario
-            end
-        end
-
-        mención = if alias_usuario && !alias_usuario.empty?
-                  then "<a href='https://telegram.me/#{alias_usuario}'>"
-                  else "<a href='tg://user?id=#{id_usuario}'>"
-                  end
-
-        if con_apodo && (apodo = @redis.hget("apodo:#{id_chat}", id_usuario))
-            mención << "#{html_parser apodo}</a>"
-        elsif (nombre = @redis.get("nombre:#{id_usuario}")) && !nombre.empty?
-            mención << "#{html_parser nombre}</a>"
-        else
-            usuario = @tg.get_chat_member(chat_id: id_chat, user_id: usuario)
-            usuario = Telegram::Bot::Types::ChatMember.new(usuario['result']).user
-            alias_usuario = usuario.username
-
-            redis_actualizar_datos usuario
-            if usuario.first_name.empty?
-                mención = "ay no c (#{id_usuario})"
-            else
-                mención << "#{html_parser usuario.first_name}</a>"
-            end
-        end
-
-        mención
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        mención = "ay no c (#{id_usuario})"
-        if e.to_s =~ /user not found|wrong user_id specified/
-            @logger.error('Traté de obtener el nombre de una cuenta '\
-                        "eliminada: #{id_usuario}")
-            return nil
-        else
-            @logger.error e
-        end
-
-        mención
-    end
-
-    def natural(numero)
-        if numero.length < 25
-            begin
-                num = Integer(numero)
-            rescue StandardError
-                return false
-            end
-
-            return num if num.positive?
-        end
-
-        false
-    end
-
-    def validar_desarrollador(usuario_id, chat_id, mensaje_id, _text = nil, _id = nil)
-        # Chequeo que quien llama al comando sea o desarrollador
-        unless DEVS.include?(usuario_id)
-            @tg.send_message(chat_id: chat_id, reply_to_message_id: mensaje_id,
-                             text: 'Vos no podés usar esto pa')
-            return false
-        end
-
-        true
-    end
-
-    def es_admin(usuario_id, chat_id, mensaje_id, text = nil, _id = nil)
-        member = @tg.get_chat_member(chat_id: chat_id, user_id: usuario_id)
-        member = Telegram::Bot::Types::ChatMember.new(member['result'])
-        status = member.status
-
-        # Chequeo que quien llama al comando sea admin del grupete
-        # Si no lo es, manda mensaje de error
-        if (status != 'administrator') && (status != 'creator')
-            unless text.nil?
-                @tg.send_message(chat_id: chat_id,
-                                 reply_to_message_id: mensaje_id,
-                                 text: text)
-            end
-            return false
-        end
-
-        true
-    end
-
-    def grupo_del_msj(msj)
-        if msj.chat.title.nil?
-            msj.chat.id.to_s
-        else
-            "#{msj.chat.title} (#{msj.chat.id})"
+            respuesta
         end
     end
 
-    def cambiar_claves_supergrupo(vieja_id, nueva_id, texto_antes = '',
-                                  texto_después = '')
-        vieja_clave = texto_antes + vieja_id.to_s + texto_después
-        nueva_clave = texto_antes + nueva_id.to_s + texto_después
-
-        @redis.rename(vieja_clave, nueva_clave) if @redis.exists(vieja_clave)
+    def comando_barra(texto)
+        comando, params = texto.split ' ', 2
+        comando.downcase!
+        comando.gsub!(%r{^/([_a-z]+)(@#{@user.username.downcase})?}, '\\1')
+        devolver_dicc_comando_params(comando, params)
     end
 
-    def primer_nombre(usuario)
-        if usuario.first_name.nil?
-            "ay no c (#{usuario.id})"
-        else
-            usuario.first_name
-        end
+    def comando_símbolo(texto)
+        comando, params = texto.split ' ', 2
+        comando = comando[1..]
+        comando.downcase!
+        devolver_dicc_comando_params(comando, params)
     end
 
-    # Devuelve la id del usuario al que se quiere afectar con el comando +
-    # el resto del texto (si es que hay alguno) en el mensaje
-    # También devuelve un alias_usuario que es un string con el alias pasado
-    # en el mensaje (si es que hubo alguno, ej: /kick @alias) para chequear
-    # después que el id sea válido y corresponda con ese alias.
-    def id_y_resto(msj)
-        id_afectada = nil
-        otro_texto = nil
-        alias_usuario = false
-
-        lista_entidades = nil
-        args_mensaje = get_command_params(msj)
-
-        if args_mensaje
-            args_mensaje = args_mensaje.strip
-
-            # Obtengo texto y entidades del mensaje del comando
-            if msj.entities && !msj.entities.empty?
-                texto = msj.text
-                lista_entidades = msj.entities
-            elsif msj.caption_entities && !msj.caption_entities.empty?
-                texto = msj.caption
-                lista_entidades = msj.caption_entities
-            end
-
-            # Me fijo si hay entidades
-            if lista_entidades && !lista_entidades.empty?
-                entidad = nil
-
-                # Si se llama al comando así -> "/comando" entonces eso ya
-                # cuenta como una entidad
-                if lista_entidades.length >= 2 &&
-                   lista_entidades[0].type == 'bot_command' &&
-                   lista_entidades[0].offset.zero?
-
-                    entidad = lista_entidades[1]
-                # msj.entities.length == 1, por ejemplo si se llama
-                # así -> "!comando"
-                elsif lista_entidades.length == 1
-                    entidad = lista_entidades[0]
-                end
-
-                fin = entidad.offset + entidad.length
-                # Veo si efectivamente había una entidad que ocupaba el principio del
-                # argumento del comando (me parece mal chequear que ocupe todo el texto
-                # acá, porque podría ser un hashtag por ejemplo y estaría chequeando
-                # cosas al pedo, pero bueno las posibilidades de eso son muy bajas y
-                # prefiero eso a estar repitiendo código)
-                if entidad &&
-                   args_mensaje.start_with?(texto[entidad.offset..(fin - 1)])
-
-                    otro_texto = texto[fin..-1].strip
-                    otro_texto = nil if otro_texto.empty?
-
-                    # Me fijo si esa entidad efectivamente era un alias
-                    if entidad.type == 'mention'
-                        # La entidad arranca con un @, por eso el + 1
-                        alias_usuario = texto[(entidad.offset + 1)..(fin - 1)].strip
-                        id_afectada = obtener_id_de_alias(alias_usuario)
-                    # Me fijo si esa entidad efectivamente era una mención de usuario sin alias
-                    elsif entidad.type == 'text_mention'
-                        id_afectada = entidad.user.id
-                    end
-                end
-            end
-
-            # Si no logré nada con las entidades, entonces chequeo si
-            # me pasaron una id como texto
-            if id_afectada.nil?
-                id_afectada, otro_texto = id_numérica_y_otro_texto(args_mensaje)
-            end
-            # Si no conseguí ninguna id, entonces todo el argumento es "otro_texto"
-            otro_texto = args_mensaje if id_afectada.nil?
-        end
-        # Si está respondiendo a un mensaje y no se obtuvo un id de los argumentos
-        # toma el id de ese miembro para ser afectado. Notar que el otro texto
-        # es obtenido en el if anterior (si existe)
-        if msj.reply_to_message && id_afectada.nil?
-            id_afectada = msj.reply_to_message.from.id
-        end
-
-        [id_afectada, alias_usuario, otro_texto]
+    def comando_alias(arr)
+        comando = arr[1].downcase.to_sym
+        params = arr[2]
+        devolver_dicc_comando_params(comando, params)
     end
 
-    def id_numérica_y_otro_texto(args_mensaje)
-        lista_palabras = args_mensaje.split
-        primer_palabra = natural(lista_palabras.first)
-
-        if primer_palabra
-            [primer_palabra, lista_palabras[1..-1].join(' ')]
-        else
-            [nil, nil]
-        end
+    def comando_respuesta_bot(texto)
+        comando, params = texto.split ' ', 2
+        comando.downcase!
+        devolver_dicc_comando_params(comando, params)
     end
 
-    # Trata de obtener un miembro de chat, y si no lo consigue
-    # manda un mensaje de error.
-    def obtener_miembro(msj, id_usuario)
-        miembro = @tg.get_chat_member(chat_id: msj.chat.id, user_id: id_usuario)
-        miembro = miembro['result']
-        Telegram::Bot::Types::ChatMember.new(miembro)
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        case e.to_s
-        when /USER_ID_INVALID/
-            @logger.error('Me dieron una id inválida en ' + grupo_del_msj(msj))
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: 'Disculpame pero no puedo reconocer esta '\
-                                   "id: #{id_usuario}. O es inválida, o es de "\
-                                   'alguien que nunca estuvo en este chat.',
-                             reply_to_message_id: msj.message_id)
-        else
-            raise
-        end
-
-        nil
-    end
-
-    def obtener_chat(chat_id)
-        chat = @tg.get_chat(chat_id: chat_id)
-        Telegram::Bot::Types::Chat.new(chat['result'])
-    end
-
-    # Chequea que el miembro sea admin y tenga los permisos adecuados
-    def tiene_permisos(msj, id_usuario, permiso, error_no_admin, error_no_permisos)
-        miembro = obtener_miembro(msj, id_usuario)
-        tiene_autorización = true
-
-        if !miembro
-            tiene_autorización = false
-        elsif miembro.status != 'creator'
-            if miembro.status != 'administrator'
-                tiene_autorización = false
-                @tg.send_message(chat_id: msj.chat.id,
-                                 text: error_no_admin + ' ser admin para hacer eso',
-                                 reply_to_message_id: msj.message_id)
-            # Chequeo si tiene el permiso
-            elsif !(miembro.send permiso)
-                tiene_autorización = false
-                @tg.send_message(chat_id: msj.chat.id,
-                                 text: error_no_permisos,
-                                 reply_to_message_id: msj.message_id)
-            end
-        end
-        tiene_autorización
-    end
-
-    def log_y_aviso(msj, error, al_canal: true)
-        @logger.error(error + ' en ' + grupo_del_msj(msj), al_canal: al_canal)
-        @tg.send_message(chat_id: msj.chat.id,
-                         text: error,
-                         reply_to_message_id: msj.message_id)
-    end
-
-    def descargar_archivo_tg(_id_archivo, nombre_guardado)
-        archivo = @tg.get_file(id_imagen)
-        archivo = Telegram::Bot::Types::File.new(archivo['result'])
-
-        return false if archivo.file_size && archivo.file_size > 20
-
-        # TODO: ver que esta virgueada ande y validar hasta el ojete,
-        # ni me quiero imaginar la cantidad de excepciones que hay que
-        # manejar acá
-        enlace_archivo = "https://api.telegram.org/file/bot<#{@tg.token}>"\
-                         "/#{archivo.file_path}"
-
-        descargar_archivo_internet(enlace_archivo, nombre_guardado)
-    end
-
-    def descargar_archivo_internet(enlace_internet, _nombre_guardado)
-        enlace_disco = "./tmp/dankie/#{SecureRandom.uuid}.#{extension}"
-        # TODO: ver que esta virgueada ande y validar hasta el ojete,
-        # ni me quiero imaginar la cantidad de excepciones que hay que
-        # manejar acá
-        open(enlace_internet) do |archivo_internet|
-            File.open(enlace_disco, 'wb') do |archivo_disco|
-                archivo_disco.write(archivo_internet.read)
-            end
-        end
-    end
-
-    def enviar_lista(msj, conjunto_iterable, título_lista, crear_línea, error_vacío)
-        # Si el conjunto está vacío aviso
-        if conjunto_iterable.nil? || conjunto_iterable.empty?
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: error_vacío,
-                             reply_to_message_id: msj.message_id)
-            return
-        end
-
-        texto = título_lista
-        conjunto_iterable.each do |elemento|
-            # Armo la línea
-            línea = crear_línea.call(elemento)
-
-            # Mando blocazo de texto si corresponde
-            if texto.length + línea.length > 4096
-                @tg.send_message(chat_id: msj.chat.id,
-                                 parse_mode: :html,
-                                 text: texto,
-                                 disable_web_page_preview: true,
-                                 disable_notification: true)
-                # Nota: si la línea tiene más de 4096 caracteres, entonces en la próxima
-                # iteración se va a mandar partida en dos mensajes (por tg.send_message)
-                texto = línea
-            else
-                texto << línea
-            end
-        end
-
-        # Si no queda nada por mandar, me voy
-        return if texto.empty?
-
-        # Y si quedaba algo, lo mando
-        @tg.send_message(chat_id: msj.chat.id,
-                         parse_mode: :html,
-                         text: texto,
-                         disable_web_page_preview: true,
-                         disable_notification: true)
-    end
-
-    # Método que mete un id_mensaje en una cola de mensajes que
-    # son borrados despues de cierto límite, para evitar el spam.
-    def añadir_a_cola_spam(id_chat, id_mensaje)
-        @redis.rpush "spam:#{id_chat}", id_mensaje
-        if @redis.llen("spam:#{id_chat}") > 24
-            id_mensaje = @redis.lpop("spam:#{id_chat}").to_i
-            @tg.delete_message(chat_id: id_chat, message_id: id_mensaje)
-        end
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        case e.to_s
-        when /message to delete not found/
-            @logger.error("Traté de borrar un mensaje (id mensaje: #{id_mensaje}) "\
-                          "muy viejo (id chat: #{id_chat}).",
-                          al_canal: false)
-        when /message can't be deleted/
-            @logger.error("No pude borrar un mensaje (id mensaje: #{id_mensaje}) "\
-                          "(id chat: #{id_chat}).",
-                          al_canal: false)
-        end
-    end
-
-    # Función que recibe un arreglo de Time o unix-time y verifica si se mandaron
-    # muchos mensajes seguidos. Devuelve true o false
-    def chequear_flood(arr)
-        return true if arr.size.between? 0, 1
-
-        promedio = 0
-        arr.each { |i| promedio += i.to_r }
-        promedio /= arr.size
-        diferencia_ahora = Time.now.to_r - promedio
-
-        diferencia_ahora > 89
-    end
-
-    def incremetar_arr_flood(arr, tiempo)
-        arr << tiempo
-        arr.shift until arr.size <= 13
-    end
-
-    def arreglo_tablero(conjunto_iterable, arr, título,
-                        subtítulo, contador, max_cant, max_tam,
-                        agr_elemento, inicio_en_subtítulo = false)
-        return if conjunto_iterable.nil? || conjunto_iterable.empty?
-
-        # .dup crea una copia del objeto original
-        if inicio_en_subtítulo && !arr.empty? && subtítulo &&
-           contador < max_cant && arr.last.size < max_tam
-            # Meto subtítulo si queda bien ponerlo en este caso
-            arr.last << subtítulo.dup
-        end
-        # Itero sobre los elementos
-        conjunto_iterable.each do |elemento|
-            # Si es una página nueva agrego título y subtítulo
-            if arr.empty? || contador >= max_cant || arr.last.size >= max_tam
-                arr << título.dup
-                arr.last << subtítulo.dup if subtítulo
-                contador = 0
-            end
-            # Agrego el elemento juju
-            arr.last << agr_elemento.call(elemento)
-            contador += 1
-        end
-        # Devuelvo el contador para que pueda ser usado luego en futuras
-        # llamadas a esta función, recordar que los integers se pasan por
-        # copia
-        contador
+    def devolver_dicc_comando_params(comando, params)
+        { comando: comando&.to_sym, params: params }
     end
 end

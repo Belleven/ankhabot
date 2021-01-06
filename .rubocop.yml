@@ -1,8 +1,22 @@
+require:
+ - rubocop-rake
+
 AllCops:
+    NewCops: enable
     TargetRubyVersion: 2.6
+
+Style/ClassVars:
+    Enabled: false
+
+Style/Documentation:
+    Enabled: false
 
 Layout/IndentationWidth:
     Width: 4
+
+Layout/LineLength:
+    Max: 89
+    AutoCorrect: true
 
 Metrics/AbcSize:
     Max: 30
@@ -13,10 +27,6 @@ Metrics/ClassLength:
 Metrics/CyclomaticComplexity:
     Max: 10
 
-Metrics/LineLength:
-    Max: 89
-    AutoCorrect: true
-
 Metrics/MethodLength:
     Max: 50
 
@@ -26,18 +36,11 @@ Metrics/PerceivedComplexity:
 Naming/AsciiIdentifiers:
     Enabled: false
 
-Naming/FileName:
-    Enabled: false
-
-Naming/MethodName:
-    Enabled: false
-
-Naming/VariableName: 
-    Enabled: false
+Naming/VariableNumber:
+    CheckMethodNames: false
 
 Style/AsciiComments:
-    AllowedChars: [☑️ , á, é, í, ó, ú, ü, ñ, Á, É, Í, Ó, Ú, Ü, Ñ]
-
+    Enabled: false
 
 Style/FrozenStringLiteralComment:
     EnforcedStyle: never

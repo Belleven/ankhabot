@@ -9,36 +9,43 @@ class Dankie
                                                    'miembros comunes del grupete')
 
     def estatus(msj)
-        if (miembro = miembro_válido(msj))
+        return unless (miembro = miembro_válido(msj))
 
-            traducción = { 'member' => 'MIEMBRO COMÚN', 'kicked' => 'BANEADO',
-                           'left' => 'FUERA DEL GRUPO (PUEDE VOLVER CUANDO QUIERA)',
-                           'creator' => 'CREADOR DEL GRUPETE',
-                           'administrator' => 'ADMINISTRADOR',
-                           'restricted' => 'USUARIO RESTRINGIDO' }
+        traducción = { 'member' => 'MIEMBRO COMÚN',
+                       'kicked' => 'BANEADO',
+                       'left' => 'FUERA DEL GRUPO',
+                       'creator' => 'CREADOR DEL GRUPETE',
+                       'administrator' => 'ADMINISTRADOR',
+                       'restricted' => 'USUARIO RESTRINGIDO' }
 
-            estado = if miembro.user.first_name.empty?
-                         'DESAPARECIDO'
-                     else
-                         traducción[miembro.status]
-                     end
+        estado = if miembro.user.first_name.empty?
+                     'DESAPARECIDO'
+                 else
+                     traducción[miembro.status]
+                 end
 
-            usuario = obtener_enlace_usuario(miembro.user, msj.chat.id) || '<code>Usuario eliminado</code>'
+        eliminado = '<code>Usuario eliminado</code>'
+        usuario = obtener_enlace_usuario(miembro.user, msj.chat.id) || eliminado
 
-            texto = "Estatus de #{usuario}"\
-                    ": #{estado}"
-            agregar_cualidades(miembro, texto) unless miembro.user.first_name.empty?
+        texto = "Estatus de #{usuario}: #{estado}"
 
-            texto << "\n\nPermisos de los miembros comunes en este chat:"
-            agregar_permisos_chat(msj, texto)
-
-            @tg.send_message(chat_id: msj.chat.id,
-                             parse_mode: :html,
-                             disable_web_page_preview: true,
-                             disable_notification: true,
-                             text: texto)
-
+        if miembro.custom_title &&
+           (miembro.status == 'administrator' || miembro.status == 'creator')
+            texto << "\nTítulo: <b>#{html_parser miembro.custom_title}</b>"
         end
+
+        agregar_cualidades(miembro, texto) unless miembro.user.first_name.empty?
+
+        texto << "\n\nPermisos de los miembros comunes en este chat:"
+        agregar_permisos_chat(msj, texto)
+
+        @tg.send_message(
+            chat_id: msj.chat.id,
+            parse_mode: :html,
+            disable_web_page_preview: true,
+            disable_notification: true,
+            text: texto
+        )
     end
 
     def permisos(msj)
@@ -53,7 +60,9 @@ class Dankie
     private
 
     def miembro_válido(msj)
-        id_usuario, alias_usuario, _ = id_y_resto(msj)
+        valores = id_y_resto(msj)
+        id_usuario = valores[:id]
+        alias_usuario = valores[:alias]
 
         if id_usuario.nil?
             @tg.send_message(chat_id: msj.chat.id,
@@ -67,7 +76,7 @@ class Dankie
         miembro = obtener_miembro(msj, id_usuario)
 
         if alias_usuario &&
-           (!miembro.user.username || miembro.user.username != alias_usuario)
+           (!miembro&.user&.username || miembro.user.username != alias_usuario)
 
             @tg.send_message(chat_id: msj.chat.id,
                              text: 'No reconozco ese alias, lo más probable es que '\
@@ -79,36 +88,14 @@ class Dankie
     end
 
     def agregar_cualidades(miembro, texto)
-        if miembro.status == 'administrator'
+        case miembro.status
+        when 'administrator'
             texto << "\n\nCon las siguientes características:"
 
             agr_cualidades_admin_restr(miembro, texto)
+            agr_cualidades_admin_solo(miembro, texto)
 
-            texto << if miembro.can_be_edited
-                         "\n✅ Puedo editarle sus privilegios de administrador."
-                     else
-                         "\n❌ No puedo editarle sus privilegios de administrador."
-                     end
-
-            texto << if miembro.can_delete_messages
-                         "\n✅ Puede eliminar mensajes."
-                     else
-                         "\n❌ No puede eliminar mensajes."
-                     end
-
-            texto << if miembro.can_restrict_members
-                         "\n✅ Puede suspender usuarios."
-                     else
-                         "\n❌ No puede suspender usuarios."
-                     end
-
-            texto << if miembro.can_promote_members
-                         "\n✅ Puede agregar nuevos admins."
-                     else
-                         "\n❌ No puede agregar nuevos admins."
-                     end
-
-        elsif miembro.status == 'restricted'
+        when 'restricted'
             texto << "\n\nCon las siguientes restricciones:"
             agr_cualidades_ban_restr(miembro, texto, 'Restringido')
             agr_cualidades_admin_restr(miembro, texto)
@@ -120,9 +107,35 @@ class Dankie
                      end
             agr_cualidades_generales(miembro, texto)
 
-        elsif miembro.status == 'kicked'
+        when 'kicked'
             agr_cualidades_ban_restr(miembro, texto, 'Baneado')
         end
+    end
+
+    def agr_cualidades_admin_solo(miembro, texto)
+        texto << if miembro.can_be_edited
+                     "\n✅ Puedo editarle sus privilegios de administrador."
+                 else
+                     "\n❌ No puedo editarle sus privilegios de administrador."
+                 end
+
+        texto << if miembro.can_delete_messages
+                     "\n✅ Puede eliminar mensajes."
+                 else
+                     "\n❌ No puede eliminar mensajes."
+                 end
+
+        texto << if miembro.can_restrict_members
+                     "\n✅ Puede suspender usuarios."
+                 else
+                     "\n❌ No puede suspender usuarios."
+                 end
+
+        texto << if miembro.can_promote_members
+                     "\n✅ Puede agregar nuevos admins."
+                 else
+                     "\n❌ No puede agregar nuevos admins."
+                 end
     end
 
     def agr_cualidades_generales(entidad, texto, miembro_específico: true)
@@ -134,6 +147,16 @@ class Dankie
             inicio_neg = 'No pueden'
         end
 
+        agr_cualidades_envío(texto, entidad, inicio_pos, inicio_neg)
+
+        texto << if entidad.can_add_web_page_previews
+                     "\n✅ #{inicio_pos} incrustar enlaces."
+                 else
+                     "\n❌ #{inicio_neg} incrustar enlaces."
+                 end
+    end
+
+    def agr_cualidades_envío(texto, entidad, inicio_pos, inicio_neg)
         texto << if entidad.can_send_messages
                      "\n✅ #{inicio_pos} mandar mensajes."
                  else
@@ -156,12 +179,6 @@ class Dankie
                      "\n✅ #{inicio_pos} mandar stickers y GIFS."
                  else
                      "\n❌ #{inicio_neg} mandar stickers y GIFS."
-                 end
-
-        texto << if entidad.can_add_web_page_previews
-                     "\n✅ #{inicio_pos} incrustar enlaces."
-                 else
-                     "\n❌ #{inicio_neg} incrustar enlaces."
                  end
     end
 

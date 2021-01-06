@@ -30,34 +30,35 @@ class Link
             @type = :video
         when 'svg', 'bmp', 'webp', 'ico'
             @type = :link
-
         else
-            # Los links de reddit vienen con &amp:
-            if @link.include? 'i.reddituploads.com'
-                @link.gsub! 'amp:', ''
-                @type = :image
+            otros_tipos
+        end
+    end
 
-            # Acomoda los links de gfycat para que sean gifs
-            elsif @link.include? 'gfycat.com'
-                @link.gsub!(%r{https?://gfycat.com/(.*)},
-                            'https://thumbs.gfycat.com/\\1-size_restricted.gif')
-                @type = :gif
+    private
 
-            # Los gifs de imgur vienen como gifv, es mejor mp4
-            elsif /i\.imgur\.com.*gifv/.match?(@link)
-                @link.gsub! '.gifv', '.mp4'
-                @type = :video
-
-            elsif @link.include? 'imgur.com'
-                @type = :image
-                @link.gsub! 'imgur', 'i.imgur'
-                @link << '.png'
-
-            elsif %r{^https?://(www\.reddit\.com/r/(\w)*/comments|
-                                youtu\.be|
-                                v\.redd\.it)/}x.match?(@link)
-                @type = :link
-            end
+    def otros_tipos
+        # Los links de reddit vienen con &amp:
+        if @link.include? 'i.reddituploads.com'
+            @link.gsub! 'amp:', ''
+            @type = :image
+        # Acomoda los links de gfycat para que sean gifs
+        elsif @link.include? 'gfycat.com'
+            @link.gsub!(%r{https?://gfycat.com/(.*)},
+                        'https://thumbs.gfycat.com/\\1-size_restricted.gif')
+            @type = :gif
+        # Los gifs de imgur vienen como gifv, es mejor mp4
+        elsif /i\.imgur\.com.*gifv/.match?(@link)
+            @link.gsub! '.gifv', '.mp4'
+            @type = :video
+        elsif @link.include? 'imgur.com'
+            @type = :image
+            @link.gsub! 'imgur', 'i.imgur'
+            @link << '.png'
+        elsif %r{^https?://(www\.reddit\.com/r/(\w)*/comments|
+                            youtu\.be|
+                            v\.redd\.it)/}x.match?(@link)
+            @type = :link
         end
     end
 end

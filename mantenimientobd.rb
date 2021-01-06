@@ -2,9 +2,9 @@
 require 'yaml'
 require 'redis'
 
-def imprimir_todas_las_claves(redis, patron = 'trigger')
-    redis.keys.each do |clave|
-        next unless clave.include? patron
+def imprimir_todas_las_claves(redis, patrón = '')
+    redis.keys('*').each do |clave|
+        next unless clave.include? patrón
 
         case redis.type(clave)
 
@@ -21,20 +21,10 @@ def imprimir_todas_las_claves(redis, patron = 'trigger')
             puts "CONJUNTO: #{clave}\nELEMENTOS: #{valores}\n\n"
 
         when 'zset'
-            valores = redis.zrevrange(clave, 0, -1, with_scores: true)
-            puts "CONJUNTO ORDENADO: #{clave}\nELEMENTOS: "
-            valores.each do |atributo|
-                puts " #{atributo[0]}: #{atributo[1]}"
-            end
-            puts "\n"
+            imprimir_zset clave, redis
 
         when 'hash'
-            valores = redis.hgetall(clave)
-            puts "HASH: #{clave}\nELEMENTOS: "
-            valores.each do |atributo|
-                puts " #{atributo[0]}: #{atributo[1]}"
-            end
-            puts "\n"
+            imprimir_hash clave, redis
 
         when 'stream'
             puts "STREAM: #{clave}\n"\
@@ -52,6 +42,21 @@ def modificar_base
                       host: datazos[:redis_host],
                       password: datazos[:redis_pass])
 
+    imprimir_antes redis
+
+    # Acá meter funciones para modificar la BD, NO OLVIDARSE de borrarlos después
+    # Por ejemplo: redis.del("agregar:5")
+    #
+    # redis.flushdb
+    #
+    # redis.keys('*').each do |clave|
+    #   redis.del(clave)
+    # end
+
+    imprimir_después redis
+end
+
+def imprimir_antes(redis)
     puts "\n"
     puts '-' * 30
     puts 'ANTES DE CAMBIAR LA BBDD'
@@ -63,10 +68,9 @@ def modificar_base
     puts '-' * 30
     puts 'CAMBIANDO LA BBDD'
     puts '-' * 30
+end
 
-    # Acá meter funciones para modificar la BD, NO OLVIDARSE de borrarlos después
-    # Por ejemplo: redis.del("agregar:5")
-
+def imprimir_después(redis)
     puts 'CAMBIADA'
     puts '-' * 30
     puts 'DESPUÉS DE CAMBIAR LA BBDD'
@@ -77,6 +81,24 @@ def modificar_base
 
     puts '-' * 30
     puts 'FIN'
+end
+
+def imprimir_hash(clave, redis)
+    valores = redis.hgetall(clave)
+    puts "HASH: #{clave}\nELEMENTOS: "
+    valores.each do |atributo|
+        puts " #{atributo[0]}: #{atributo[1]}"
+    end
+    puts "\n"
+end
+
+def imprimir_zset(clave, redis)
+    valores = redis.zrevrange(clave, 0, -1, with_scores: true)
+    puts "CONJUNTO ORDENADO: #{clave}\nELEMENTOS: "
+    valores.each do |atributo|
+        puts " #{atributo[0]}: #{atributo[1]}"
+    end
+    puts "\n"
 end
 
 modificar_base

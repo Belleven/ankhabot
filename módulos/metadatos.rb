@@ -103,6 +103,15 @@ class Dankie
         fecha = Time.at(msj.date, in: @tz.utc_offset).to_datetime
         texto << "\n - Fecha envío: <code>#{fecha.strftime('%d/%m/%Y %T %Z')}</code>"
 
+        agregar_datos_opcionales_msj(texto, msj, nivel)
+
+        # Agrego chat
+        agregar_chat(texto, msj.chat, "\n\n -Chat:", nivel + 1)
+        # Agregar info reenvío
+        agregar_info_reenvío(texto, msj, nivel + 1) if msj.forward_date
+    end
+
+    def agregar_datos_opcionales_msj(texto, msj, nivel)
         # Fecha de última edición del mensaje
         if msj.edit_date
             fecha_edición = Time.at(msj.edit_date, in: @tz.utc_offset).to_datetime
@@ -128,17 +137,21 @@ class Dankie
                      "#{html_parser(msj.author_signature)}"
         end
 
-        # Agrego usuario
-        if msj.from
-            usuario = obtener_enlace_usuario(msj.from, msj.chat.id) || '<code>cuenta eliminada</code>'
-            título = "\n\n - Enviado por: #{usuario}"
-            agregar_usuario(texto, msj.from, título, nivel + 1)
+        if msj.respond_to?(:via_bot) && msj.via_bot
+            agregar_datos_opc_usuario(msj, texto, nivel, '- Vía bot:', msj.via_bot)
         end
 
-        # Agrego chat
-        agregar_chat(texto, msj.chat, "\n\n -Chat:", nivel + 1)
-        # Agregar info reenvío
-        agregar_info_reenvío(texto, msj, nivel + 1) if msj.forward_date
+        # Agrego usuario
+        return unless msj.from
+
+        agregar_datos_opc_usuario(msj, texto, nivel, '- Enviado por:', msj.from)
+    end
+
+    def agregar_datos_opc_usuario(msj, texto, nivel, título_msj, miembro)
+        cuenta_eliminada = '<code>cuenta eliminada</code>'
+        usuario = obtener_enlace_usuario(miembro, msj.chat.id) || cuenta_eliminada
+        título = "\n\n #{título_msj} #{usuario}"
+        agregar_usuario(texto, miembro, título, nivel + 1)
     end
 
     def agregar_usuario(texto, usuario, título, nivel)
@@ -216,8 +229,9 @@ class Dankie
 
         # Info del usuario original
         if msj.forward_from
-            texto << "#{tab} Cuenta oculta:<code>No</code>"
-            usuario = obtener_enlace_usuario(msj.forward_from, msj.chat.id) || '<i>Cuenta eliminada</i>'
+            texto << "#{tab} Cuenta oculta: <code>No</code>"
+            usuario = obtener_enlace_usuario(msj.forward_from,
+                                             msj.chat.id) || '<i>Cuenta eliminada</i>'
             título = "#{tab} Reenviado de: #{usuario}"
             agregar_usuario(texto, msj.forward_from, título, nivel + 1)
         elsif msj.forward_sender_name
@@ -226,51 +240,47 @@ class Dankie
             nombre = html_parser(msj.forward_sender_name)
             texto << "#{tab} Nombre: <code>#{nombre}</code>"
         elsif msj.forward_from_chat
-            # Si es reenviado de un canal
-            texto << "#{tab} Reenviado de un canal: <code>Sí</code>"\
-
-            # Si tengo el id original del mensaje
-            if msj.forward_from_message_id
-                texto << "#{tab} ID mensaje original: <code>"\
-                         "#{msj.forward_from_message_id}</code>"
-            end
-
-            # Si tengo la firma del mensaje
-            if msj.forward_signature
-                texto << "#{tab} Firma: <code>"\
-                         "#{html_parser(msj.forward_signature)}</code>"
-            end
-
-            # Agrego información del Canal original
-            título = "#{tab} Canal original del mensaje:"
-            agregar_chat(texto, msj.forward_from_chat, título, nivel + 1)
+            agregar_reenvío_canal(texto, tab, msj, nivel)
         end
     end
 
+    def agregar_reenvío_canal(texto, tab, msj, nivel)
+        # Si es reenviado de un canal
+        texto << "#{tab} Reenviado de un canal: <code>Sí</code>"\
+
+        # Si tengo el id original del mensaje
+        if msj.forward_from_message_id
+            texto << "#{tab} ID mensaje original: <code>"\
+                        "#{msj.forward_from_message_id}</code>"
+        end
+
+        # Si tengo la firma del mensaje
+        if msj.forward_signature
+            texto << "#{tab} Firma: <code>"\
+                        "#{html_parser(msj.forward_signature)}</code>"
+        end
+
+        # Agrego información del Canal original
+        título = "#{tab} Canal original del mensaje:"
+        agregar_chat(texto, msj.forward_from_chat, título, nivel + 1)
+    end
+
     def agregar_contenido(respuesta, msj, nivel, pasar_entidades)
+        agregar_dado(msj.dice, respuesta, nivel) if msj.dice
+
         # Agrego texto si hay
-        agregar_texto(respuesta, 'Texto:', msj.text, msj.entities,
-                      nivel, pasar_entidades)
+        agregar_texto(
+            respuesta: respuesta,
+            título: 'Texto:',
+            texto_msj: msj.text,
+            entidades: msj.entities,
+            nivel: nivel,
+            pasar_entidades: pasar_entidades
+        )
 
-        gif = false
+        agregar_multimedia(respuesta, msj, nivel)
 
-        # Otros
-
-        unless msj.photo.empty?
-            agregar_imágenes(respuesta, msj.photo, "\n\n - Imagen:", nivel)
-        end
-        if msj.animation
-            gif = true
-            agregar_animación(respuesta, msj.animation, "\n\n - Gif:", nivel)
-        end
-
-        agregar_sticker(respuesta, msj.sticker, nivel) if msj.sticker
-        agregar_audio(respuesta, msj.audio, nivel) if msj.audio
-        agregar_msj_voz(respuesta, msj.voice, nivel) if msj.voice
-        agregar_video(respuesta, msj.video, nivel) if msj.video
-        agregar_nota_video(respuesta, msj.video_note, nivel) if msj.video_note
-        agregar_documento(respuesta, msj.document, nivel) if msj.document && !gif
-        agregar_encuesta(respuesta, msj.poll, nivel) if msj.poll
+        agregar_encuesta(respuesta, msj.poll, nivel, pasar_entidades) if msj.poll
 
         if msj.location
             agregar_ubicación(respuesta, msj.location, "\n\n - Ubicación:", nivel)
@@ -279,25 +289,68 @@ class Dankie
         agregar_contacto(respuesta, msj.contact, nivel) if msj.contact
         agregar_juego(respuesta, msj.game, nivel, pasar_entidades) if msj.game
         agregar_botones(respuesta, msj.reply_markup, nivel) if msj.reply_markup
-        agregar_venue(respuesta, msj.venue, nivel) if msj.venue
-        agregar_pasaporte(respuesta, msj.passport_data, nivel) if msj.passport_data
-        agregar_factura(respuesta, msj.invoice, nivel) if msj.invoice
-        agregar_pago(respuesta, msj.successful_payment, nivel) if msj.successful_payment
 
         agregar_eventos_chat(respuesta, msj, nivel, pasar_entidades)
 
         # Agrego caption si hay
-        agregar_texto(respuesta, 'Epígrafe:', msj.caption, msj.caption_entities,
-                      nivel, pasar_entidades)
+        agregar_texto(
+            respuesta: respuesta,
+            título: 'Epígrafe:',
+            texto_msj: msj.caption,
+            entidades: msj.caption_entities,
+            nivel: nivel,
+            pasar_entidades: pasar_entidades
+        )
     end
 
-    def agregar_texto(respuesta, título, texto_msj, entidades, nivel, pasar_entidades)
+    def agregar_dado(dado, texto, nivel)
+        tab = crear_tab(nivel)
+
+        texto << "\n\n - Dado:"
+        texto << "#{tab} Emoji: #{dado.emoji}"
+        texto << "#{tab} Valor: <code>#{dado.value}</code>"
+    end
+
+    def agregar_multimedia(respuesta, msj, nivel)
+        unless msj.photo.empty?
+            agregar_imágenes(respuesta, msj.photo, "\n\n - Imagen:", nivel)
+        end
+        if msj.animation
+            agregar_animación(respuesta, msj.animation, "\n\n - Gif:", nivel)
+        end
+
+        agregar_sticker(respuesta, msj.sticker, nivel) if msj.sticker
+        agregar_audio(respuesta, msj.audio, nivel) if msj.audio
+        agregar_msj_voz(respuesta, msj.voice, nivel) if msj.voice
+        agregar_video(respuesta, msj.video, nivel) if msj.video
+        agregar_nota_video(respuesta, msj.video_note, nivel) if msj.video_note
+
+        agregar_extras(respuesta, msj, nivel)
+
+        return unless msj.document && msj.animation.nil?
+
+        agregar_documento(respuesta, msj.document, nivel)
+    end
+
+    def agregar_extras(respuesta, msj, nivel)
+        agregar_venue(respuesta, msj.venue, nivel) if msj.venue
+        agregar_pasaporte(respuesta, msj.passport_data, nivel) if msj.passport_data
+        agregar_factura(respuesta, msj.invoice, nivel) if msj.invoice
+        agregar_pago(respuesta, msj.successful_payment, nivel) if msj.successful_payment
+    end
+
+    def agregar_texto(params)
+        texto_msj = params[:texto_msj]
+        respuesta = params[:respuesta]
+        entidades = params[:entidades]
+        título = params[:título]
+
         return unless texto_msj
 
         long = texto_msj.length
 
         # Agrego el texto
-        texto_msj = (texto_msj[0..200] + '...') if long > 200
+        texto_msj = "#{texto_msj[0..200]}..." if long > 200
         respuesta << "\n\n - #{título} <code>#{html_parser(texto_msj)}</code>"
         respuesta << "\n - Longitud: <code>#{long}</code>"
 
@@ -305,8 +358,12 @@ class Dankie
         respuesta << "\n - Entidades del #{título.downcase}"\
                      " <code>#{entidades.length}</code>"
 
-        return if entidades.empty? || !pasar_entidades
+        return if entidades.empty? || !params[:pasar_entidades]
 
+        agregar_entidades(params[:nivel], entidades, respuesta)
+    end
+
+    def agregar_entidades(nivel, entidades, respuesta)
         # Creo tabs
         tab1 = crear_tab(nivel)
         tab2 = crear_tab(nivel + 1)
@@ -314,13 +371,18 @@ class Dankie
         entidades.each_with_index do |entidad, índice|
             # Nro entidad
             respuesta << "#{tab1} Entidad <b>#{índice + 1}</b>:"\
-                        "#{tab2} Tipo: <code>#{entidad.type}</code>"\
-                        "#{tab2} Desfasaje: <code>#{entidad.offset}</code>"\
-                        "#{tab2} Longitud: <code>#{entidad.length}</code>"
+                         "#{tab2} Tipo: <code>#{entidad.type}</code>"\
+                         "#{tab2} Desfasaje: <code>#{entidad.offset}</code>"\
+                         "#{tab2} Longitud: <code>#{entidad.length}</code>"
 
             if entidad.url
-                respuesta << "#{tab2} Enlace:"\
-                         " <code>#{html_parser(entidad.url)}</code>"
+                respuesta << "#{tab2} Enlace: "\
+                             "<code>#{html_parser(entidad.url)}</code>"
+            end
+
+            if entidad.language
+                respuesta << "#{tab2} Lenguaje de programación: "\
+                             "<code>#{entidad.language}</code>"
             end
 
             next unless entidad.user
@@ -336,7 +398,8 @@ class Dankie
         # Agrego datos que seguro aparecen
         texto << "\n\n - Audio:"\
                  "#{tab} ID: <code>#{audio.file_id}</code>"\
-                 "#{tab} Duración: <code>#{duracion_entera(audio.duration)}</code>"
+                 "#{tab} Id único: <code>#{audio.file_unique_id}</code>"\
+                 "#{tab} Duración: <code>#{duración_entera(audio.duration)}</code>"
 
         # Agrego datos opcionales
         if audio.performer
@@ -362,7 +425,8 @@ class Dankie
 
         # Agrego datos que seguro aparecen
         texto << "\n\n - Documento:"\
-                 "#{tab} ID: <code>#{doc.file_id}</code>"
+                 "#{tab} ID: <code>#{doc.file_id}</code>"\
+                 "#{tab} Id único: <code>#{doc.file_unique_id}</code>"
 
         # Agrego datos opcionales
         if doc.file_name
@@ -384,11 +448,23 @@ class Dankie
 
         # Agrego datos que seguro aparecen
         texto << "#{título}"\
-                 "#{tab} ID: <code>#{animación.file_id}</code>"
+                 "#{tab} ID: <code>#{animación.file_id}</code>"\
+                 "#{tab} Id único: <code>#{animación.file_unique_id}</code>"
 
+        agregar_datos_animación(animación, tab, texto)
+
+        # Agrego tamaño
+        tamaño = Filesize.from("#{animación.file_size} B").pretty
+        texto << "#{tab} Tamaño: <code>#{tamaño}</code>" if animación.file_size
+
+        # Agrego imagen si tiene
+        agregar_imagen(texto, animación.thumb, nivel, 'Miniatura') if animación.thumb
+    end
+
+    def agregar_datos_animación(animación, tab, texto)
         # Agrego datos opcionales
         if animación.respond_to?(:duration) && animación.duration
-            duración = duracion_entera(animación.duration)
+            duración = duración_entera(animación.duration)
             texto << "#{tab} Duración: <code>#{duración}</code>"
         end
 
@@ -404,17 +480,10 @@ class Dankie
             texto << "#{tab} Nombre: <code>"\
                      "#{html_parser(animación.file_name)}</code>"
         end
-        if animación.mime_type
-            texto << "#{tab} MIME: <code>"\
-                     "#{animación.mime_type}</code>"
-        end
 
-        # Agrego tamaño
-        tamaño = Filesize.from("#{animación.file_size} B").pretty
-        texto << "#{tab} Tamaño: <code>#{tamaño}</code>" if animación.file_size
+        return unless animación.mime_type
 
-        # Agrego imagen si tiene
-        agregar_imagen(texto, animación.thumb, nivel, 'Miniatura') if animación.thumb
+        texto << "#{tab} MIME: <code>#{animación.mime_type}</code>"
     end
 
     def agregar_juego(texto, juego, nivel, pasar_entidades)
@@ -430,8 +499,14 @@ class Dankie
         end
         # Si hay texto lo agrego
         if juego.text
-            agregar_texto(texto, "#{tab} Texto:", juego.text,
-                          juego.text_entities, nivel, pasar_entidades)
+            agregar_texto(
+                respuesta: texto,
+                título: "#{tab} Texto:",
+                texto_msj: juego.text,
+                entidades: juego.text_entities,
+                nivel: nivel,
+                pasar_entidades: pasar_entidades
+            )
         end
         # Las imágenes
         texto << "\n"
@@ -452,6 +527,7 @@ class Dankie
         # Agrego datos que siempre aparecen
         texto << "\n\n - Sticker:"
         texto << "#{tab} ID: <code>#{sticker.file_id}</code>"
+        texto << "#{tab} Id único: <code>#{sticker.file_unique_id}</code>"
         texto << "#{tab} Ancho: <code>#{sticker.width} px</code>"
         texto << "#{tab} Alto: <code>#{sticker.height} px</code>"
         texto << "#{tab} Animado: <code>#{sticker.is_animated ? 'Sí' : 'No'}</code>"
@@ -474,11 +550,12 @@ class Dankie
         tab = crear_tab(nivel)
 
         # Agrego datos que seguro aparecen
-        texto << "\n\n - Video:"\
-                 "#{tab} ID: <code>#{video.file_id}</code>"\
-                 "#{tab} Duración: <code>#{duracion_entera(video.duration)}</code>"\
-                 "#{tab} Ancho: <code>#{video.width} px</code>"\
-                 "#{tab} Alto: <code>#{video.height} px</code>"
+        texto << "\n\n - Video:"
+        texto << "#{tab} ID: <code>#{video.file_id}</code>"
+        texto << "#{tab} Id único: <code>#{video.file_unique_id}</code>"
+        texto << "#{tab} Duración: <code>#{duración_entera(video.duration)}</code>"
+        texto << "#{tab} Ancho: <code>#{video.width} px</code>"
+        texto << "#{tab} Alto: <code>#{video.height} px</code>"
 
         # Agrego datos opcionales
         texto << "#{tab} MIME: <code>#{video.mime_type}</code>" if video.mime_type
@@ -497,7 +574,8 @@ class Dankie
         # Agrego datos que seguro aparecen
         texto << "\n\n - Mensaje de voz:"\
                  "#{tab} ID: <code>#{msj_voz.file_id}</code>"\
-                 "#{tab} Duración: <code>#{duracion_entera(msj_voz.duration)}</code>"
+                 "#{tab} Id único: <code>#{msj_voz.file_unique_id}</code>"\
+                 "#{tab} Duración: <code>#{duración_entera(msj_voz.duration)}</code>"
 
         # Agrego datos opcionales
         texto << "#{tab} MIME: <code>#{msj_voz.mime_type}</code>" if msj_voz.mime_type
@@ -509,12 +587,13 @@ class Dankie
 
     def agregar_nota_video(texto, nota_video, nivel)
         tab = crear_tab(nivel)
-        duracion = duracion_entera(nota_video.duration)
+        duración = duración_entera(nota_video.duration)
 
         # Agrego datos que seguro aparecen
         texto << "\n\n - Nota de video:"\
                  "#{tab} ID: <code>#{nota_video.file_id}</code>"\
-                 "#{tab} Duración: <code>#{duracion}</code>"\
+                 "#{tab} Id único: <code>#{nota_video.file_unique_id}</code>"\
+                 "#{tab} Duración: <code>#{duración}</code>"\
                  "#{tab} Ancho: <code>#{nota_video.length} px</code>"\
                  "#{tab} Alto: <code>#{nota_video.length} px</code>"
 
@@ -543,10 +622,10 @@ class Dankie
             texto << "#{tab} ID usuario: <code>"\
                      "#{contacto.user_id}</code>"
         end
-        if contacto.vcard
-            texto << "#{tab} vCard: <code>"\
-                     "#{html_parser(contacto.vcard)}</code>"
-        end
+
+        return unless contacto.vcard
+
+        texto << "#{tab} vCard: <code>#{html_parser(contacto.vcard)}</code>"
     end
 
     def agregar_ubicación(texto, ubicación, título, nivel)
@@ -582,8 +661,8 @@ class Dankie
         agregar_ubicación(texto, venue.location, "#{tab} Ubicación:", nivel + 2)
     end
 
-    def agregar_encuesta(texto, encuesta, nivel, formato = true)
-        tab = crear_tab(nivel, formato)
+    def agregar_encuesta(texto, encuesta, nivel, pasar_entidades, formato: true)
+        tab = crear_tab(nivel, formato: formato)
 
         inic = formato ? '<code>' : ''
         fin = formato ? '</code>' : ''
@@ -593,15 +672,89 @@ class Dankie
 
         # Datos que seguro aparecen
         texto << "#{tab} ID:#{inic} #{encuesta.id}#{fin}"\
-                 "#{tab} Pregunta:#{inic} #{html_parser(encuesta.question)}#{fin}"\
-                 "#{tab} Cerrada:#{inic} #{encuesta.is_closed ? 'Sí' : 'No'}#{fin}"
+                 "#{tab} Pregunta:#{inic}#{html_parser(encuesta.question)}#{fin}"\
+                 "#{tab} Cerrada:#{inic}#{encuesta.is_closed ? 'Sí' : 'No'}#{fin}"\
+                 "#{tab} Cantidad de votos: #{inic}#{encuesta.total_voter_count}#{fin}"\
+                 "#{tab} Anónima:#{inic}#{encuesta.is_anonymous ? 'Sí' : 'No'}#{fin}"\
+                 "#{tab} Tipo: #{inic}#{encuesta.type}#{fin}"\
+                 "#{tab} Acepta respuesta múltiple: #{inic}"\
+                 "#{encuesta.allows_multiple_answers ? 'Sí' : 'No'}#{fin}"
+
+        if encuesta.correct_option_id
+            nro = encuesta.correct_option_id + 1
+            texto << "#{tab} Opción correcta: #{inic}#{nro}#{fin}"
+        end
+
+        if encuesta.respond_to? :explanation
+            agregar_texto(
+                respuesta: texto,
+                título: 'Explicación:',
+                texto_msj: encuesta.explanation,
+                entidades: encuesta.explanation_entities,
+                nivel: nivel,
+                pasar_entidades: pasar_entidades
+            )
+        end
+
+        agregar_extras_encuesta(
+            encuesta: encuesta,
+            tab: tab,
+            inic: inic,
+            fin: fin,
+            texto: texto,
+            nivel: nivel,
+            pasar_entidades: pasar_entidades,
+            formato: formato
+        )
+    end
+
+    def agregar_extras_encuesta(params)
+        agregar_valores_extras_encuesta(params)
+        encuesta = params[:encuesta]
+        texto = params[:texto]
+        nivel = params[:nivel]
+
+        if encuesta.respond_to?(:explanation_entities) && params[:pasar_entidades] &&
+           encuesta.explanation_entities.positive?
+
+            agregar_entidades(nivel, encuesta.explanation_entities, texto)
+        end
 
         # Agrego opciones de la encuesta
         return if encuesta.options.length.zero?
 
-        texto << "#{tab} Opciones:"
-        agregar_opciones(texto, encuesta.options, nivel + 1,
-                         encuesta.is_closed, formato)
+        texto << "#{params[:tab]} Opciones:"
+        agregar_opciones(
+            texto,
+            encuesta.options,
+            nivel + 1,
+            encuesta.is_closed,
+            formato: params[:formato]
+        )
+    end
+
+    def agregar_valores_extras_encuesta(params)
+        encuesta = params[:encuesta]
+        tab = params[:tab]
+        inic = params[:inic]
+        fin = params[:fin]
+        texto = params[:texto]
+
+        if encuesta.respond_to?(:explanation) && encuesta.explanation
+            exp = html_parser encuesta.explanation
+            texto << "#{tab} Explicación: #{inic}#{exp}#{fin}"
+        end
+
+        if encuesta.respond_to?(:open_period) && encuesta.open_period
+            texto << "#{tab} Tiempo activo desde la creación: #{inic}"\
+                     "#{duración_entera(encuesta.open_period)}#{fin}"
+        end
+
+        return unless encuesta.respond_to?(:close_date) && encuesta.close_date
+
+        fecha = Time.at(encuesta.close_date, in: @tz.utc_offset).to_datetime
+        fecha = fecha.strftime('%d/%m/%Y %T %Z')
+        texto << "#{tab} Fin de encuesta: #{inic}#{fecha}#{fin}"
     end
 
     def agregar_factura(texto, factura, nivel)
@@ -618,7 +771,7 @@ class Dankie
                  "#{tab} Código de Divisa: <code>#{factura.currency}</code>"
 
         total = factura.currency.to_s
-        total = total[0..-3] + ',' + total[-2..-1]
+        total = "#{total[0..-3]},#{total[-2..]}"
 
         texto << "#{tab} Total facturado: <code>#{total}</code>"
     end
@@ -633,7 +786,7 @@ class Dankie
         texto << "#{tab} Código de divisa: <code>#{pago_exitoso.currency}</code>"
 
         total = pago_exitoso.currency.to_s
-        total = total[0..-3] + ',' + total[-2..-1]
+        total = "#{total[0..-3]},#{total[-2..]}"
         texto << "#{tab} Total facturado: <code>#{total}</code>"
 
         factura = html_parser(pago_exitoso.invoice_payload)
@@ -652,6 +805,14 @@ class Dankie
 
         return unless pago_exitoso.order_info
 
+        agregar_info_orden(texto, tab, pago_exitoso)
+
+        return unless info_orden.shipping_address
+
+        agregar_shipping_address(texto, tab2, nivel, info_orden)
+    end
+
+    def agregar_info_orden(texto, tab, pago_exitoso)
         texto << "#{tab} Información de la orden:"
 
         tab2 = crear_tab(nivel + 1)
@@ -666,12 +827,12 @@ class Dankie
                      "<code>#{info_orden.phone_number}</code>"
         end
 
-        if info_orden.email
-            texto << "#{tab2} Email: <code>#{html_parser(info_orden.email)}</code>"
-        end
+        return unless info_orden.email
 
-        return unless info_orden.shipping_address
+        texto << "#{tab2} Email: <code>#{html_parser(info_orden.email)}</code>"
+    end
 
+    def agregar_shipping_address(texto, tab2, nivel, info_orden)
         texto << "#{tab2} Información del envío:"
 
         tab3 = crear_tab(nivel + 2)
@@ -749,33 +910,11 @@ class Dankie
     def agregar_eventos_chat(texto, msj, nivel, pasar_entidades)
         tab = crear_tab(nivel)
 
-        unless msj.new_chat_members.empty?
-            texto << "\n\n - Nuevos miembros:"
-
-            msj.new_chat_members.each_with_index do |miembro, índice|
-                título = "\n#{tab} Nuevo miembro #{índice + 1}:"
-                agregar_usuario(texto, miembro, título, nivel + 1)
-            end
-        end
-
-        if msj.left_chat_member
-            título = "\n\n - Miembro eliminado:"
-            agregar_usuario(texto, msj.left_chat_member, título, nivel)
-        end
+        agregar_eventos_usuario(msj, texto, tab, nivel)
+        agregar_eventos_foto_chat(msj, texto, nivel)
 
         if msj.new_chat_title
             texto << "\n\n - Nuevo título: #{html_parser(msj.new_chat_title)}"
-        end
-
-        unless msj.new_chat_photo.empty?
-            agregar_imágenes(texto,
-                             msj.new_chat_photo,
-                             "\n\n - Nueva imagen del chat:",
-                             nivel)
-        end
-
-        if msj.delete_chat_photo
-            texto << "\n\n - ¿Imagen del chat borrada?: <code>Sí</code>"
         end
 
         texto << "\n\n - ¿Grupo creado?: <code>Sí</code>" if msj.group_chat_created
@@ -796,10 +935,41 @@ class Dankie
                      "<code>#{msj.migrate_from_chat_id}</code>"
         end
 
-        if msj.pinned_message
-            texto << "\n\n\n - Mensaje anclado:\n\n<code>------------</code>\n"
-            agregar_datos_mensaje(msj.pinned_message, texto, pasar_entidades, nivel + 2)
+        return unless msj.pinned_message
+
+        texto << "\n\n\n - Mensaje anclado:\n\n<code>------------</code>\n"
+        agregar_datos_mensaje(msj.pinned_message, texto, pasar_entidades, nivel + 2)
+    end
+
+    def agregar_eventos_usuario(msj, texto, tab, nivel)
+        unless msj.new_chat_members.empty?
+            texto << "\n\n - Nuevos miembros:"
+
+            msj.new_chat_members.each_with_index do |miembro, índice|
+                título = "\n#{tab} Nuevo miembro #{índice + 1}:"
+                agregar_usuario(texto, miembro, título, nivel + 1)
+            end
         end
+
+        return unless msj.left_chat_member
+
+        título = "\n\n - Miembro eliminado:"
+        agregar_usuario(texto, msj.left_chat_member, título, nivel)
+    end
+
+    def agregar_eventos_foto_chat(msj, texto, nivel)
+        unless msj.new_chat_photo.empty?
+            agregar_imágenes(
+                texto,
+                msj.new_chat_photo,
+                "\n\n - Nueva imagen del chat:",
+                nivel
+            )
+        end
+
+        return unless msj.delete_chat_photo
+
+        texto << "\n\n - ¿Imagen del chat borrada?: <code>Sí</code>"
     end
 
     def agregar_imagen(texto, imagen, nivel, título = nil)
@@ -814,14 +984,15 @@ class Dankie
 
         # Agrego datos imagen
         texto << "#{tab} ID: <code>#{imagen.file_id}</code>"\
+                 "#{tab} Id único: <code>#{imagen.file_unique_id}</code>"\
                  "#{tab} Ancho: <code>#{imagen.width} px</code>"\
                  "#{tab} Alto: <code>#{imagen.height} px</code>"
 
         # Dato opcional
-        if imagen.file_size
-            tamaño = Filesize.from("#{imagen.file_size} B").pretty
-            texto << "#{tab} Tamaño: <code>#{tamaño}</code>"
-        end
+        return unless imagen.file_size
+
+        tamaño = Filesize.from("#{imagen.file_size} B").pretty
+        texto << "#{tab} Tamaño: <code>#{tamaño}</code>"
     end
 
     def agregar_máscara(texto, máscara, nivel)
@@ -835,7 +1006,7 @@ class Dankie
                  "#{tab2} Escala: <code>#{máscara.scale}</code>"
     end
 
-    def duracion_entera(seg_totales)
+    def duración_entera(seg_totales)
         # 3600 = 60*60
         horas = seg_totales / 3600
         minutos = (seg_totales / 60) % 60
@@ -847,9 +1018,9 @@ class Dankie
         end.join(':')
     end
 
-    def agregar_opciones(texto, opciones, nivel, terminada, formato = true)
-        tab = crear_tab(nivel, formato)
-        tab2 = crear_tab(nivel + 1, formato)
+    def agregar_opciones(texto, opciones, nivel, terminada, formato: true)
+        tab = crear_tab(nivel, formato: formato)
+        tab2 = crear_tab(nivel + 1, formato: formato)
 
         inic = formato ? '<code>' : ''
         fin = formato ? '</code>' : ''
@@ -878,6 +1049,19 @@ class Dankie
         texto << "#{tab} Email: <code>#{html_parser(elem.email)}</code>" if elem.email
         texto << "#{tab} Hash: <code>#{elem.hash}</code>"
 
+        agregar_partes_elemento
+
+        return if elem.translation.empty?
+
+        texto << "#{tab} Traducciones:"
+        elem.translation.each_with_index do |archivo, índice|
+            texto << "#{tab2} Traducción #{índice + 1}:"
+            agregar_archivo_pasaporte(texto, archivo, nivel + 2)
+        end
+        texto << "\n"
+    end
+
+    def agregar_partes_elemento(elem, texto, tab, tab2, nivel)
         unless elem.files.empty?
             texto << "#{tab} Archivos:"
             elem.files.each_with_index do |archivo, índice|
@@ -899,20 +1083,11 @@ class Dankie
             texto << "\n"
         end
 
-        if elem.selfie
-            texto << "#{tab} Selfie:"
-            agregar_archivo_pasaporte(texto, elem.selfie, nivel + 1)
-            texto << "\n"
-        end
+        return unless elem.selfie
 
-        unless elem.translation.empty?
-            texto << "#{tab} Traducciones:"
-            elem.translation.each_with_index do |archivo, índice|
-                texto << "#{tab2} Traducción #{índice + 1}:"
-                agregar_archivo_pasaporte(texto, archivo, nivel + 2)
-            end
-            texto << "\n"
-        end
+        texto << "#{tab} Selfie:"
+        agregar_archivo_pasaporte(texto, elem.selfie, nivel + 1)
+        texto << "\n"
     end
 
     def agregar_archivo_pasaporte(texto, archivo, nivel)
@@ -922,23 +1097,37 @@ class Dankie
         fecha = Time.at(archivo.file_date, in: @tz.utc_offset).to_datetime
 
         texto << "#{tab} ID archivo: <code>#{archivo.file_id}</code>"\
-                 "#{tab} Tamaño: <code>#{tamaño}</code>"\
-                 "#{tab} Fecha subida: <code>#{fecha.strftime('%d/%m/%Y %T %Z')}</code>"
+                 "#{tab} Id único: <code>#{archivo.file_unique_id}</code>"
+        "#{tab} Tamaño: <code>#{tamaño}</code>"\
+        "#{tab} Fecha subida: <code>#{fecha.strftime('%d/%m/%Y %T %Z')}</code>"
     end
 
     def agregar_botón(texto, botón, nivel)
         tab = crear_tab(nivel)
         texto << "#{tab} Texto: <code>#{html_parser(botón['text'])}</code>"
 
-        if botón.key?('url') && !botón['url'].nil?
+        if botón.key?('url') && botón['url']
             texto << "#{tab} URL: <code>#{html_parser(botón['url'])}</code>"
         end
 
-        if botón.key?('callback_data') && !botón['callback_data'].nil?
+        if botón.key?('callback_data') && botón['callback_data']
             texto << "#{tab} Data: <code>#{html_parser(botón['callback_data'])}</code>"
         end
 
-        if botón.key?('switch_inline_query') && !botón['switch_inline_query'].nil?
+        if botón.key?('pay') && botón['pay']
+            texto << "#{tab} Pago: <code>#{botón['pay'] ? 'Sí' : 'No'}</code>"
+        end
+
+        if botón.key?('callback_game') && botón['callback_game']
+            texto << "#{tab} Juego: <code>#{html_parser(botón['callback_game'])}</code>"
+        end
+
+        agregar_switch_inline_botón(botón, tab, texto)
+        agregar_url_botón(botón, nivel, tab, texto)
+    end
+
+    def agregar_switch_inline_botón(botón, tab, texto)
+        if botón.key?('switch_inline_query') && botón['switch_inline_query']
             string = if botón['switch_inline_query'].empty?
                          '<b>STRING VACÍO</b>'
                      else
@@ -948,52 +1137,45 @@ class Dankie
             texto << "#{tab} Cambio a query inline: #{string}"
         end
 
-        if botón.key?('switch_inline_query_current_chat') &&
-           !botón['switch_inline_query_current_chat'].nil?
+        return unless botón.key?('switch_inline_query_current_chat') &&
+                      botón['switch_inline_query_current_chat']
 
-            string = botón['switch_inline_query_current_chat']
-            string = if string.empty?
-                         '<b>STRING VACÍO</b>'
-                     else
-                         "<code>#{html_parser(string)}</code>"
-                     end
+        string = botón['switch_inline_query_current_chat']
+        string = if string.empty?
+                     '<b>STRING VACÍO</b>'
+                 else
+                     "<code>#{html_parser(string)}</code>"
+                 end
 
-            texto << "#{tab} Cambio a query inline en el chat actual: #{string}"
-        end
-
-        if botón.key?('pay') && !botón['pay'].nil?
-            texto << "#{tab} Pago: <code>#{botón['pay'] ? 'Sí' : 'No'}</code>"
-        end
-
-        if botón.key?('callback_game') && !botón['callback_game'].nil?
-            texto << "#{tab} Juego: <code>#{html_parser(botón['callback_game'])}</code>"
-        end
-
-        if botón.key?('login_url') && !botón['login_url'].nil?
-            tab2 = crear_tab(nivel + 1)
-            login = botón['login_url']
-
-            texto << "#{tab} URL login:"
-
-            texto << "#{tab2} URL: <code>#{html_parser(login.url)}</code>"
-
-            if login.forward_text
-                reenvío = html_parser(login.forward_text)
-                texto << "#{tab2} Texto reenviado: <code>#{reenvío}</code>"
-            end
-
-            if login.bot_username
-                texto << "#{tab2} Alias del bot: <code>#{login.bot_username}</code>"
-            end
-
-            unless login.request_write_access.nil?
-                texto << "#{tab2} ¿Puedo escribirle al usuario?: "\
-                            "<code>#{login.request_write_access ? 'Sí' : 'No'}</code>"
-            end
-        end
+        texto << "#{tab} Cambio a query inline en el chat actual: #{string}"
     end
 
-    def crear_tab(profundidad, formato = true)
+    def agregar_url_botón(botón, nivel, tab, texto)
+        return unless botón.key?('login_url') && botón['login_url']
+
+        tab2 = crear_tab(nivel + 1)
+        login = botón['login_url']
+
+        texto << "#{tab} URL login:"
+
+        texto << "#{tab2} URL: <code>#{html_parser(login.url)}</code>"
+
+        if login.forward_text
+            reenvío = html_parser(login.forward_text)
+            texto << "#{tab2} Texto reenviado: <code>#{reenvío}</code>"
+        end
+
+        if login.bot_username
+            texto << "#{tab2} Alias del bot: <code>#{login.bot_username}</code>"
+        end
+
+        return if login.request_write_access.nil?
+
+        texto << "#{tab2} ¿Puedo escribirle al usuario?: "\
+                 "<code>#{login.request_write_access ? 'Sí' : 'No'}</code>"
+    end
+
+    def crear_tab(profundidad, formato: true)
         tab = "\n"
         tab << '<code>' if formato
 

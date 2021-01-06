@@ -20,51 +20,66 @@ class Dankie
                              text: "Muy largo el texto, #{TROESMAS.sample}")
         else
             # Busco en google
-            resultados = @img.buscar_imagen args
-            case resultados
+            # resultados = @img.buscar_imagen args
+            analizar_resultados((@img.buscar_imagen args), args, msj)
+        end
+    end
+
+    private
+
+    def analizar_resultados(resultados, args, msj)
+        case resultados
             # Caso bueno
-            when Array
-                resultados.shuffle!.filter! { |resultado| resultado.type == :image }
+        when Array
+            resultados.shuffle!.filter! { |resultado| resultado.type == :image }
+            responder_resultados_array(resultados, args, msj)
 
-                resultados.each do |enlace|
-                    loggeo = "Búsqueda: #{args}\nImagen: #{enlace.link}"
-                    @logger.info(loggeo, al_canal: false)
+        # Casos malos
+        when :sin_resultados
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                reply_to_message_id: msj.message_id,
+                text: "No pude encontrar nada #{TROESMAS.sample}, "\
+                      'probá con otra búsqueda'
+            )
+        when :límite_diario
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                reply_to_message_id: msj.message_id,
+                text: 'No más imágenes por hoy uwu'
+            )
+        when :error
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                reply_to_message_id: msj.message_id,
+                text: 'Hubo un error re turbina :c'
+            )
+        end
+    end
 
-                    begin
-                        @tg.send_photo(chat_id: msj.chat.id, photo: enlace.link)
-                        return
-                    rescue Telegram::Bot::Exceptions::ResponseError => e
-                        e = e.to_s
+    def responder_resultados_array(resultados, args, msj)
+        resultados.each do |enlace|
+            loggeo = "Búsqueda: #{args}\nImagen: #{enlace.link}"
+            @logger.info(loggeo, al_canal: false)
 
-                        log = if e.include?('Bad Request: failed to get HTTP URL content')
-                                  "Error al querer mandar este link: #{enlace.link}"
-                              else
-                                  "Error desconocido: #{e}"
-                              end
-                        @logger.info(log, al_canal: false)
-                    end
-                end
+            begin
+                return @tg.send_photo(chat_id: msj.chat.id, photo: enlace.link)
+            rescue Telegram::Bot::Exceptions::ResponseError => e
+                e = e.to_s
 
-                @tg.send_message(chat_id: msj.chat.id,
-                                 reply_to_message_id: msj.message_id,
-                                 text: 'No pude encontrar imágenes '\
-                                       "de eso, #{TROESMAS.sample}")
-
-            # Casos malos
-            when :sin_resultados
-                @tg.send_message(chat_id: msj.chat.id,
-                                 reply_to_message_id: msj.message_id,
-                                 text: "No pude encontrar nada #{TROESMAS.sample}, "\
-                                     'probá con otra búsqueda')
-            when :límite_diario
-                @tg.send_message(chat_id: msj.chat.id,
-                                 reply_to_message_id: msj.message_id,
-                                 text: 'No más imágenes por hoy uwu')
-            when :error
-                @tg.send_message(chat_id: msj.chat.id,
-                                 reply_to_message_id: msj.message_id,
-                                 text: 'Hubo un error re turbina :c')
+                log = if e.include?('failed to get HTTP URL content')
+                          "Error al querer mandar este link: #{enlace.link}"
+                      else
+                          "Error desconocido: #{e}"
+                      end
+                @logger.info(log, al_canal: false)
             end
         end
+
+        @tg.send_message(
+            chat_id: msj.chat.id,
+            reply_to_message_id: msj.message_id,
+            text: "No pude encontrar imágenes de eso, #{TROESMAS.sample}"
+        )
     end
 end

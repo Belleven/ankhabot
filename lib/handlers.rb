@@ -17,23 +17,30 @@ module Handler
             return unless msj.is_a? Telegram::Bot::Types::Message
             return if !@permitir_editados && msj.edit_date
             return if @ignorar_comandos &&
-                      Dankie.comandos.include?(bot.get_command(msj))
+                      Dankie.comandos.include?(bot.obtener_comando(msj))
             return unless @chats_permitidos.include?(msj.chat.type)
 
+            verificar_tipo msj
+        end
+
+        def ejecutar(bot, msj)
+            bot.public_send(@callback, msj)
+        end
+
+        private
+
+        def verificar_tipo(msj)
             @tipos.each do |tipo|
                 tipo_msj = msj.send tipo
                 return true if tipo_msj && !(tipo_msj.is_a?(Array) && tipo_msj.empty?)
             end
             false
         end
-
-        def ejecutar(bot, msj)
-            bot.public_send(@callback, msj)
-        end
     end
 
     class Comando
         attr_reader :cmd, :descripción
+
         def initialize(cmd, callback, args = {})
             @cmd = cmd
             @callback = callback
@@ -45,7 +52,7 @@ module Handler
                                 %w[private group supergroup]
         end
 
-        def ejecutar(bot, msj)
+        def ejecutar(bot, msj, datos_msj)
             return unless msj.is_a? Telegram::Bot::Types::Message
             return if !@permitir_editados && msj.edit_date
 
@@ -54,23 +61,20 @@ module Handler
                 return
             end
 
-            return if @cmd != bot.get_command(msj)
+            bot.logger.info "Comando \"#{@cmd}\" en #{msj.chat.id}"
+            params = [@callback, msj]
+            params << datos_msj[:params] if @permitir_params
 
-            bot.logger.info "CommandHandler: comando \"#{@cmd}\" en #{msj.chat.id}"
-
-            if @permitir_params
-                bot.public_send(@callback, msj, bot.get_command_params(msj))
-            else
-                bot.public_send(@callback, msj)
-            end
+            bot.public_send(*params)
         end
     end
 
     class CallbackQuery
+        attr_reader :clave
+
         def initialize(callback, clave, _args = {})
             @callback = callback
             @clave = clave
-            @cache = {}
         end
 
         def verificar(_bot, callback)
@@ -81,6 +85,7 @@ module Handler
         def ejecutar(bot, callback)
             bot.logger.info "CallbackQueryHandler: callback #{callback.data} "\
                             "en #{callback.message.chat.id}"
+
             bot.public_send(@callback, callback)
         end
     end
@@ -126,6 +131,20 @@ module Handler
 
         def ejecutar(bot, msj)
             bot.public_send(@callback, msj)
+        end
+    end
+
+    class InlineQuery
+        def initialize(callback, _args)
+            @callback = callback
+        end
+
+        def verificar(_bot, msj)
+            msj.is_a? Telegram::Bot::Types::InlineQuery
+        end
+
+        def ejecutar(bot, query)
+            bot.public_send(@callback, query)
         end
     end
 end

@@ -6,7 +6,7 @@ class Dankie
     def rekt(msj)
         texto = "☐ Not rekt\n"
 
-        3.times { texto << REKT.sample + "\n" }
+        3.times { texto << "#{REKT.sample}\n" }
 
         @tg.send_message(chat_id: msj.chat.id,
                          text: texto,

@@ -1,16 +1,16 @@
 require 'net/http'
 require 'json'
-require_relative 'links.rb'
+require_relative 'links'
 
 class ImageSearcher
-    def initialize(key, cx, gl, logger)
+    def initialize(key, api_cx, api_gl, logger)
         @key = key
-        @cx = cx
-        @gl = gl
+        @cx = api_cx
+        @gl = api_gl
         @logger = logger
     end
 
-    def buscar_imagen(búsqueda, params_búsqueda: nil)
+    def buscar_imagen(búsqueda)
         params_uri = [['q', búsqueda], ['key', @key], ['cx', @cx],
                       ['gl', @gl], %w[searchType image]]
         uri_codificado = URI.encode_www_form(params_uri)
@@ -21,21 +21,26 @@ class ImageSearcher
         respuesta = Net::HTTP.get_response URI.parse(dirección)
         resultado = JSON.parse(respuesta.body)
 
-        # Cuantas imágenes fueron enviadas por día
-        # ejemplo: googleapi-2020-12-25
-        Stats.incr('googleapi-' + Time.now.strftime("%Y-%m-%d"))
-
         if resultado['error']
-            if ['dailyLimitExceeded', 'rateLimitExceeded'].include? resultado.dig('error', 'errors', 0, 'reason')
+            if %w[dailyLimitExceeded
+                  rateLimitExceeded].include? resultado.dig('error', 'errors', 0,
+                                                            'reason')
                 @logger.info('Alcancé el límite diario de imágenes')
+                incrementar_exceso_api
+
                 return :límite_diario
             else
+                incrementar_uso_api
                 @logger.error resultado['error']
                 return :error
             end
-        elsif resultado['searchInformation']['totalResults'] == '0'
+        end
+
+        incrementar_uso_api
+
+        if resultado['searchInformation']['totalResults'] == '0'
             @logger.info('Sin resultados en la búsqueda')
-            return :sin_resultados
+            :sin_resultados
         else
 
             resultado['items'].map { |i| Link.new i['link'] }
@@ -50,5 +55,18 @@ class ImageSearcher
     rescue JSON::ParserError => e
         @logger.error(e)
         :error
+    end
+
+    private
+
+    def incrementar_uso_api
+        # Cuantas imágenes fueron enviadas por hora
+        # ejemplo: googleapi:1598302800
+        Estadísticas::Contador.incr('googleapi', hora: Time.now.to_i, intervalo: 600)
+    end
+
+    def incrementar_exceso_api
+        Estadísticas::Contador.incr('googleapi:excedida', hora: Time.now.to_i,
+                                                          intervalo: 600)
     end
 end

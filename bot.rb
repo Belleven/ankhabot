@@ -1,13 +1,30 @@
 # Datos necesarios para iniciar
 require 'yaml'
-# Esto prepara a Dankie
+
+# pongo Dir en la raíz del projecto
+Dir.chdir __dir__
+
 require_relative 'lib/dankie'
-# Esto carga todos los plugins del bot
-Dir[File.dirname(__FILE__) + '/base/*.rb'].each { |file| require_relative file }
-Dir[File.dirname(__FILE__) + '/módulos/*.rb'].each { |file| require_relative file }
 
-config = YAML.load_file(File.join(__dir__, 'config.yml'))
-config.transform_keys!(&:to_sym)
+# Esto carga todos los módulos del bot
+Dir['base/*.rb'].each { |file| require_relative File.absolute_path(file) }
+Dir['módulos/*.rb'].each { |file| require_relative File.absolute_path(file) }
 
-dankie = Dankie.new config
+# Busco el archivo de configuración
+rutas_posibles = [File.join(Dir.pwd, 'config.yml'),
+                  File.join(Dir.home, '.config/dankie.yml'),
+                  '/etc/dankie.yml']
+
+config = nil
+rutas_posibles.each do |archivo|
+    next unless File.exist? archivo
+
+    config = YAML.load_file(archivo)
+    config.transform_keys!(&:to_sym)
+    break
+end
+
+raise 'No se puede iniciar el bot, falta el archivo de configuración' unless config
+
+dankie = Dankie.new(config)
 dankie.run

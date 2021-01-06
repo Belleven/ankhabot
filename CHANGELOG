@@ -1,119 +1,151 @@
-1.2
-    -implementación básica de estadísticas de uso (sin visualización)
-    -agregado de configuración de grupos
-        -los triggers globales pueden desactivarse en el grupo
-        -el comando x2 puede desactivarse en el grupo
-1.1.5.2
-    -cambiado mensaje de error incorrecto en /img
+Versión 1.3
+Añadido:
+-agregados nuevos campos en los objetos de /metadatos
+-comando borrardescripcion
+-comando calcular
+-comando changelogs
+-comando de anuncios para todos los chats
+-comando debug para devs
+-comando roll
+-comando ud
+-comando xkcd
+-estadísticas de uso del bot graficadas con /estadísticas_bot
+-rediseñado cacheo de nombres de usuario:
+    -los guarda en listas con la fecha de modificación
+    -comando historial_nombres para doxxear gente
+    -comando purgar_historial_nombres para vaciar datos propios
+    -IMPORTANTÍSIMO eliminar claves "nombre:*" y "usuario:*" en la base de datos
+-sistema de reputación
+Modificaciones y arreglos:
+-ahora se aceptan todo tipo de updates
+-ahora los handlers pueden tomar la update original
+-cambio en el bucle principal para poder cerrar el bot más rápido y no esperar 40 años a que termine de revisar si hay updates
+-cambio para que se pueda pasar un flag al iniciar el bot para que ignore todas las updates atrasadas (menos una)
+-Chiro y Fran ascendidos a devs
+-correcciones del rubocop: no hay más ofensas
+-mejora en la captura de excepciones
+-MUCHAS correcciones menores
+-optimización en handlers
+-refactorización y optimización de comandos de moderación y modificación del chat
+-sacados inactivos de devs
 
-1.1.5.1
-    -sacado log de debbugging horrible que rompía todo
+Versión 1.2
+-agregado de configuración de grupos
+-implementación básica de estadísticas de uso (sin visualización)
+-los triggers globales pueden desactivarse en el grupo
+-el comando x2 puede desactivarse en el grupo
 
-1.1.5
-    -/metadatos terminado por fin
-    -rediseñado método obtener_enlace_usuario
+Versión 1.1.5.2
+-cambiado mensaje de error incorrecto en /img
 
-1.1.4
-    -solucionada regresión en x2
-    -arreglado bug con respuestas de la api
+Versión 1.1.5.1
+-sacado log de debbugging horrible que rompía todo
 
-1.1.3
-    -santi implementado
-    -arreglados bugs
-    -correcciones ortográficas
+Versión 1.1.5
+-/metadatos terminado por fin
+-rediseñado método obtener_enlace_usuario
 
-1.1.2
-    -ya no aparecen notificaciones para usuarios con alias cuando el bot los menciona
-    -ahora evita que se trate de borrar dos veces el mismo trigger
-    -arreglada redacción en mensajes de logging al agregar y borrar triggers globales
-    -arreglada excepción que saltaba cuando los grupos migraban a supergrupos 
-    -arreglado bug que registraba nombres de cuentas eliminadas
-    -arreglado bug en /grita -perocontodo que tomaba mal los parámetros
+Versión 1.1.4
+-arreglado bug con respuestas de la api
+-solucionada regresión en x2
 
-1.1.1
-    -arreglado bug de notificaciones con /nisman
+Versión 1.1.3
+-arreglados bugs
+-correcciones ortográficas
+-santi implementado
 
-1.1.0
-    -Soporte para doujinshis de nhentai
-    -listas editables ahora soportan varios tipos de media
-    -ahora el módulo de telegram puede usar el DankieLogger
-    -setglobal y deltrigger ahora mandan los mensajes para aceptar/rechazar de forma más bonita
-    -last.fm rediseñado
-    -función obtener_enlace_usuario rediseñada, cachea nombres
-    -/nisman ahora manda listas
-    -/apodos ahora manda listas
-    -solo se envía un mismo trigger por grupo cada 30 segundos como mínimo
-    -ajustados valores del antiflood
-    -antiflood en la pole
-    -/grita -perocontodo corregido
-    -corregidos errores menores
-    -corregido bugazo en /ban
-    -agregados varios manejos de excepciones de telegram
-    -/chats iniciado + otros comandos similares
-     
-1.0.8
-    -corregido bug en ruleta
+Versión 1.1.2
+-ya no aparecen notificaciones para usuarios con alias cuando el bot los menciona
+-ahora evita que se trate de borrar dos veces el mismo trigger
+-arreglada redacción en mensajes de logging al agregar y borrar triggers globales
+-arreglada excepción que saltaba cuando los grupos migraban a supergrupos 
+-arreglado bug que registraba nombres de cuentas eliminadas
+-arreglado bug en /grita -perocontodo que tomaba mal los parámetros
 
-1.0.7
-    -setglobal responde al mensaje que llamo al comando al ser aceptado o rechazado
-    -arreglado bug al apretar botón para borrar un trigger global
-    -función para listar elementos que serán mostrados en un arreglo terminada
-    -arreglado bug en /img que no permitía búsquedas con caracteres que no fueran ascii
-    -Ruleta nisman rediseñada
+Versión 1.1.1
+-arreglado bug de notificaciones con /nisman
 
-1.0.6
-    -/triggers ahora hace páginas correctamente
+Versión 1.1.0
+-Soporte para doujinshis de nhentai
+-listas editables ahora soportan varios tipos de media
+-ahora el módulo de telegram puede usar el DankieLogger
+-setglobal y deltrigger ahora mandan los mensajes para aceptar/rechazar de forma más bonita
+-last.fm rediseñado
+-función obtener_enlace_usuario rediseñada, cachea nombres
+-/nisman ahora manda listas
+-/apodos ahora manda listas
+-solo se envía un mismo trigger por grupo cada 30 segundos como mínimo
+-ajustados valores del antiflood
+-antiflood en la pole
+-/grita -perocontodo corregido
+-corregidos errores menores
+-corregido bugazo en /ban
+-agregados varios manejos de excepciones de telegram
+-/chats iniciado + otros comandos similares
 
-1.0.5
-    -metadatos ahora toma correctamente el argumento "-entidades" por un dev
-    -recarga ahora responde "1 bala cargada" en vez de "1 balas cargadas"
-    -comando triggers los devuelve en orden lexicográfico
-    -callback de set/del trigger valida que no sea presionada muchas veces
+Versión 1.0.8
+-corregido bug en ruleta
 
-1.0.4
-    -enlace_usuario_id toma cuentas eliminadas
+Versión 1.0.7
+-setglobal responde al mensaje que llamo al comando al ser aceptado o rechazado
+-arreglado bug al apretar botón para borrar un trigger global
+-función para listar elementos que serán mostrados en un arreglo terminada
+-arreglado bug en /img que no permitía búsquedas con caracteres que no fueran ascii
+-Ruleta nisman rediseñada
 
-1.0.3
-    -setglobal funciona correctamente
+Versión 1.0.6
+-/triggers ahora hace páginas correctamente
 
-1.0.2
-    -removido raise de prueba
-    -hotfix mal hecho para que ande el !img
+Versión 1.0.5
+-metadatos ahora toma correctamente el argumento "-entidades" por un dev
+-recarga ahora responde "1 bala cargada" en vez de "1 balas cargadas"
+-comando triggers los devuelve en orden lexicográfico
+-callback de set/del trigger valida que no sea presionada muchas veces
 
-1.0.1
-    -cambiados valores de prueba
+Versión 1.0.4
+-enlace_usuario_id toma cuentas eliminadas
 
-1.0.0
-    -reestructuración del código
-        -usa handlers y un dispatcher
-        -parseo de comandos rediseñado
-        -logging a un canal de telegram
-        -se pueden armar botoneras de páginas de texto
-        -lista de flood para comandos flooderos
-    -pole
-    -triggers
-    -blacklist de usuarios
-    -comando /trinsfirmir
-    -comando /rekt
-    -comando /help
-    -comando /img
-    -comando /sub
-    -comando /escuchando y otras cosas de last.fm
-    -comandos /callefuegos y /deusvult
-    -comando /cp
-    -comandos /di y /grita
-    -comandos /apodos y /apodar
-    -varios comandos de moderación
-    -comando /ultimavista
-    -función x2
-    -ruleta nisman
-    -saluda a miembros nuevos
-    -corrección de errores
-    -mensajes de cualquier longitud
-    -estilo de código agregado
+Versión 1.0.3
+-setglobal funciona correctamente
 
-0.2.0
-    -reestructurado el bot
-    -método para registrar un comando 
-    -comando /ping devuelve los ms que tardó
-    -comando /help lista los comandos registrados
+Versión 1.0.2
+-removido raise de prueba
+-hotfix mal hecho para que ande el !img
+
+Versión 1.0.1
+-cambiados valores de prueba
+
+Versión 1.0.0
+-reestructuración del código
+    -usa handlers y un dispatcher
+    -parseo de comandos rediseñado
+    -logging a un canal de telegram
+    -se pueden armar botoneras de páginas de texto
+    -lista de flood para comandos flooderos
+-pole
+-triggers
+-blacklist de usuarios
+-comando /trinsfirmir
+-comando /rekt
+-comando /help
+-comando /img
+-comando /sub
+-comando /escuchando y otras cosas de last.fm
+-comandos /callefuegos y /deusvult
+-comando /cp
+-comandos /di y /grita
+-comandos /apodos y /apodar
+-varios comandos de moderación
+-comando /ultimavista
+-función x2
+-ruleta nisman
+-saluda a miembros nuevos
+-corrección de errores
+-mensajes de cualquier longitud
+-estilo de código agregado
+
+Versión 0.2.0
+-reestructurado el bot
+-método para registrar un comando 
+-comando /ping devuelve los ms que tardó
+-comando /help lista los comandos registrados
