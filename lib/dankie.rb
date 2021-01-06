@@ -332,6 +332,7 @@ class Dankie
 
     def actualización_de_usuario_bloqueado?(msj)
         return false unless msj&.from&.id
+
         (msj.respond_to?(:from) &&
         @redis.sismember('lista_negra:global', msj.from.id.to_s)) ||
             (msj.respond_to?(:chat) &&
