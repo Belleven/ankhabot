@@ -33,6 +33,8 @@ class Dankie
             dolar = paginas.xpath('//h4/a').collect { |node| node.text.strip }
 
             # Cuento su valor
+            # Los valores de compra y venta vienen juntos, por lo cual los
+            # que separar despues
             valor = paginas.xpath("//div[contains(@class,'row')]/
                 div[contains(@class, 'col-6 text-center')]").collect do |node|
                 node.text.strip
