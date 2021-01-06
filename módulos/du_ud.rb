@@ -1,4 +1,6 @@
-require 'urbandict'
+require 'json'
+require 'httpclient'
+
 class Dankie
     add_handler Handler::Comando.new(:du, :diccionario_urbano,
                                      descripción:
@@ -13,20 +15,14 @@ class Dankie
     add_handler Handler::Comando.new(:urban, :diccionario_urbano,
                                      permitir_params: true,
                                      disable_notification: true)
+
     def diccionario_urbano(msj, params)
         # Caso input vacía.
         return respuesta(msj.chat.id, 'Tirame algo') if params.nil?
 
-        # Filtro en caso que haya caracteres no alfanumericos
-        params.gsub!(/\W+/, '')
-
-        if params.empty?
-            return respuesta(msj.chat.id, 'Tu busqueda no es válida,'\
-                    ' tiene que tener al menos un caracter o un número')
-        end
-
         # Tomo el mensaje de entrada y busco una definición.
-        búsqueda = UrbanDictionary.define(params)
+        diccionario = DiccionarioUrbano.new
+        búsqueda = diccionario.búsqueda(params)
         # Caso búsqueda sin resultados, ya sea porque no existe la
         # definición, o porque el UD está caído, hasta donde pude
         # comprobar, si el UD está caído, búsqueda debería
@@ -66,6 +62,66 @@ class Dankie
             "<i><b>#{palabra}</b></i>\n\n#{definición}\n\n<i>"\
             "#{ejemplo}</i>\n\n#{arrivotos}|" \
             "#{bajivotos}|<a href=\"#{dirección}\">link</a>"
+        end
+    end
+
+    class DiccionarioUrbano
+        URL = 'http://api.urbandictionary.com/v0/define'.freeze
+        def inicialize; end
+
+        def búsqueda(palabra)
+            params = { term: palabra }
+
+            @cliente = comprobar_estado_cliente
+            respuesta = JSON.parse(@cliente.get(URI.parse(URL), params).body)
+            procesar_respuesta(respuesta)
+        end
+
+        private
+
+        def procesar_respuesta(respuesta)
+            res = []
+            lista = respuesta['list']
+            return res if lista.nil?
+
+            lista.each do |entrada|
+                res << Entrada.new(entrada)
+            end
+            res
+        end
+
+        def comprobar_estado_cliente
+            @cliente = HTTPClient.new if @cliente.nil?
+            @cliente
+        end
+    end
+
+    class Entrada
+        attr_reader :id, :word, :author, :permalink, :definition, :example, :upvotes,
+                    :downvotes
+
+        def initialize(opts = {})
+            @id = opts['defid'] || opts[:defid]
+            @word = opts['word'] || opts[:word]
+            @author = opts['author'] || opts[:author]
+            @permalink = opts['permalink'] || opts[:permalink]
+            @definition = opts['definition'] || opts[:definition]
+            @example = opts['example'] || opts[:example]
+            @upvotes = opts['thumbs_up'] || opts[:thumbs_up]
+            @downvotes = opts['thumbs_down'] || opts[:thumbs_down]
+        end
+
+        def to_h
+            {
+                id: @id,
+                word: @word,
+                author: @author,
+                permalink: @permalink,
+                definition: @definition,
+                example: @example,
+                upvotes: @upvotes,
+                downvotes: @downvotes
+            }
         end
     end
 end
