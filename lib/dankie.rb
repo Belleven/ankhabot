@@ -30,7 +30,6 @@ class Dankie
     DEVS = Set.new(
         [
             240_524_686, # Luke
-            98_631_116,  # M
             812_107_125, # Santi
             267_832_653, # Galerazo
             257_266_743, # Fran
