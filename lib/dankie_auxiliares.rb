@@ -102,6 +102,15 @@ class Dankie
         true
     end
 
+    def dev_responde_callback(callback)
+        unless DEVS.member? callback.from.id
+            @tg.answer_callback_query(callback_query_id: callback.id,
+                                      text: 'Solo devs pueden usar esto')
+            return false
+        end
+        true
+    end
+
     def es_admin(usuario_id, chat_id, mensaje_id, text = nil, _id = nil)
         member = @tg.get_chat_member(chat_id: chat_id, user_id: usuario_id)
         member = Telegram::Bot::Types::ChatMember.new(member['result'])
@@ -432,11 +441,10 @@ class Dankie
                 id_borrar = @redis.lpop("spam:#{id_chat}").to_i
                 borrado << @tg.delete_message(chat_id: id_chat, message_id: id_borrar)
             rescue Telegram::Bot::Exceptions::ResponseError => e
-                canal = e.message !~ /message can't be deleted/
                 @logger.warn('No pude borrar un mensaje. '\
                              "mensaje: #{id_borrar}, chat: #{id_chat}, "\
                              "error: #{e.message}",
-                             al_canal: canal)
+                             al_canal: false)
             end
         end
         borrado

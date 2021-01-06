@@ -39,12 +39,16 @@ class Dankie
     def callback_confirmar_anuncio_changelog(callback)
         match = callback.data.match(/anunciar_cambio:(?<acción>.+)/)
 
+        return unless dev_responde_callback(callback)
+
         # En caso que se acepte, se procede a anunciar a todos
         # los grupos el cambio de versión
         if match[:acción] == 'confirmar'
             anunciar(callback.from, callback.message.chat.id,
                      conseguir_changelog_version_actual)
             resultado = 'aceptado'
+            # Actualizo la version de redis
+            @redis.set('versión', VERSIÓN)
         else
             resultado = 'rechazado'
         end
@@ -73,9 +77,6 @@ class Dankie
                 callback_data: 'anunciar_cambio:rechazar'
             )
         ]]
-
-        # Actualizo la version de redis
-        @redis.set('versión', VERSIÓN)
 
         # Mando el tablero para aceptar o rechazarlo
         opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new inline_keyboard: arr

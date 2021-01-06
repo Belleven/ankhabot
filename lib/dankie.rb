@@ -191,8 +191,8 @@ class Dankie
 
         ultima_version_informada = version_redis
         if ultima_version_informada.nil? || ultima_version_informada != VERSIÓN
-            confirmar_anuncio_changelog(ultima_version_informada, VERSIÓN)
             @logger.info 'Se ha detectado un cambio de versión para informar'
+            confirmar_anuncio_changelog(VERSIÓN, ultima_version_informada)
         else
             @logger.info '¡Versión actualizada!'
         end
