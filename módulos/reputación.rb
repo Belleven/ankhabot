@@ -50,6 +50,12 @@ class Dankie
         descripción: 'Elimino un disparador de reputación del grupo'
     )
 
+    add_handler Handler::EventoDeChat.new(
+        :reputación_supergrupo,
+        tipos: [:migrate_from_chat_id],
+        chats_permitidos: %i[supergroup]
+    )
+
     def cambiar_rep(msj)
         # Δrep: 1  si max - min = 0
         #                                   |rep1 - min|
@@ -246,6 +252,19 @@ class Dankie
         @tg.send_message(chat_id: msj.chat.id,
                          reply_to_message_id: msj.message_id,
                          text: 'Disparador eliminado')
+    end
+
+    def reputación_supergrupo(msj)
+        cambiar_claves_supergrupo(msj.migrate_from_chat_id,
+                                  msj.chat.id,
+                                  'rep:')
+
+        TIPOS_DE_MATCH.keys.map(&:to_s).product(%w[más menos]).each do |tipo, cambio|
+            cambiar_claves_supergrupo(msj.migrate_from_chat_id,
+                                      msj.chat.id,
+                                      "disparadores:#{tipo}:",
+                                      ":#{cambio}")
+        end
     end
 
     private

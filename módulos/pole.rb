@@ -1,14 +1,27 @@
 # Extension de dankie para manejar las poles
 class Dankie
-    add_handler Handler::EventoDeChat.new(:pole_supergrupo,
-                                          tipos: [:migrate_from_chat_id],
-                                          chats_permitidos: %i[supergroup])
+    add_handler Handler::EventoDeChat.new(
+        :pole_supergrupo,
+        tipos: [:migrate_from_chat_id],
+        chats_permitidos: %i[supergroup]
+    )
 
-    add_handler Handler::Mensaje.new(:pole, chats_permitidos: %i[group supergroup])
-    add_handler Handler::EventoDeChat.new(:pole, chats_permitidos: %i[group supergroup])
-    add_handler Handler::Comando.new(:nisman, :enviar_ranking_pole,
-                                     chats_permitidos: %i[group supergroup],
-                                     descripción: 'Muestro el ranking de Nisman')
+    add_handler Handler::Mensaje.new(
+        :pole,
+        chats_permitidos: %i[group supergroup]
+    )
+
+    add_handler Handler::EventoDeChat.new(
+        :pole,
+        chats_permitidos: %i[group supergroup]
+    )
+
+    add_handler Handler::Comando.new(
+        :nisman,
+        :enviar_ranking_pole,
+        chats_permitidos: %i[group supergroup],
+        descripción: 'Muestro el ranking de Nisman'
+    )
 
     def pole(msj)
         return unless validar_permiso_pole(msj.chat.id)

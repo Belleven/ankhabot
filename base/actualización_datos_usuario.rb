@@ -4,6 +4,11 @@ class Dankie
         :informar_cambio_datos_en_grupo,
         chats_permitidos: %w[group supergroup]
     )
+    add_handler Handler::EventoDeChat.new(
+        :datos_usuario_supergrupo,
+        tipos: [:migrate_from_chat_id],
+        chats_permitidos: %i[supergroup]
+    )
 
     # Método recursivo que actualiza los nombres de usuarios en redis
     # Necesita ser público por los handlers
@@ -41,6 +46,11 @@ class Dankie
 
         return if cambios.empty?
 
+        # me fijo los grupos normales y guardo sus ID en caso de migración a supergrupo
+        if msj.chat.type == 'group'
+            @redis.sadd("migración_supergrupo_informar_cambio:#{id_chat}", id_usuario)
+        end
+
         # Si es la primera vez que se ve en este grupete entonces marco como que se
         # informó el cambio pero sin enviar ningun mensaje, la próxima ya se manda
         unless @redis.sismember("contacto_grupo:#{id_usuario}", id_chat)
@@ -77,6 +87,29 @@ class Dankie
         @tg.send_message(chat_id: msj.chat.id,
                          reply_to_message_id: msj.message_id,
                          text: texto)
+    end
+
+    def datos_usuario_supergrupo(msj)
+        id_vieja = msj.migrate_from_chat_id
+        id_nueva = msj.chat.id
+        clave = "migración_supergrupo_informar_cambio:#{id_vieja}"
+
+        @redis.smembers(clave).each do |id_usuario|
+            %w[nombre apellido username].each do |nombre|
+                next unless @redis.sismember("informar_cambio:#{nombre}:#{id_usuario}",
+                                             id_vieja)
+
+                @redis.sadd("informar_cambio:#{clave}:#{id_usuario}", id_nueva)
+                @redis.srem("informar_cambio:#{clave}:#{id_usuario}", id_vieja)
+            end
+
+            if @redis.sismember("contacto_grupo:#{id_usuario}", id_vieja)
+                @redis.sadd("contacto_grupo:#{id_usuario}", id_nueva)
+                @redis.srem("contacto_grupo:#{id_usuario}", id_vieja)
+            end
+        end
+
+        @redis.del clave
     end
 
     private
