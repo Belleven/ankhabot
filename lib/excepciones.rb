@@ -14,8 +14,8 @@ class ManejoExcepciones
     private
 
     def manejar(excepción, args)
-        return unless excepción.respond_to?(:error_code) &&
-                      excepción.respond_to?(:message)
+        return false unless excepción.respond_to?(:error_code) &&
+                            excepción.respond_to?(:message)
         unless excepción.instance_of?(Telegram::Bot::Exceptions::ResponseError)
             return false
         end
@@ -88,17 +88,21 @@ class ManejoExcepciones
 
         case mensaje_error
         when /bot is not a member of the (super)?group chat/
-            @logger.error("Error #{chat}. Me fui del chat y no puedo mandar mensajes."\
+            @logger.error("Error en #{chat}. Me fui y no puedo mandar mensajes."\
                           "\n#{mensaje_error}")
         when /bot is not a member of the channel chat/
-            @logger.error("Error #{chat}. Me fui o me sacaron los permisos de "\
+            @logger.error("Error en #{chat}. Me fui o me sacaron los permisos de "\
                           "mandar mensaje en el canal.\n#{mensaje_error}")
         when /bot was kicked from the (super)?group chat/
-            @logger.error("Error #{chat}. Me echaron del char y no puedo "\
+            @logger.error("Error en #{chat}. Me echaron y no puedo "\
                           "mandar mensajes.\n#{mensaje_error}")
         when /bot can't send messages to bots/
-            @logger.error("Error #{chat}. No puedo hablar con otros "\
+            @logger.error("Error en #{chat}. No puedo hablar con otros "\
                           "bots.\n#{mensaje_error}")
+            manejado = false
+        when /user is deactivated/
+            @logger.error("Error en #{chat}. No puedo hablar por privado con cuentas "\
+                          "eliminadas.\n#{mensaje_error}")
             manejado = false
         else
             manejado = false
