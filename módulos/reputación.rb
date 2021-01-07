@@ -279,8 +279,6 @@ class Dankie
         clave = "disparadores:%<tipo>s:#{msj.chat.id}:%<cambio>s"
         texto = msj.text.downcase
 
-        return nil unless @redis.exists?("disparador_temp:#{msj.message_id}")
-
         if @redis.smembers(format(clave, tipo: 'substr', cambio: 'más'))
                  .any? { |d| texto[d] }
             return 1
