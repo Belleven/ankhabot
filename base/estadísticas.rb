@@ -378,6 +378,7 @@ class Dankie
     def armar_gráfico(params)
         gráfico = params[:tipo].new
         gráfico.theme_pastel
+        gráfico.font = 'DejaVu Sans Mono'
         gráfico.title = params[:título]
         gráfico.labels = generar_hash_labels(
             params[:desde],

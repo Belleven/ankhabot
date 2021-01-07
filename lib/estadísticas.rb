@@ -17,7 +17,7 @@ module Estadísticas
             redis.del(clave)
         end
 
-        def initialize; end
+        def initialize(*_); end
     end
 
     # Clase para guardar claves simples
