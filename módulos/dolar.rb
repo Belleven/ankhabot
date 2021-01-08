@@ -4,7 +4,8 @@ class Dankie
     add_handler Handler::Comando.new(
         :dolar,
         :dolar,
-        permitir_params: false
+        permitir_params: false,
+        descripción: 'Te muestra el precio del dolar'
     )
     def dolar(msj)
         @dolar ||= Dolar.new
@@ -12,7 +13,6 @@ class Dankie
         texto = @dolar.scrap
         @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
                          text: texto,
-                         descripción: 'Te muestra el precio del dolar',
                          disable_web_page_preview: true,
                          disable_notification: true)
     end
