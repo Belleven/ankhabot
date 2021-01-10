@@ -118,9 +118,8 @@ class Dankie
             apagar_programa = true
         end
 
-        procesando = true
-        correr_antes_de_updates
-        procesando = false
+        # En un futuro tirar esto en un proceso a parte xdd
+        correr_antes_de_actualizaciones
 
         loop do
             actualizaciones = @tg.get_updates(
@@ -169,7 +168,7 @@ class Dankie
 
     private
 
-    def correr_antes_de_updates
+    def correr_antes_de_actualizaciones
         # Inializo la clase de configuraciones
         Configuración.redis ||= @redis
 
@@ -190,12 +189,30 @@ class Dankie
         end
 
         ultima_version_informada = version_redis
-        if ultima_version_informada.nil? || ultima_version_informada != VERSIÓN
-            @logger.info 'Se ha detectado un cambio de versión para informar'
-            confirmar_anuncio_changelog(VERSIÓN, ultima_version_informada)
-        else
+        # Si es nil, va a ser != a VERSION que es un string
+        if ultima_version_informada == VERSIÓN
             @logger.info '¡Versión actualizada!'
+            return
         end
+
+        # Si hay un tablero
+        if (id_tablero = @redis.get('versión:id_tablero_anuncio'))
+            if @redis.get('versión:versión_tablero_anuncio') == VERSIÓN
+                @logger.info 'Tablero de anuncio nueva versión ya enviado'
+                return
+            end
+
+            begin
+                @tg.delete_message(chat_id: @canal, message_id: id_tablero.to_i)
+            rescue Telegram::Bot::Exceptions::ResponseError => e
+                @logger.info(
+                    "No pude borrar el tablero de anuncio anterior:\n#{e.message}"
+                )
+            end
+        end
+
+        @logger.info 'Se ha detectado un cambio de versión para informar'
+        confirmar_anuncio_changelog(VERSIÓN, ultima_version_informada)
     end
 
     def actualizar_version_redis
@@ -243,7 +260,7 @@ class Dankie
     # se puede romper el bucle donde se analizan las otras updates y como pueden
     # venir de hasta 100 no queremos que pase eso
     rescue StandardError => e
-        manejar_excepción_asesina(e, msj)
+        manejar_excepción_asesina(e, msj, msj.datos_crudos)
     end
 
     # Creo que esto es un dispatch si entendí bien
@@ -303,11 +320,16 @@ class Dankie
         end
     end
 
-    def manejar_excepción_asesina(excepción, msj = nil)
+    def manejar_excepción_asesina(excepción, msj = nil, datos_crudos = nil)
         return if @tg.capturar(excepción)
 
         if msj.respond_to?(:date)
             @logger.loggear_hora_excepción(msj, @tz.utc_offset, @tz.now)
+        end
+
+        if datos_crudos
+            @logger.info "Update que rompió:\n\n#{debug_bonita(datos_crudos)}",
+                         al_canal: true
         end
 
         texto, backtrace = @logger.excepcion_texto(excepción)
