@@ -133,6 +133,8 @@ class Dankie
                     "\nEse usuario es un bot, no le puedo hablar"
                 when /user is deactivated/
                     "\nEse usuario es una cuenta eliminada"
+                when /have no rights to send a message/
+                    "\nEstoy en ese chat pero no tengo permisos para mandar mensajes"
                 else
                     "\nSaltó este otro error y no puedo saber si "\
                             "estoy en el chat: #{exc}"
