@@ -199,8 +199,7 @@ class TelegramAPI
 
             @client.logger.error("Error en #{args[:chat_id]}. El grupo se "\
                                  'actualizó y ahora es un supergrupo '\
-                                 "(#{id_supergrupo}).\n#{exc.message}",
-                                 al_canal: true)
+                                 "(#{id_supergrupo}).\n#{exc.message}")
             args[:chat_id] = id_supergrupo.to_i
         else
             raise
