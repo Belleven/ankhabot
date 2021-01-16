@@ -18,29 +18,30 @@ class Dankie
     end
 
     class Dolar
+        PATH_PADRE = "//div[contains(@class,'pill pill-coti')]".freeze
+        PATH_DÓLAR = '//h4/a'.freeze
+        PATH_VALORES = "//div[contains(@class, 'col-6 text-center')]".freeze
+        PATH_SOLIDARIO = "//div[contains(@class, 'col-12 text-center')]".freeze
+        PATH_ACTUALIZACIÓN = "//div[contains(@class,'col-7 text-right')]".freeze
+
         def initialize
             @doc = Nokogiri::HTML(URI.open('https://www.dolarhoy.com/'))
-            @path_padre = "//div[contains(@class,'pill pill-coti')]".freeze
-            @path_dolar = '//h4/a'.freeze
-            @path_valores = "//div[contains(@class, 'col-6 text-center')]".freeze
-            @path_solidario = "//div[contains(@class, 'col-12 text-center')]".freeze
-            @path_actualizacion = "//div[contains(@class,'col-7 text-right')]".freeze
         end
 
         def scrap
             # Consigo la ruta general donde se encuentran los demas valores
-            paginas = @doc.xpath(@path_padre)
+            paginas = @doc.xpath(PATH_PADRE)
 
             # Agarro todos los dolares posibles
-            dolar = conseguir_elementos(paginas, @path_dolar)
+            dolar = conseguir_elementos(paginas, PATH_DÓLAR)
 
             # Cuento su valor
             # Los valores de compra y venta vienen juntos, por lo cual los
             # que separar despues
-            valor = conseguir_elementos(paginas, @path_valores)
+            valor = conseguir_elementos(paginas, PATH_VALORES)
 
             # Como soy solidario, pago mas
-            valor_solidario = conseguir_elementos(paginas, @path_solidario)
+            valor_solidario = conseguir_elementos(paginas, PATH_SOLIDARIO)
 
             # Agrupo los valores de a dos, compra y venta juntos
             compra_venta = agrupar_compra_venta(valor, 2)
@@ -50,7 +51,7 @@ class Dankie
                                                       compra_venta: compra_venta)
 
             # Leo cuando fue la ultima vez que se actualizo el valor
-            actualización = paginas.xpath(@path_actualizacion).first.text.strip
+            actualización = paginas.xpath(PATH_ACTUALIZACIÓN).first.text.strip
 
             # Armo el texto con toda la informacion
             texto = mezclar_dolar_valor(dolar, compra_venta_total)

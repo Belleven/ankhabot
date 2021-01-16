@@ -18,7 +18,7 @@ class Dankie
 
     def diccionario_urbano(msj, params)
         # Caso input vacía.
-        return respuesta(msj.chat.id, 'Tirame algo') if params.nil?
+        return respuesta_error_ud(msj.chat.id, 'Tirame algo') if params.nil?
 
         # Tomo el mensaje de entrada y busco una definición.
         diccionario = DiccionarioUrbano.new
@@ -28,10 +28,10 @@ class Dankie
         # comprobar, si el UD está caído, búsqueda debería
         # ser un objeto nil.
         if búsqueda.nil?
-            return respuesta(msj.chat.id,
-                             'Mmmm, puede ser que esté caído el UD ')
+            return respuesta_error_ud(msj.chat.id,
+                                      'Mmmm, puede ser que esté caído el UD ')
         end
-        return respuesta(msj.chat.id, 'Ay no c') if búsqueda.empty?
+        return respuesta_error_ud(msj.chat.id, 'Ay no c') if búsqueda.empty?
 
         # La búsqueda viene como un array con varias definiciones,
         # esta función se encarga de agrupar todo de manera coherente.
@@ -39,7 +39,7 @@ class Dankie
         mandar_botonera(msj, búsqueda)
     end
 
-    def respuesta(id, text = '')
+    def respuesta_error_ud(id, text)
         @tg.send_message(chat_id: id,
                          text: "#{text}, #{TROESMAS.sample}.")
     end
@@ -59,6 +59,7 @@ class Dankie
             ejemplo = html_parser(resultados.example)
             arrivotos = "\u{1F53C}" << resultados.upvotes.to_s
             bajivotos = "\u{1F53D}" << resultados.downvotes.to_s
+
             "<i><b>#{palabra}</b></i>\n\n#{definición}\n\n<i>"\
             "#{ejemplo}</i>\n\n#{arrivotos}|" \
             "#{bajivotos}|<a href=\"#{dirección}\">link</a>"
