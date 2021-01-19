@@ -380,6 +380,7 @@ class Dankie
         gráfico.theme_pastel
         gráfico.show_vertical_markers = true if gráfico.respond_to?(:show_vertical_markers=)
         gráfico.bottom_margin = 25
+        gráfico.no_data_message = "No hay datos\n(#{params[:título]})"
         gráfico.font = 'DejaVu Sans Mono'
         gráfico.title = params[:título]
         gráfico.labels = generar_hash_labels(
