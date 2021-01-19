@@ -11,7 +11,6 @@ class Dankie
     )
 
     # Método recursivo que actualiza los nombres de usuarios en redis
-    # Necesita ser público por los handlers
     def actualizar_datos_usuarios(msj)
         usuarios = [msj.from, msj.forward_from, msj.left_chat_member]
         (usuarios + msj.new_chat_members).compact.each do |usuario|
@@ -28,7 +27,6 @@ class Dankie
     def informar_cambio_datos_en_grupo(msj)
         # TODO: return if hay una configuración de grupo para que no envíe esto
         # TODO return if hay una configuración de usuario para que no envíe esto
-        # TODO considerar el caso donde el usuario recién ingresa al grupo
 
         id_usuario = msj.from.id
         id_chat = msj.chat.id
@@ -152,30 +150,20 @@ class Dankie
     end
 
     def texto_cambio_nombre_usuario(id_usuario)
-        texto = "\n<b>Nombre:</b>\n<code>"
-        texto << nombres_usuario(id_usuario)
-                 .to_a
-                 .last(2)
-                 .map(&:first)
-                 .map { |s| html_parser s }
-                 .join(' ➜ ')
-        texto << '</code>'
+        texto_cambio_dato_usuario('Nombre', nombres_usuario(id_usuario))
     end
 
     def texto_cambio_apellido_usuario(id_usuario)
-        texto = "\n<b>Apellido:</b>\n<code>"
-        texto << apellidos_usuario(id_usuario)
-                 .to_a
-                 .last(2)
-                 .map(&:first)
-                 .map { |s| s.empty? ? 'Ø' : html_parser(s) }
-                 .join(' ➜ ')
-        texto << '</code>'
+        texto_cambio_dato_usuario('Apellido', apellidos_usuario(id_usuario))
     end
 
     def texto_cambio_username_usuario(id_usuario)
-        texto = "\n<b>Alias:</b>\n<code>"
-        texto << usernames_usuario(id_usuario)
+        texto_cambio_dato_usuario('Alias', usernames_usuario(id_usuario))
+    end
+
+    def texto_cambio_dato_usuario(título, lista_datos)
+        texto = "\n<b>#{título}:</b>\n<code>"
+        texto << lista_datos
                  .to_a
                  .last(2)
                  .map(&:first)

@@ -505,7 +505,7 @@ class Dankie
                     format(
                         "\n<b>%<sig>s</b> <code>%<texto>s</code>",
                         sig: fila[:signo] == 'más' ? '+' : '-',
-                        texto: fila[:texto]
+                        texto: html_parser(fila[:texto])
                     )
                 end,
                 conjunto_iterable: arreglo_disparadores(chat_id, tipo),
