@@ -19,7 +19,21 @@ class Dankie
     def anunciar(from, chat_id, params)
         # Avisa que se hizo un anuncio
         avisar_canal_comienzo(from, chat_id)
-        # guardar_fecha_envio(msj.from.id, msj.chat.id)
+
+        regexp_eliminado = /(bot\ is\ not\ a\ member\ of\ the\ (super)?group\ chat)|
+                            (bot\ was\ kicked\ from\ the\ (super)?group\ chat)|
+                            (bot\ was\ blocked\ by\ the\ user)|
+                            (chat\ not\ found)|
+                            (PEER_ID_INVALID)|
+                            (bot\ is\ not\ a\ member\ of\ the\ channel\ chat)|
+                            (group\ chat\ was\ deactivated)|
+                            (user\ is\ deactivated)/x
+
+        regexp_no_responder = /(have\ no\ rights\ to\ send\ a\ message)|
+                               (have\ no\ write\ access\ to\ the\ chat)|
+                               (CHAT_WRITE_FORBIDDEN)|
+                               (CHAT_RESTRICTED)/x
+
         # Recorro todos los grupos en la db y les envio el mensaje
         %w[private group supergroup].each do |tipo|
             @redis.smembers("chat:#{tipo}:activos").each do |grupete|
@@ -30,17 +44,9 @@ class Dankie
 
             # En caso que el id registrado en la base ya no sea vigente, lo elimino
             rescue Telegram::Bot::Exceptions::ResponseError => e
-                regexp = /(bot\ is\ not\ a\ member\ of\ the\ (super)?group\ chat)|
-                          (bot\ was\ kicked\ from\ the\ (super)?group\ chat)|
-                          (bot\ was\ blocked\ by\ the\ user)|
-                          (chat\ not\ found)|
-                          (PEER_ID_INVALID)|
-                          (bot\ is\ not\ a\ member\ of\ the\ channel\ chat)/x |
-                         (user is deactivated)
-
-                if regexp.match? e.message
+                if regexp_eliminado.match? e.message
                     remover_grupete(grupete, tipo)
-                else
+                elsif !regexp_no_responder.match? e.message
                     @logger.error("Error anunciando: #{e}", al_canal: true)
                 end
             end

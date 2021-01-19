@@ -272,7 +272,7 @@ class Dankie
 
     def manejar_excepciones_anclar(msj, excepción, error_mismo)
         case excepción.message
-        when /not enough rights to pin a message/
+        when /not enough rights to (pin a message|manage pinned messages in the chat)/
             @tg.send_message(
                 chat_id: msj.chat.id,
                 reply_to_message_id: msj.message_id,
@@ -318,6 +318,13 @@ class Dankie
                 chat_id: msj.chat.id,
                 reply_to_message_id: msj.message_id,
                 text: error_ya_quitado
+            )
+            return
+        when /message to unpin not found/
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                reply_to_message_id: msj.message_id,
+                text: 'No hay ningún mensaje para desanclar'
             )
             return
         end
