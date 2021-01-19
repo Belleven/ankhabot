@@ -286,8 +286,8 @@ class Dankie
         ]
     end
 
-    def completar_secuencia_botones(botones,
-                                    página_actual, inicial, final, nombres_botones)
+    def completar_secuencia_botones(botones, página_actual, inicial,
+                                    final, nombres_botones)
         (inicial..final).each do |i|
             nombre = nombres_botones[i]
             botones << [página_actual == i ? "<#{nombre}>" : nombre.to_s, i]
@@ -306,7 +306,7 @@ class Dankie
         botones = []
 
         if página_actual < 3
-            botones = completar_secuencia_botones(botones, página_actual, 0, 4,
+            botones = completar_secuencia_botones(botones, página_actual, 0, 3,
                                                   nombres_botones)
             botones << ["#{nombres_botones[tamaño_máximo - 1]} >>", tamaño_máximo - 1]
         elsif página_actual > (tamaño_máximo - 4)
