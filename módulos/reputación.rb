@@ -310,7 +310,7 @@ class Dankie
     def disparadores_regexp(clave, cambio, texto)
         @redis.smembers(format(clave, tipo: 'regexp', cambio: cambio)).each do |d|
             Timeout.timeout(0.05) do
-                return cambio == 'más' ? 1 : -1 if texto =~ /#{d}/i
+                return cambio == 'más' ? 1 : -1 if /#{d}/i.match?(texto)
             rescue Timeout::Error
                 # Borrar coso
             end
