@@ -22,6 +22,8 @@ class Dankie
     # es una id
 
     def registrar_alias_usuario(usuario)
+        return if usuario.nil?
+
         alias_actual = usuario.username
         id_usuario = usuario.id.to_s
 
