@@ -64,6 +64,16 @@ class ManejoExcepciones
                 "(id chat: #{chat}).",
                 al_canal: false
             )
+        else
+            manejado = manejar_error_400_casos_extraños(mensaje_error, chat, id_mensaje)
+        end
+        manejado
+    end
+
+    def manejar_error_400_casos_extraños(mensaje_error, chat, _id_mensaje)
+        manejado = true
+
+        case mensaje_error
         when /PEER_ID_INVALID/
             @logger.fatal("Le quise mandar un mensaje privado #{chat}"\
                           ' a alguien que no me habló primero o me bloqueó.',
@@ -77,6 +87,13 @@ class ManejoExcepciones
         when /CHANNEL_PRIVATE/
             @logger.fatal('Error que todavía no se por que pasa pero tengo un '\
                           "problema al mandar mensajes (id: #{chat}).")
+        when /group chat was deactivated/
+            @logger.fatal("Error: el grupo fue eliminado (id: #{chat}).")
+        when /CHAT_RESTRICTED/
+            @logger.fatal("Error: chat restringido (id: #{chat}).")
+        when /user is deactivated/
+            @logger.fatal('Le intenté hablar por privado a una '\
+                          "cuenta eliminada (id: #{chat}).")
         else
             manejado = false
         end
@@ -104,6 +121,11 @@ class ManejoExcepciones
             @logger.error("Error en #{chat}. No puedo hablar por privado con cuentas "\
                           "eliminadas.\n#{mensaje_error}")
             manejado = false
+        when /bot was blocked by the user/
+            @logger.error("Error en #{chat}. Ese usuario me bloqueó.")
+            manejado = false
+        when /CHAT_WRITE_FORBIDDEN/
+            @logger.error("No puedo mandar mensajes en #{chat}.")
         else
             manejado = false
         end
