@@ -58,6 +58,10 @@ class Dankie
         end
 
         crear_arreglo_y_enviar(match, callback)
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        if e.message =~ /message is not modified/
+            @tg.answer_callback_query(callback_query_id: callback.id)
+        end
     end
 
     def callback_modificar_config(callback)
@@ -84,6 +88,10 @@ class Dankie
                               reply_markup: options,
                               disable_web_page_preview: true,
                               disable_notification: true)
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        if e.message =~ /message is not modified/
+            @tg.answer_callback_query(callback_query_id: callback.id)
+        end
     end
 
     def obtener_mensaje_configuraciones(chat_id)
