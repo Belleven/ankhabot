@@ -263,7 +263,7 @@ class Dankie
         case msj
 
         when Telegram::Bot::Types::Message
-            # Handlers generales, no los de comando si no
+            # Handlers generales, no los de comandos, si no
             # los de mensajes/eventos de chat
             Dankie.handlers_generales.each do |handler|
                 next unless handler.verificar(self, msj)
@@ -348,12 +348,14 @@ class Dankie
         exit
     end
 
+    # Veo que la update tenga usuario, de ser así veo si ese usuario está bloqueado.
+    # Si no está bloqueado y la update trae chat, veo si el usuario está bloqueado en
+    # ese chat.
     def actualización_de_usuario_bloqueado?(msj)
-        (msj.respond_to?(:from) && msj.from.respond_to?(:id) &&
-        @redis.sismember('lista_negra:global', msj.from.id.to_s)) ||
-            (msj.respond_to?(:chat) && msj.chat.respond_to?(:id) &&
-            @redis.sismember("lista_negra:#{msj.chat.id}",
-                             msj.from.id.to_s))
+        (msj.respond_to?(:from) && msj.from.respond_to?(:id) && !msj.from.id.nil?) &&
+            (@redis.sismember('lista_negra:global', msj.from.id) ||
+            (msj.respond_to?(:chat) && msj.chat.respond_to?(:id) && !msj.chat.id.nil? &&
+             @redis.sismember("lista_negra:#{msj.chat.id}", msj.from.id)))
     end
 
     # Analiza un texto y se fija si es un comando válido, devuelve el comando

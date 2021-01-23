@@ -63,7 +63,11 @@ class Dankie
         # los grupos el cambio de versión
         if match[:acción] == 'confirmar'
             editar_tablero_anuncio_changelog(callback, 'aceptado')
-            anunciar(callback.from, callback.message.chat.id, changelog_version_actual)
+            anunciar(
+                callback.from,
+                callback.message.chat.id,
+                "Acaba de salir una nueva versión mía:\n\n#{changelog_version_actual}"
+            )
             @redis.set('versión', VERSIÓN)
         else
             editar_tablero_anuncio_changelog(callback, 'rechazado')
