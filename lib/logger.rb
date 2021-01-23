@@ -5,7 +5,8 @@ class DankieLogger
     attr_accessor :logger
 
     def initialize(archivo, canal_logging)
-        @logger = Logger.new(archivo || $stderr)
+        @archivo = archivo
+        @logger = Logger.new archivo
         @canal_logging = canal_logging
     end
 
@@ -197,7 +198,7 @@ class DankieLogger
                            "#{lineas}#{lineas}\n"
         @logger.fatal(texto_excepcion)
     rescue StandardError => e
-        puts "\nFATAL, múltiples excepciones.\n#{e}"
+        printf @archivo, "\nFATAL, múltiples excepciones.\n#{e}\n"
     end
 
     def html_parser(texto)

@@ -40,8 +40,6 @@ class Dankie
             'índice',
             índice
         )
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        @logger.error e.to_s, al_canal: true
     end
 
     def acciones_inferiores_lista(callback)
@@ -67,8 +65,6 @@ class Dankie
             índice: índice,
             botones_personalizados: botones_personalizados
         )
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        @logger.error e.to_s, al_canal: false
     end
 
     private

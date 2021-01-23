@@ -84,8 +84,6 @@ class Dankie
                 }.to_json
             )
         end
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        @logger.error e.to_s, al_canal: true
     end
 
     private

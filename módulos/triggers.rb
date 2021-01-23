@@ -152,8 +152,6 @@ class Dankie
             text: texto,
             reply_to_message_id: temp[:id_msj]
         )
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        @logger.warn e.message, al_canal: true
     end
 
     def callback_del_trigger_global(callback)
@@ -197,8 +195,6 @@ class Dankie
             disable_web_page_preview: true,
             disable_notification: true
         )
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        @logger.warn e.message, al_canal: true
     end
 
     def validar_borrar_trigger(msj, params)
