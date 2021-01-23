@@ -3,7 +3,6 @@ class Dankie
     add_handler Handler::Comando.new(
         :configuraciones,
         :configuraciones,
-        chats_permitidos: %i[group supergroup],
         descripción: 'Te muestro las configuraciones del grupete'
     )
 
@@ -24,23 +23,24 @@ class Dankie
                    admite_pole: 'Habilitar Nisman',
                    admite_rep: 'Habilitar reputación' }.freeze
 
-    def configuraciones(msg)
+    def configuraciones(msj)
         error_msj = "Ese comando es solo para admins, #{TROESMAS.sample}."
-        return unless es_admin(msg.from.id, msg.chat.id, msg.message_id, error_msj)
+        return if msj.chat.type != 'private' &&
+                  !es_admin(msj.from.id, msj.chat.id, msj.message_id, error_msj)
 
         Configuración.redis ||= @redis
-        respuesta, opciones = obtener_mensaje_configuraciones(msg.chat.id)
+        respuesta, opciones = obtener_mensaje_configuraciones(msj.chat.id)
 
-        @tg.send_message(chat_id: msg.chat.id,
+        @tg.send_message(chat_id: msj.chat.id,
                          text: respuesta,
                          reply_markup: opciones,
                          parse_mode: :html)
     end
 
     def callback_config_seleccionada(callback)
-        return unless es_admin(callback.from.id,
-                               callback.message.chat.id,
-                               callback.message.message_id)
+        return if callback.message.chat.type != 'private' &&
+                  !es_admin(callback.from.id, callback.message.chat.id,
+                            callback.message.message_id)
 
         match = callback.data.match(/config_seleccionada:(?<categoria>.+)/)
 
@@ -65,9 +65,9 @@ class Dankie
     end
 
     def callback_modificar_config(callback)
-        return unless es_admin(callback.from.id,
-                               callback.message.chat.id,
-                               callback.message.message_id)
+        return if callback.message.chat.type != 'private' &&
+                  !es_admin(callback.from.id, callback.message.chat.id,
+                            callback.message.message_id)
 
         match = callback.data.match(/modificar_config:(?<categoria>.+):(?<acción>.+)/)
         id_grupo = callback.message.chat.id
@@ -79,42 +79,9 @@ class Dankie
             Configuración.poner_config(id_grupo, match[:categoria], 0)
         end
 
-        text, options = obtener_mensaje_configuraciones(id_grupo)
+        texto, options = obtener_mensaje_configuraciones(id_grupo)
 
-        @tg.edit_message_text(chat_id: id_grupo,
-                              parse_mode: :html,
-                              text: text,
-                              message_id: callback.message.message_id,
-                              reply_markup: options,
-                              disable_web_page_preview: true,
-                              disable_notification: true)
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        if e.message =~ /message is not modified/
-            @tg.answer_callback_query(callback_query_id: callback.id)
-        end
-    end
-
-    def obtener_mensaje_configuraciones(chat_id)
-        respuesta = '<b>Configuraciones del chat</b>'
-        arr = []
-        CATEGORIAS.each do |categoria, mensaje|
-            valor = parsear_valor_booleano(Configuración.config(chat_id, categoria))
-            respuesta << "\n-#{mensaje}: #{valor}"
-            button = Telegram::Bot::Types::InlineKeyboardButton.new(
-                text: "Modificar: #{mensaje}",
-                callback_data: "config_seleccionada:#{categoria}"
-            )
-            arr << button
-        end
-
-        button = Telegram::Bot::Types::InlineKeyboardButton.new(
-            text: 'Terminar',
-            callback_data: 'config_seleccionada:cerrar_config'
-        )
-        arr << button
-
-        opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new inline_keyboard: arr
-        [respuesta, opciones]
+        editar_mensaje_tablero_modificar_config(id_grupo, texto, callback, options)
     end
 
     private
@@ -146,15 +113,53 @@ class Dankie
                 callback_data: "modificar_config:#{match[:categoria]}:Cancelar"
             )
         ]
+
+        categoría = match[:categoria].split('_')[1..].join(' ').capitalize
         opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new inline_keyboard: arr
+
         @tg.edit_message_text(
             chat_id: callback.message.chat.id,
             parse_mode: :html,
-            text: callback.message.text,
+            text: "Editando: <b>#{categoría}</b>",
             reply_markup: opciones,
-            message_id: callback.message.message_id,
-            disable_web_page_preview: true,
-            disable_notification: true
+            message_id: callback.message.message_id
         )
+    end
+
+    def obtener_mensaje_configuraciones(chat_id)
+        respuesta = '<b>Configuraciones del chat</b>'
+        arr = []
+        CATEGORIAS.each do |categoria, mensaje|
+            valor = parsear_valor_booleano(Configuración.config(chat_id, categoria))
+            respuesta << "\n-#{mensaje}: #{valor}"
+            button = Telegram::Bot::Types::InlineKeyboardButton.new(
+                text: "Modificar: #{mensaje}",
+                callback_data: "config_seleccionada:#{categoria}"
+            )
+            arr << button
+        end
+
+        button = Telegram::Bot::Types::InlineKeyboardButton.new(
+            text: 'Terminar',
+            callback_data: 'config_seleccionada:cerrar_config'
+        )
+        arr << button
+
+        opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new inline_keyboard: arr
+        [respuesta, opciones]
+    end
+
+    def editar_mensaje_tablero_modificar_config(id_grupo, texto, callback, options)
+        @tg.edit_message_text(
+            chat_id: id_grupo,
+            parse_mode: :html,
+            text: texto,
+            message_id: callback.message.message_id,
+            reply_markup: options
+        )
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        if e.message =~ /message is not modified/
+            @tg.answer_callback_query(callback_query_id: callback.id)
+        end
     end
 end
