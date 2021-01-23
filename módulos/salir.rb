@@ -17,11 +17,13 @@ class Dankie
                 @tg.leave_chat(chat_id: msj.chat.id)
                 @logger.info("Me fui de este grupete: #{grupo_del_msj(msj)}")
             rescue Telegram::Bot::Exceptions::ResponseError => e
-                case e.to_s
+                case e.message
                 when /PEER_ID_INVALID/
                     @tg.send_message(chat_id: msj.chat.id,
                                      reply_to_message_id: msj.message_id,
                                      text: 'Hubo algún error y no me pude ir :c')
+                else
+                    raise e
                 end
             end
         end
