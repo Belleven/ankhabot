@@ -1,17 +1,26 @@
 class Dankie
-    add_handler Handler::Mensaje.new(:registrar_chat,
-                                     chats_permitidos: %i[group supergroup
-                                                          channel private])
-    add_handler Handler::EventoDeChat.new(:registrar_chat,
-                                          chats_permitidos: %i[group supergroup
-                                                               channel private])
-    add_handler Handler::Comando.new(:chats, :chats,
-                                     descripción: 'Muestro estadísticas de los '\
-                                                  'chats en los que estuve')
-    add_handler Handler::Comando.new(:estadochat, :estadochat,
-                                     permitir_params: true,
-                                     descripción: 'Devuelve el estado del chat pasado '\
-                                                  'por parámetro')
+    add_handler Handler::Mensaje.new(
+        :registrar_chat,
+        chats_permitidos: %i[group supergroup channel private]
+    )
+
+    add_handler Handler::EventoDeChat.new(
+        :registrar_chat,
+        chats_permitidos: %i[group supergroup channel private]
+    )
+
+    add_handler Handler::Comando.new(
+        :chats,
+        :chats,
+        descripción: 'Muestro estadísticas de los chats en los que estuve'
+    )
+
+    add_handler Handler::Comando.new(
+        :estadochat,
+        :estadochat,
+        permitir_params: true,
+        descripción: 'Devuelve el estado del chat pasado por parámetro'
+    )
 
     def registrar_chat(msj)
         # Conjuntos con los grupetes
@@ -71,31 +80,55 @@ class Dankie
     end
 
     def estadochat(msj, params)
-        unless DEVS.include?(msj.from.id)
-            @tg.send_message(chat_id: msj.chat.id,
-                             reply_to_message_id: msj.message_id,
-                             text: 'Tenés que ser desarrollador '\
-                                      "para eso #{TROESMAS.sample}")
+        return unless validar_desarrollador(msj.from.id, msj.chat.id, msj.message_id)
+        return if params_inválidos_estado_chat(msj, params)
+
+        # Mando mensaje de prueba para saber si sigo en el chat
+        begin
+            id_chat = params.to_i
+            mensaje = @tg.send_message(
+                chat_id: id_chat,
+                text: 'Mensaje para ver si sigo en el grupo'
+            )
+        rescue Telegram::Bot::Exceptions::ResponseError => e
+            analizar_excepción_estado_chat(msj, e)
             return
         end
 
-        return if params_inválidos_estado_chat(msj, params)
-
-        begin
-            id_chat = params.to_i
-            mensaje = @tg.send_message(chat_id: id_chat,
-                                       text: 'Mensaje para ver si sigo en el grupo')
-            return unless mensaje && mensaje['ok']
-
-            @tg.delete_message(chat_id: id_chat,
-                               message_id: mensaje.dig('result', 'message_id').to_i)
-
-            @tg.send_message(chat_id: msj.chat.id,
-                             text: 'Sigo estando en ese chat',
-                             reply_to_message_id: msj.message_id)
-        rescue Telegram::Bot::Exceptions::ResponseError => e
-            analizar_excepción_estado_chat(e)
+        # Si no me aparece como que se mandó correctamente entonces no puedo decidir
+        unless mensaje && mensaje['ok']
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                text: 'El mensaje de prueba que mandé, me llegó con errores así que '\
+                      'no puedo saber si sigo en ese chat',
+                reply_to_message_id: msj.message_id
+            )
+            return
         end
+
+        # Borro el mensaje mandado para evitar el spam
+        begin
+            @tg.delete_message(
+                chat_id: id_chat,
+                message_id: mensaje.dig('result', 'message_id').to_i
+            )
+        rescue Telegram::Bot::Exceptions::ResponseError => e
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                text: 'Salto un error tratando de borrar el mensaje de prueba '\
+                      'así que probablemente haya podido mandarlo y siga en ese chat.'\
+                      "\nError: #{e.message}",
+                reply_to_message_id: msj.message_id
+            )
+            return
+        end
+
+        # Aviso que sigo en ese chat
+        @tg.send_message(
+            chat_id: msj.chat.id,
+            text: 'Sigo estando en ese chat',
+            reply_to_message_id: msj.message_id
+        )
     end
 
     private
@@ -119,11 +152,11 @@ class Dankie
         false
     end
 
-    def analizar_excepción_estado_chat(exc)
+    def analizar_excepción_estado_chat(msj, exc)
         texto = case exc.message
                 when /chat not found/
                     "\nNunca estuve en este chat, o no existe"
-                when /bot was kicked from the (super)?group chat/
+                when /bot was kicked from the ((super)?group|channel) chat/
                     "\nMe banearon en ese chat"
                 when /bot is not a member of the ((super)?group|channel) chat/
                     "\nNo estoy en ese chat"
@@ -133,21 +166,31 @@ class Dankie
                     "\nEse usuario es un bot, no le puedo hablar"
                 when /user is deactivated/
                     "\nEse usuario es una cuenta eliminada"
-                when /have no rights to send a message/, /CHAT_RESTRICTED/,
-                     /have no write access to the chat/, /CHAT_WRITE_FORBIDDEN/
-                    "\nEstoy en ese chat pero no tengo permisos para mandar mensajes"
-                when /group chat was deactivated/
-                    "\nEl grupo fue eliminado"
                 else
-                    "\nSaltó este otro error y no puedo saber si "\
-                            "estoy en el chat: #{exc}"
+                    analizar_excepción_extraña_estado_chat(exc)
                 end
 
-        @logger.info("En el comando /estadochat => #{exc}")
         @tg.send_message(
             chat_id: msj.chat.id,
             text: texto,
             reply_to_message_id: msj.message_id
         )
+    end
+
+    def analizar_excepción_extraña_estado_chat(exc)
+        case exc.message
+        when /have no rights to send a message/, /CHAT_RESTRICTED/,
+             /have no write access to the chat/, /CHAT_WRITE_FORBIDDEN/
+            "\nEstoy en ese chat pero no tengo permisos para mandar mensajes"
+        when /group chat was deactivated/
+            "\nEl grupo fue eliminado"
+        when /Too Many Requests: retry after/
+            "\nEstoy en el grupo pero tiene slow mode, no puedo mandar mensajes"
+        when /need administrator rights in the channel chat/
+            "\nEstoy en el canal pero no puedo mandar mensajes"
+        else
+            "\nSaltó este otro error y no puedo saber si "\
+            "estoy en el chat: #{exc}"
+        end
     end
 end
