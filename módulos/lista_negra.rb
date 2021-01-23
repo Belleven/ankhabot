@@ -288,7 +288,7 @@ class Dankie
     end
 
     def id_en_grupo(id_mensaje, id_chat, id)
-        unless id.nil?
+        if id
 
             begin
                 # Me fijo que sea una id de un usuario que haya pasado por el chat

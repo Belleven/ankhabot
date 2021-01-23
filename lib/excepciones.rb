@@ -39,7 +39,8 @@ class ManejoExcepciones
         id_mensaje = conseguir_id_mensaje args
 
         case mensaje_error
-        when /have no rights to send a message/
+        when /have no rights to send a message/,
+             /need administrator rights in the channel chat/
             @logger.error("Me restringieron los mensajes #{chat} y"\
                           "no puedo mandar nada:\n#{mensaje_error}")
         when /have no write access to the chat/
@@ -55,14 +56,12 @@ class ManejoExcepciones
         when /message to delete not found/
             @logger.error(
                 "Traté de borrar un mensaje (id mensaje: #{id_mensaje}) "\
-                "muy viejo (id chat: #{chat}).",
-                al_canal: false
+                "muy viejo (id chat: #{chat})."
             )
         when /message can't be deleted/
             @logger.error(
                 "No pude borrar un mensaje (id mensaje: #{id_mensaje}) "\
-                "(id chat: #{chat}).",
-                al_canal: false
+                "(id chat: #{chat})."
             )
         else
             manejado = manejar_error_400_casos_extraños(mensaje_error, chat, id_mensaje)
@@ -110,7 +109,7 @@ class ManejoExcepciones
         when /bot is not a member of the channel chat/
             @logger.error("Error en #{chat}. Me fui o me sacaron los permisos de "\
                           "mandar mensaje en el canal.\n#{mensaje_error}")
-        when /bot was kicked from the (super)?group chat/
+        when /bot was kicked from the ((super)?group|channel) chat/
             @logger.error("Error en #{chat}. Me echaron y no puedo "\
                           "mandar mensajes.\n#{mensaje_error}")
         when /bot can't send messages to bots/

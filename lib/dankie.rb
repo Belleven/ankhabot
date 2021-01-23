@@ -61,17 +61,17 @@ class Dankie
             @inlinequery << handler
 
         else
-            puts "Handler inválido: #{handler}"
+            printf @archivo_logging, "\nHandler inválido: #{handler}\n"
         end
     end
 
     # Recibe un Hash con los datos de config.yml
     def initialize(args)
         @canal = args[:canal_logging]
-
+        @archivo_logging = args[:archivo_logging] || $stderr
         # Tanto tg como dankielogger usan un cliente para mandar mensajes
         # Y además tg usa un logger
-        @logger = DankieLogger.new(args[:archivo_logging], @canal)
+        @logger = DankieLogger.new(@archivo_logging, @canal)
         @tg = TelegramAPI.new args[:tg_token], @logger
         @logger.inicializar_cliente @tg.client
 
@@ -102,7 +102,6 @@ class Dankie
 
     def run
         @logger.info 'Bot tomando updates...'
-        última = nil
         procesando = false
         apagar_programa = false
 
@@ -112,9 +111,8 @@ class Dankie
         # sí y solo sí ningún comando se esté ejecutando
         Signal.trap('INT') do
             apagar_bot unless procesando
-            @logger.info 'Esperando a procesar última update '\
-                         "(#{última.nil? ? 'no hubo ninguna todavía' : última}) "\
-                         'para apagar el bot...'
+            printf @archivo_logging,
+                   "\nEsperando a procesar últimas updates para apagar el bot...\n"
             apagar_programa = true
         end
 
@@ -183,9 +181,6 @@ class Dankie
 
         if VERSIÓN != versión_changelog
             abort('La versión del bot y del changelog difieren')
-            # raise "ERROR: La versión del bot difiere de la del changelog /"
-            #        "Asi no pienso seguir!"
-            # fail
         end
 
         ultima_version_informada = version_redis
@@ -268,7 +263,7 @@ class Dankie
         case msj
 
         when Telegram::Bot::Types::Message
-            # Handlers generales, no los de comando si no
+            # Handlers generales, no los de comandos, si no
             # los de mensajes/eventos de chat
             Dankie.handlers_generales.each do |handler|
                 next unless handler.verificar(self, msj)
@@ -341,23 +336,26 @@ class Dankie
                           "#{@logger.excepcion_texto(excepción).last}",
                           al_canal: true
         rescue StandardError => e
-            puts "\nFATAL: Múltiples excepciones\n#{excepción}\n\n#{e}\n\n#{e}"
+            printf @archivo_logging,
+                   "\nFATAL: Múltiples excepciones\n#{excepción}\n\n#{e}\n\n#{e}\n"
         end
     end
 
     # Por ahora esto es para loggear que se va a apagar, pero en un futuro capaz
     # si hay que hacer más cosas se puede agregar acá
     def apagar_bot
-        puts "\nApagando bot..."
+        printf @archivo_logging, "\nApagando bot...\n"
         exit
     end
 
+    # Veo que la update tenga usuario, de ser así veo si ese usuario está bloqueado.
+    # Si no está bloqueado y la update trae chat, veo si el usuario está bloqueado en
+    # ese chat.
     def actualización_de_usuario_bloqueado?(msj)
-        (msj.respond_to?(:from) && msj.from.respond_to?(:id) &&
-        @redis.sismember('lista_negra:global', msj.from.id.to_s)) ||
-            (msj.respond_to?(:chat) && msj.chat.respond_to?(:id) &&
-            @redis.sismember("lista_negra:#{msj.chat.id}",
-                             msj.from.id.to_s))
+        (msj.respond_to?(:from) && msj.from.respond_to?(:id) && !msj.from.id.nil?) &&
+            (@redis.sismember('lista_negra:global', msj.from.id) ||
+            (msj.respond_to?(:chat) && msj.chat.respond_to?(:id) && !msj.chat.id.nil? &&
+             @redis.sismember("lista_negra:#{msj.chat.id}", msj.from.id)))
     end
 
     # Analiza un texto y se fija si es un comando válido, devuelve el comando

@@ -113,8 +113,7 @@ class Dankie
     private
 
     def informar_cambio_datos_usuario(id_usuario, chat, cambios)
-        return if cambios.empty?
-        return if %w[private channel].include? chat.type
+        return if cambios.empty? || chat.type == 'private'
 
         @redis.sadd("contacto_grupo:#{id_usuario}", chat.id)
 

@@ -378,7 +378,9 @@ class Dankie
     def armar_gráfico(params)
         gráfico = params[:tipo].new
         gráfico.theme_pastel
-        gráfico.show_vertical_markers = true if gráfico.respond_to?(:show_vertical_markers=)
+        if gráfico.respond_to?(:show_vertical_markers=)
+            gráfico.show_vertical_markers = true
+        end
         gráfico.bottom_margin = 25
         gráfico.no_data_message = "No hay datos\n(#{params[:título]})"
         gráfico.font = 'DejaVu Sans Mono'
