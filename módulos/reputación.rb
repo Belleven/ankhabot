@@ -58,9 +58,9 @@ class Dankie
 
     def cambiar_rep(msj)
         # Δrep: 1  si max - min = 0
-        #                                   |rep1 - min|
-        #       1 + log(1 + rep1 - rep2) * -------------- sí rep1 >= rep2
-        #                                   |max - min|
+        #                                      |rep1 - min|
+        #       (1 + log(1 + rep1 - rep2) ) * -------------- sí rep1 >= rep2
+        #                                      |max - min|
         #
         #       |rep1 + (max - min)|
         #       --------------------    si rep1 < rep2
@@ -365,7 +365,7 @@ class Dankie
     end
 
     def delta_rep_log(rep1, rep2, rango)
-        1 + Math.log(1 + rep1 - rep2) *
+        (1 + Math.log(1 + rep1 - rep2)) *
             ((rep1 - rango.min) / (rango.max - rango.min)).abs
     end
 
