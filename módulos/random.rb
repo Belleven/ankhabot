@@ -16,66 +16,42 @@ class Dankie
 
     # Funcion que tira varias veces un dado con modificadores
     def tirada(msj, params)
-        return if parámetros_inválidos(msj, params)
-
-        valores = params.split('-')
-        flag = valores.length == 1 ? nil : valores.last.downcase
-
-        return if flag_inválido(msj, flag)
+        return unless (match = parámetros_tirada_válidos(msj, params))
 
         # La cantidad de tiradas es N si es que vino en los params, si no es 1
-        valores = valores.first.split('d')
-        cant_tiradas = valores.first.empty? ? 1 : valores.first.to_i
+        cant_tiradas =  match[1]
+        cant_tiradas =  cant_tiradas.empty? ? 1 : cant_tiradas.to_i
 
         return if cero_tiradas(msj, cant_tiradas)
 
-        valores = valores.last.split('+')
-        rango = valores.first.strip.to_i
-        suma = valores.length == 1 ? 0 : valores.last.strip.to_i
+        rango = match[2].to_i
+        suma = match[3].nil? ? 0 : (match[4] + match[5]).to_i
 
         return if rango_inválido(msj, rango)
         return if suma_inválida(msj, suma)
-        return if resultado_muy_grande(msj, cant_tiradas, rango, suma, flag)
 
-        tirar(msj, cant_tiradas, rango, suma, flag)
+        tirar(msj, cant_tiradas, rango, suma)
     end
 
     private
 
-    def parámetros_inválidos(msj, params)
-        unless !params.nil? && formato_correcto(params)
+    def parámetros_tirada_válidos(msj, params)
+        if params.nil? || (match = formato_correcto(params)).nil?
             error = 'Se usa como /tirada NdR + M donde N es la cantidad de tiradas, R '\
                     'los valores posibles y M la suma al resultado de cada tirada. N '\
-                    'y M son opcionales. Si hay M, podés hacer '\
-                    '/tirada NdR + M -acumular si querés que se muestre el resultado '\
-                    'de la suma.'
+                    'y M son opcionales.'
             @tg.send_message(
                 chat_id: msj.chat.id,
                 text: error,
                 reply_to_message_id: msj.message_id
             )
-            return true
         end
-        false
+        match
     end
 
     # Comprueba que sea un texto valido para el comando
     def formato_correcto(texto)
-        /\A[0-9]*d[0-9]+( *\+ *[0-9]+( *-[a-zA-Z]+)?)?\z/.match?(texto)
-    end
-
-    def flag_inválido(msj, flag)
-        if flag && flag != 'acumular'
-            error = 'Parámetro inválido, si querés que se acumulen los resultados '\
-                    'acompañá el comando con -acumular'
-            @tg.send_message(
-                chat_id: msj.chat.id,
-                text: error,
-                reply_to_message_id: msj.message_id
-            )
-            return true
-        end
-        false
+        /\A([0-9]*)d([0-9]+)(\s*([+\-])\s*([0-9]+))?\z/.match(texto)
     end
 
     def cero_tiradas(msj, cant_tiradas)
@@ -94,7 +70,7 @@ class Dankie
         if rango < 2
             @tg.send_message(
                 chat_id: msj.chat.id,
-                text: "El rango tiene que ser 2 o más #{TROESMAS.sample}.",
+                text: "El rango tiene que ser 2 o más, #{TROESMAS.sample}.",
                 reply_to_message_id: msj.message_id
             )
             return true
@@ -103,7 +79,7 @@ class Dankie
     end
 
     def suma_inválida(msj, suma)
-        if suma > 666
+        if suma.abs > 666
             @tg.send_message(
                 chat_id: msj.chat.id,
                 text: 'No podés sumar más de 666.',
@@ -115,29 +91,27 @@ class Dankie
     end
 
     # Se fija que no haya una cantidad de tiradas y un rango que en combinación
-    # hagan que el resultado sea un mensaje inmenso.
-    def resultado_muy_grande(msj, cant_tiradas, rango, suma, flag)
-        # El tamaño de "<code>" y "</code>"
-        tam_html = 13
+    # hagan que el resultado sea un mensaje inmenso. Esto es tomando el peor caso
+    # posible de las tiradas random, que den los resultados con mayor cantidad de
+    # dígitos.
+    def resultado_muy_grande(msj, cant_tiradas, rango, suma)
+        dígitos_rango = rango.to_s.length
+        dígitos_resultados = (dígitos_rango + 1) * cant_tiradas - 1
+        suma_final = (cant_tiradas * rango)
 
-        # Si tenés el flag activado la parte de "+M" no se muestra, lo mismo si la
-        # M es 0
-        long_suma = flag || suma.zero? ? 0 : suma.digits.length + 1
+        # 42 son los dígitos constantes contando palabras y tags html
+        caracteres_msj = cant_tiradas.to_s.length + dígitos_rango +
+                         dígitos_resultados + 42
 
-        # Si está el flag activado entonces el resultado que se muestra es el de
-        # la tirada + la suma, asumiendo que sale el número más grande posible
-        # en la tirada (que es el que puede tener más dígitos) se le suma M para
-        # ver si se agregan más dígitos o no, si no está activado el flag, no hay que
-        # sumar nada (o bueno sumar 0 como hago acá para tener todo en una línea)
-        max_digitos_tirada = (rango + (flag ? 0 : suma)).digits.length
+        if suma.zero?
+            caracteres_msj += suma_final.to_s.length
+        else
+            # El 2* es porque la suma aparece 2 veces. El +2 es por los dos paréntesis
+            caracteres_msj += (2 * suma.to_s.length) +
+                              (suma_final + suma).to_s.length + 2
+        end
 
-        # A max_digitos_tirada se le suma 1 porque despues de poner el resultado
-        # de cada tirada hay que poner un espacio (para separarlo del siguiente),
-        # salvo en el últmo que no hay que poner espacio y por eso hay un -1 al final
-        tamaño = tam_html + cant_tiradas * (max_digitos_tirada + long_suma + 1) - 1
-
-        # 4096 es la longitud máxima de caracteres por mensaje que se pueden mandar
-        if tamaño > 4096
+        if caracteres_msj > 4096
             error = "Números muy grandes, #{TROESMAS.sample}. Probá con menos tiradas "\
                     'o un rango más chico uwu'
             @tg.send_message(
@@ -150,20 +124,25 @@ class Dankie
         false
     end
 
-    def tirar(msj, cant_tiradas, rango, suma, flag)
-        # Líneas místicas, en la primera se calcula el resultado que se va a mostrar
-        # en el mensaje, se suma 'suma' si el flag está activado.
-        # La segunda línea es para ver si al resultado hay que agregarle '+M'
-        # Si el flag está activado o si 'suma' == 0 entonces NO hay que mostrarla,
-        # en otro caso sí.
-        valores = Array.new(cant_tiradas) do
-            resultado = rand(1..rango) + (flag ? suma : 0)
-            resultado.to_s + (flag || suma.zero? ? '' : "+#{suma}")
-        end
+    def tirar(msj, cant_tiradas, rango, suma)
+        return if resultado_muy_grande(msj, cant_tiradas, rango, suma)
+
+        texto = "<b>Tirada: #{cant_tiradas}d#{rango}"\
+                "#{suma.zero? ? '' : format('%+d', suma)}</b>\n"
+
+        valores = Array.new(cant_tiradas) { rand(1..rango) }
+
+        texto << if suma.zero?
+                     "<code>#{valores.join ' '}</code>\n"
+                 else
+                     "<code>(#{valores.join ' '})#{format('%+d', suma)}</code>\n"
+                 end
+
+        texto << "resultado: <code>#{valores.inject(&:+) + suma}</code>"
 
         @tg.send_message(
             chat_id: msj.chat.id,
-            text: "<code>#{valores.join(' ')}</code>",
+            text: texto,
             parse_mode: :html
         )
     end
