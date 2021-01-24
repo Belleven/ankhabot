@@ -358,6 +358,10 @@ class Dankie
                 end
 
         [delta, 0.001].max
+    rescue TypeError
+        @logger.error "Error calcular_delta_rep:\n"\
+            "delta: #{delta}, rep1: #{rep1}, rep2: #{rep2}"
+        raise
     end
 
     def delta_rep_cociente(rep1, rep2, rango)
