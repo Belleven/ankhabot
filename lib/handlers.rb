@@ -121,6 +121,7 @@ module Handler
 
         def verificar(_bot, msj)
             return unless msj.is_a? Telegram::Bot::Types::Message
+            return unless @chats_permitidos.include?(msj.chat.type)
 
             @tipos.each do |tipo|
                 atributo = msj.send tipo
