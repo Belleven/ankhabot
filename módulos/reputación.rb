@@ -58,9 +58,9 @@ class Dankie
 
     def cambiar_rep(msj)
         # Δrep: 1  si max - min = 0
-        #                                   |rep1 - min|
-        #       1 + log(1 + rep1 - rep2) * -------------- sí rep1 >= rep2
-        #                                   |max - min|
+        #                                      |rep1 - min|
+        #       (1 + log(1 + rep1 - rep2) ) * -------------- sí rep1 >= rep2
+        #                                      |max - min|
         #
         #       |rep1 + (max - min)|
         #       --------------------    si rep1 < rep2
@@ -310,7 +310,7 @@ class Dankie
     def disparadores_regexp(clave, cambio, texto)
         @redis.smembers(format(clave, tipo: 'regexp', cambio: cambio)).each do |d|
             Timeout.timeout(0.05) do
-                return cambio == 'más' ? 1 : -1 if texto =~ /#{d}/i
+                return cambio == 'más' ? 1 : -1 if /#{d}/i.match?(texto)
             rescue Timeout::Error
                 # Borrar coso
             end
@@ -358,6 +358,10 @@ class Dankie
                 end
 
         [delta, 0.001].max
+    rescue TypeError
+        @logger.error "Error calcular_delta_rep:\n"\
+            "delta: #{delta}, rep1: #{rep1}, rep2: #{rep2}"
+        raise
     end
 
     def delta_rep_cociente(rep1, rep2, rango)
@@ -365,7 +369,7 @@ class Dankie
     end
 
     def delta_rep_log(rep1, rep2, rango)
-        1 + Math.log(1 + rep1 - rep2) *
+        (1 + Math.log(1 + rep1 - rep2)) *
             ((rep1 - rango.min) / (rango.max - rango.min)).abs
     end
 
@@ -505,7 +509,7 @@ class Dankie
                     format(
                         "\n<b>%<sig>s</b> <code>%<texto>s</code>",
                         sig: fila[:signo] == 'más' ? '+' : '-',
-                        texto: fila[:texto]
+                        texto: html_parser(fila[:texto])
                     )
                 end,
                 conjunto_iterable: arreglo_disparadores(chat_id, tipo),

@@ -206,7 +206,7 @@ class Dankie
         end
 
         armar_gráfico(
-            tipo: Gruff::Area,
+            tipo: Gruff::Line,
             título: 'Mensajes recibidos y enviados',
             desde: desde,
             saltos: saltos,
@@ -311,13 +311,13 @@ class Dankie
     end
 
     def gráfico_tiempo_procesado(desde, intervalo, forzar_sobreescribir: false)
-        nombre = nombre_temporal_estadísticas('tiempo_procesado_loop', desde, intervalo)
+        nombre = nombre_temporal_estadísticas('tiempo_loop', desde, intervalo)
         return nombre if !forzar_sobreescribir && File.exist?(nombre)
 
         hasta = Time.now.to_i
 
         # Busco el primer dato no nulo
-        while Estadísticas::Temporizador.obtener_tiempos('tiempo_procesado_loop',
+        while Estadísticas::Temporizador.obtener_tiempos('tiempo_loop',
                                                          hora: desde).promedio.zero?
             desde += intervalo
             break if desde >= hasta # No vaya a ser que me quede encerrado en el bucle xd
@@ -330,7 +330,7 @@ class Dankie
 
         (desde..hasta).step(saltos).each_cons(2) do |hora, siguiente|
             valores = (hora..(siguiente - intervalo)).step(intervalo).map do |h|
-                Estadísticas::Temporizador.obtener_tiempos('tiempo_procesado_loop',
+                Estadísticas::Temporizador.obtener_tiempos('tiempo_loop',
                                                            hora: h,
                                                            intervalo: intervalo)
             end
@@ -378,6 +378,11 @@ class Dankie
     def armar_gráfico(params)
         gráfico = params[:tipo].new
         gráfico.theme_pastel
+        if gráfico.respond_to?(:show_vertical_markers=)
+            gráfico.show_vertical_markers = true
+        end
+        gráfico.bottom_margin = 25
+        gráfico.no_data_message = "No hay datos\n(#{params[:título]})"
         gráfico.font = 'DejaVu Sans Mono'
         gráfico.title = params[:título]
         gráfico.labels = generar_hash_labels(

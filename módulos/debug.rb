@@ -4,19 +4,22 @@ class Dankie
     def debug(msj)
         return unless validar_desarrollador(msj.from.id, msj.chat.id, msj.message_id)
 
-        texto = "{\n"
-        acomodar_texto_iterable!(msj.datos_crudos, texto, 1)
-        texto << '}'
-
         @tg.send_message(
             chat_id: msj.chat.id,
-            text: texto,
+            text: debug_bonita(msj.datos_crudos),
             disable_web_page_preview: true,
             disable_notification: true
         )
     end
 
     private
+
+    def debug_bonita(datos_crudos)
+        texto = "{\n"
+        acomodar_texto_iterable!(datos_crudos, texto, 1)
+        texto << '}'
+        texto
+    end
 
     def acomodar_texto_iterable!(iterable, texto, profundidad)
         tabs = ' ' * 4 * profundidad

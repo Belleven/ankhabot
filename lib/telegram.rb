@@ -116,7 +116,14 @@ class TelegramAPI
     end
 
     def answer_callback_query(args)
-        enviar :answer_callback_query, args
+        @client.api.answer_callback_query args
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        case e.message
+        when /query is too old and response timeout expired or query ID is invalid/
+            # No hacer nada LEL
+        else
+            raise e
+        end
     end
 
     def delete_message(args)
@@ -178,7 +185,6 @@ class TelegramAPI
     rescue Telegram::Bot::Exceptions::ResponseError => e
         if e.error_code.to_i == 400
             analizar_excepción_400_enviar(args, e)
-
             retry
         else
             # Esto es para poder loggear el chat_id y luego hace raise para que no
@@ -189,18 +195,18 @@ class TelegramAPI
     end
 
     def analizar_excepción_400_enviar(args, exc)
-        if exc.message.include?('reply message not found')
+        case exc.message
+        when /reply message not found'/
             @client.logger.error('No puedo responder a un mensaje '\
                                     "borrado (ID: #{args[:reply_to_message_id]}) "\
                                     "en #{args[:chat_id]}. Error:\n#{exc.message}")
-        elsif exc.message.include?('group chat was upgraded to a supergroup chat')
+        when /group chat was upgraded to a supergroup chat/
             corte_al_inicio = exc.message.split('{"migrate_to_chat_id"=>').last
             id_supergrupo = corte_al_inicio.split('}').first
 
             @client.logger.error("Error en #{args[:chat_id]}. El grupo se "\
                                  'actualizó y ahora es un supergrupo '\
-                                 "(#{id_supergrupo}).\n#{exc.message}",
-                                 al_canal: true)
+                                 "(#{id_supergrupo}).\n#{exc.message}")
             args[:chat_id] = id_supergrupo.to_i
         else
             raise
