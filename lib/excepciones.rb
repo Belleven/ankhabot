@@ -33,6 +33,9 @@ class ManejoExcepciones
         false
     end
 
+    # Si pongo manejado = false es para que loggee la excepción con el backtrace
+    # Tener en cuenta que hay muchas que no se loggean en el canal por spamosas
+
     def manejar_error_400(mensaje_error, chat, args)
         manejado = true
 
@@ -74,15 +77,18 @@ class ManejoExcepciones
 
         case mensaje_error
         when /PEER_ID_INVALID/
-            @logger.fatal("Le quise mandar un mensaje privado #{chat}"\
-                          ' a alguien que no me habló primero o me bloqueó.',
-                          al_canal: true)
-            manejado = false
+            @logger.fatal('Error extraño que indica que no puedo mandar mensajes a '\
+                          'ese chat, en general es cuando el bot le habla por privado '\
+                          'a alguien que nunca le habló o que lo bloqueó, pero puede '\
+                          'saltar en grupos comunes también '\
+                          "aparentemente: #{mensaje_error}")
+        when /CHAT_SEND_GIFS_FORBIDDEN/
+            @logger.fatal("Quise mandar un gif #{chat} a "\
+                          "pero parece que está prohibido: #{mensaje_error}")
         when /chat not found/
             @logger.fatal("Quise mandar un mensaje #{chat} pero parece que el "\
                           'chat no existe o fue brutalmente DOMADO y ULTRAJADO '\
-                          'por telegram', al_canal: true)
-            manejado = false
+                          'por telegram')
         when /CHANNEL_PRIVATE/
             @logger.fatal('Error que todavía no se por que pasa pero tengo un '\
                           "problema al mandar mensajes (id: #{chat}).")
@@ -119,10 +125,8 @@ class ManejoExcepciones
         when /user is deactivated/
             @logger.error("Error en #{chat}. No puedo hablar por privado con cuentas "\
                           "eliminadas.\n#{mensaje_error}")
-            manejado = false
         when /bot was blocked by the user/
             @logger.error("Error en #{chat}. Ese usuario me bloqueó.")
-            manejado = false
         when /CHAT_WRITE_FORBIDDEN/
             @logger.error("No puedo mandar mensajes en #{chat}.")
         else
