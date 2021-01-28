@@ -23,7 +23,8 @@ class Dankie
                             (bot\ is\ not\ a\ member\ of\ the\ channel\ chat)|
                             (bot\ was\ kicked\ from\ the\ channel\ chat)|
                             (group\ chat\ was\ deactivated)|
-                            (user\ is\ deactivated)/x
+                            (user\ is\ deactivated)|
+                            (bot\ can't\ send\ messages\ to\ bots)/x
 
         regexp_no_responder = /(have\ no\ rights\ to\ send\ a\ message)|
                                (have\ no\ write\ access\ to\ the\ chat)|
@@ -38,7 +39,7 @@ class Dankie
                         'comando /configuraciones (en la parte de "habilitar '\
                         "anuncios\")\n\n#{params}"
 
-        # Recorro todos los grupos en la db y les envio el mensaje
+        # Recorro todos los chats en la db y les envio el mensaje
         %w[channel private group supergroup].each do |tipo|
             @redis.smembers("chat:#{tipo}:activos").each do |chat_id_activo|
                 # Me fijo si esta habilitado el anuncio o es un privado
@@ -56,8 +57,17 @@ class Dankie
                 if regexp_eliminado.match? e.message
                     remover_chat_activo(chat_id_activo, tipo)
                 elsif !regexp_no_responder.match? e.message
-                    @logger.error("Error anunciando:\n#{e}", al_canal: true)
+                    @logger.error(
+                        "Error de telegram anunciando en #{chat_id_activo}:\n#{e}",
+                        al_canal: true
+                    )
                 end
+
+            rescue StandardError => e
+                @logger.error(
+                    "Error DESCONOCIDO anunciando en #{chat_id_activo}:\n#{e}",
+                    al_canal: true
+                )
             end
         end
 
