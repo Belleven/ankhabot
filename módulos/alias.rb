@@ -54,7 +54,7 @@ class Dankie
     private
 
     def obtener_id_de_alias(alias_usuario)
-        @redis.get("id:#{alias_usuario}").to_i
+        @redis.get("id:#{alias_usuario}")
     end
 
     def obtener_alias_de_id(id_usuario)
