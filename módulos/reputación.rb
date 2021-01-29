@@ -351,6 +351,10 @@ class Dankie
         rep1 = @redis.zscore("rep:#{msj.chat.id}", msj.from.id) || 0
         rep2 = @redis.zscore("rep:#{msj.chat.id}", msj.reply_to_message.from.id) || 0
 
+        # Me aseguro de que rango tome 0 en caso de que rango no contemple 0
+        # (es el caso donde un usuario no tiene reputación asignada y le asigna 0)
+        rango << rep1 << rep2
+
         delta = if rep1 < rep2
                     delta_rep_cociente(rep1, rep2, rango)
                 else
@@ -358,10 +362,6 @@ class Dankie
                 end
 
         [delta, 0.001].max
-    rescue TypeError
-        @logger.error "Error calcular_delta_rep:\n"\
-            "delta: #{delta}, rep1: #{rep1}, rep2: #{rep2}"
-        raise
     end
 
     def delta_rep_cociente(rep1, rep2, rango)
@@ -450,6 +450,7 @@ class Dankie
         @tg.edit_message_text(
             chat_id: callback.message.chat.id,
             reply_markup: opciones,
+            parse_mode: :html,
             message_id: callback.message.message_id,
             text: texto
         )
@@ -501,7 +502,7 @@ class Dankie
             contador = arreglo_tablero(
                 arr: arr,
                 título: "<b>Lista de disparadores del grupo</b>\n",
-                contador: contador,
+                contador: contador || 0,
                 max_cant: 30,
                 max_tam: 1000,
                 inicio_en_subtítulo: true,
