@@ -3,8 +3,7 @@ class Dankie
 
     private
 
-    ADVERTENCIA_NSFW = 'AgACAgQAAx0CSSYxEwABET8GX8BG8iQwKpLZgwGLfJrVY-jQkJ4AAgmrMRujPB'\
-                       'RQwRf4FTTSWGm-q3ojXQADAQADAgADeAADdkMDAAEeBA'.freeze
+    ADVERTENCIA_NSFW = 'https://i.imgur.com/I7buUmr.jpg'.freeze
 
     def arreglo_tablero(params)
         conjunto_iterable = params[:conjunto_iterable]
