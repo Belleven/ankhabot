@@ -81,13 +81,18 @@ class Dankie
         usuario = obtener_enlace_usuario(callback.from, callback.chat_instance) || 'dou'
         texto = "Anuncio #{resultado} por #{usuario} (#{callback.from.id})."
 
+        # Si falla al editar el tablero no hay mucho por hacer, pero le pongo
+        # ignorar_excepciones_telegram: true para que termine sin romper porque
+        # realmente no hace falta que rompa total la excepción ya está loggeada
         @tg.edit_message_text(
             chat_id: callback.message.chat.id,
             parse_mode: :html,
             text: texto,
             message_id: callback.message.message_id,
             disable_web_page_preview: true,
-            disable_notification: true
+            disable_notification: true,
+            callback: callback,
+            ignorar_excepciones_telegram: true
         )
     end
 

@@ -446,15 +446,9 @@ class Dankie
         borrado = []
         @redis.rpush "spam:#{id_chat}", id_mensaje
         while @redis.llen("spam:#{id_chat}") > 24
-            begin
-                id_borrar = @redis.lpop("spam:#{id_chat}").to_i
-                borrado << @tg.delete_message(chat_id: id_chat, message_id: id_borrar)
-            rescue Telegram::Bot::Exceptions::ResponseError => e
-                @logger.warn('No pude borrar un mensaje. '\
-                             "mensaje: #{id_borrar}, chat: #{id_chat}, "\
-                             "error: #{e.message}",
-                             al_canal: false)
-            end
+            id_borrar = @redis.lpop("spam:#{id_chat}").to_i
+            borrado << @tg.delete_message(chat_id: id_chat, message_id: id_borrar,
+                                          ignorar_excepciones_telegram: true)
         end
         borrado
     end

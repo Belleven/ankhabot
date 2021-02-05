@@ -67,12 +67,12 @@ class ManejoExcepciones
                 "(id chat: #{chat})."
             )
         else
-            manejado = manejar_error_400_casos_extraños(mensaje_error, chat, id_mensaje)
+            manejado = manejar_error_400_parte_2(mensaje_error, chat, id_mensaje)
         end
         manejado
     end
 
-    def manejar_error_400_casos_extraños(mensaje_error, chat, _id_mensaje)
+    def manejar_error_400_parte_2(mensaje_error, chat, _id_mensaje)
         manejado = true
 
         case mensaje_error
@@ -99,6 +99,8 @@ class ManejoExcepciones
         when /user is deactivated/
             @logger.fatal('Le intenté hablar por privado a una '\
                           "cuenta eliminada (id: #{chat}).")
+        when /message to edit not found/
+            @logger.fatal("Borraron el mensaje que iba a editar #{chat}")
         else
             manejado = false
         end
