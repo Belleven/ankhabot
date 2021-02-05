@@ -170,18 +170,20 @@ class Dankie
             return
         end
 
-        @redis.mapped_hmset("disparador_temp:#{id_mensaje}",
-                            id_usuario: id_usuario, cambio: cambio, tipo: tipo,
-                            id_chat: id_chat)
-        @redis.expire("disparador_temp:#{id_mensaje}", 172_800) # dos días en segundos
-
+        # Si explota al editar el mensaje dejarlo morir así no se edita la db al pedo
         @tg.edit_message_text(
+            callback: callback,
             chat_id: id_chat,
             message_id: id_mensaje,
             parse_mode: :html,
             text: texto + "Tipo de match: <b>#{TIPOS_DE_MATCH[tipo.to_sym]}</b>\n" +
                   html_parser('Respondeme a este mensaje con el texto >w<')
         )
+
+        @redis.mapped_hmset("disparador_temp:#{id_mensaje}",
+                            id_usuario: id_usuario, cambio: cambio, tipo: tipo,
+                            id_chat: id_chat)
+        @redis.expire("disparador_temp:#{id_mensaje}", 172_800) # dos días en segundos
     end
 
     def añadir_disparador(msj)
@@ -446,13 +448,15 @@ class Dankie
             end
         )
 
-        @tg.answer_callback_query(callback_query_id: callback.id)
+        # Si explota acá ignoro las excepciones total se termina la ejecución
         @tg.edit_message_text(
+            callback: callback,
             chat_id: callback.message.chat.id,
             reply_markup: opciones,
             parse_mode: :html,
             message_id: callback.message.message_id,
-            text: texto
+            text: texto,
+            ignorar_excepciones_telegram: true
         )
     end
 

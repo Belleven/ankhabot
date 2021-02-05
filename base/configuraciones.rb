@@ -48,12 +48,16 @@ class Dankie
         when 'cerrar_config'
             chat_id = callback.message.chat.id
             respuesta, _opciones = obtener_mensaje_configuraciones(chat_id)
+            # Si falla al editar el mensaje como el método termina de ejecutarse
+            # no molesta que tire la excepción, pero igual no le pongo
+            # ignorar_excepciones_telegram: true para que no loggee la excepción molesta
             @tg.edit_message_text(chat_id: chat_id,
                                   parse_mode: :html,
                                   text: respuesta,
                                   message_id: callback.message.message_id,
                                   disable_web_page_preview: true,
-                                  disable_notification: true)
+                                  disable_notification: true,
+                                  callback: callback)
             return
         end
 
@@ -117,12 +121,16 @@ class Dankie
         categoría = match[:categoria].split('_')[1..].join(' ').capitalize
         opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new inline_keyboard: arr
 
+        # No molesta si rompe acá porque se termina la ejecución justo después, pero
+        # le pongo ignorar_excepciones_telegram: true para que termine bien
         @tg.edit_message_text(
             chat_id: callback.message.chat.id,
             parse_mode: :html,
             text: "Editando: <b>#{categoría}</b>",
             reply_markup: opciones,
-            message_id: callback.message.message_id
+            message_id: callback.message.message_id,
+            callback: callback,
+            ignorar_excepciones_telegram: true
         )
     end
 
@@ -150,12 +158,16 @@ class Dankie
     end
 
     def editar_mensaje_tablero_modificar_config(id_grupo, texto, callback, options)
+        # No molesta si rompe acá porque se termina la ejecución justo después,
+        # pero no le pongo ignorar_excepciones_telegram: true para que no loggee la
+        # excepción molesta
         @tg.edit_message_text(
             chat_id: id_grupo,
             parse_mode: :html,
             text: texto,
             message_id: callback.message.message_id,
-            reply_markup: options
+            reply_markup: options,
+            callback: callback
         )
     rescue Telegram::Bot::Exceptions::ResponseError => e
         if e.message =~ /message is not modified/

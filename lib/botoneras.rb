@@ -45,7 +45,7 @@ class Dankie
     end
 
     # Método que manda una botonera preguntando si se quiere enviar un nsfw.
-    # Devuelve el id del mensaje, o false si no pudo enviar.
+    # Devuelve el id del mensaje, o nil si no pudo enviar.
     # Uno tiene que hacer su propio handler con el prefijo pasado.
     def preguntar_nsfw(id_chat, id_usuario, prefijo_callback)
         arr = %w[Mostrar Borrar]
@@ -62,10 +62,9 @@ class Dankie
                                             '¿Ver de todas formas?',
                                    photo: ADVERTENCIA_NSFW,
                                    reply_markup: botones)
-        return false unless respuesta
+        return unless respuesta
 
         respuesta = Telegram::Bot::Types::Message.new respuesta['result']
-
         respuesta.message_id
     end
 end
