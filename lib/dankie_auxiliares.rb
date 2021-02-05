@@ -287,6 +287,7 @@ class Dankie
                 text: error_no_permisos,
                 reply_to_message_id: msj.message_id
             )
+            return false
         end
         true
     end
