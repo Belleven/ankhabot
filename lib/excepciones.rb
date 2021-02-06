@@ -83,7 +83,10 @@ class ManejoExcepciones
                           'saltar en grupos comunes también '\
                           "aparentemente: #{mensaje_error}")
         when /CHAT_SEND_GIFS_FORBIDDEN/
-            @logger.fatal("Quise mandar un gif #{chat} a "\
+            @logger.fatal("Quise mandar un gif #{chat} "\
+                          "pero parece que está prohibido: #{mensaje_error}")
+        when /CHAT_SEND_MEDIA_FORBIDDEN/
+            @logger.fatal("Quise mandar multimedia #{chat} "\
                           "pero parece que está prohibido: #{mensaje_error}")
         when /chat not found/
             @logger.fatal("Quise mandar un mensaje #{chat} pero parece que el "\
