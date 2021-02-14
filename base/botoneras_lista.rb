@@ -108,7 +108,7 @@ class Dankie
             @tg.answer_callback_query(callback_query_id: callback.id)
             return false
         # valido id_usuario y que sea editable
-        elsif id_usuario.to_i != callback.from.id && metadatos[:editable_por] == 'dueño'
+        elsif id_usuario != callback.from.id && metadatos[:editable_por] == 'dueño'
             @tg.answer_callback_query(
                 callback_query_id: callback.id,
                 text: "Pedite tu propia lista, #{TROESMAS.sample}."
