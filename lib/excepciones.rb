@@ -72,7 +72,7 @@ class ManejoExcepciones
         manejado
     end
 
-    def manejar_error_400_parte_2(mensaje_error, chat, _id_mensaje)
+    def manejar_error_400_parte_2(mensaje_error, chat, id_mensaje)
         manejado = true
 
         case mensaje_error
@@ -101,9 +101,22 @@ class ManejoExcepciones
             @logger.fatal("Error: chat restringido (id: #{chat}).")
         when /user is deactivated/
             @logger.fatal('Le intenté hablar por privado a una '\
-                          "cuenta eliminada (id: #{chat}).")
+                          "cuenta eliminada #{chat}.")
+        else
+            manejado = manejar_error_400_parte_3(mensaje_error, chat, id_mensaje)
+        end
+        manejado
+    end
+
+    def manejar_error_400_parte_3(mensaje_error, chat, _id_mensaje)
+        manejado = true
+
+        case mensaje_error
         when /message to edit not found/
             @logger.fatal("Borraron el mensaje que iba a editar #{chat}")
+        when /MESSAGE_ID_INVALID/
+            @logger.fatal('Extraño error con el id mensaje, no sabemos por qué salta '\
+                          "todavía #{chat}: #{mensaje_error}")
         else
             manejado = false
         end
