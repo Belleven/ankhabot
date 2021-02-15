@@ -159,8 +159,9 @@ class Dankie
             if valores[:alias]
                 @tg.send_message(
                     chat_id: msj.chat.id,
-                    text: 'No reconozco este alias POR AHORA',
-                    reply_to_message_id: msj.message_id
+                    reply_to_message_id: msj.message_id,
+                    text: 'O no existe nadie con ese alias o no tuve contacto con '\
+                          'esa persona POR AHORA'
                 )
             else
                 @tg.send_message(
@@ -231,6 +232,7 @@ class Dankie
         # cambie su alias y que el bot no se de cuenta porque no le llega ninguna
         # update donde se refleje, y no queremos banear a la persona incorrecta.
         miembro ||= obtener_miembro(msj, id_afectada)
+        return false unless miembro
         return miembro.user if miembro&.user&.username == alias_id
 
         @tg.send_message(

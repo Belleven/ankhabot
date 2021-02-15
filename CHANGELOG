@@ -1,5 +1,11 @@
-Versión 1.3.1
+Versión 1.3.2
 -comando /donaciones para colaborar con mi mantenimiento uwu
+-comando /dolar corregido
+-reputación ya no crece de forma absurda a infinito
+-arreglado /escuchando
+-correcciones menores de bugazazos
+
+Versión 1.3.1
 -comando /dolar
 -comando /roll rediseñado
 -arreglado bugazo que rompía cuando cerraban encuestas

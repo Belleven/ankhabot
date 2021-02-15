@@ -76,7 +76,7 @@ class Dankie
     end
 
     def escuchando(msj, args)
-        unless args || @redis.get("lastfm:#{msj.from.id}")
+        unless (usuario = args || @redis.get("lastfm:#{msj.from.id}"))
             @tg.send_message(
                 chat_id: msj.chat.id,
                 reply_to_message_id: msj.message_id,
@@ -87,7 +87,7 @@ class Dankie
         end
 
         begin
-            temazo = @lastfm.user.get_recent_tracks(user: args, limit: 1)
+            temazo = @lastfm.user.get_recent_tracks(user: usuario, limit: 1)
         rescue StandardError => e
             @logger.error e.to_s
             @tg.send_message(
@@ -99,7 +99,7 @@ class Dankie
             return
         end
 
-        validaciones_escuchando(temazo, msj)
+        return unless validaciones_escuchando(temazo, msj)
 
         # El primer tema.
         temazo = temazo.dig 'recenttracks', 'track', 0
@@ -202,8 +202,11 @@ class Dankie
         # Si no escuchó ningún tema.
         return true unless temazo.dig('recenttracks', '@attr', 'total').to_i.zero?
 
-        @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
-                         text: "No escuchaste nada, #{TROESMAS.sample}.")
+        @tg.send_message(
+            chat_id: msj.chat.id,
+            reply_to_message_id: msj.message_id,
+            text: "El usuario que me pasaste no escuchó nada, #{TROESMAS.sample}."
+        )
 
         false
     end

@@ -198,7 +198,7 @@ class Dankie
         when 'mention'
             # La entidad arranca con un @, por eso el 1..
             resultado[:alias] = texto_entidad[1..].strip
-            resultado[:id] = obtener_id_de_alias(resultado[:alias])
+            resultado[:id] = obtener_id_de_alias(resultado[:alias])&.to_i
         when 'text_mention'
             resultado[:id] = entidad.user.id
             resultado[:usuario] = entidad.user
@@ -287,6 +287,7 @@ class Dankie
                 text: error_no_permisos,
                 reply_to_message_id: msj.message_id
             )
+            return false
         end
         true
     end
@@ -446,15 +447,9 @@ class Dankie
         borrado = []
         @redis.rpush "spam:#{id_chat}", id_mensaje
         while @redis.llen("spam:#{id_chat}") > 24
-            begin
-                id_borrar = @redis.lpop("spam:#{id_chat}").to_i
-                borrado << @tg.delete_message(chat_id: id_chat, message_id: id_borrar)
-            rescue Telegram::Bot::Exceptions::ResponseError => e
-                @logger.warn('No pude borrar un mensaje. '\
-                             "mensaje: #{id_borrar}, chat: #{id_chat}, "\
-                             "error: #{e.message}",
-                             al_canal: false)
-            end
+            id_borrar = @redis.lpop("spam:#{id_chat}").to_i
+            borrado << @tg.delete_message(chat_id: id_chat, message_id: id_borrar,
+                                          ignorar_excepciones_telegram: true)
         end
         borrado
     end

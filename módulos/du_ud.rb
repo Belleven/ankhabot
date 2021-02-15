@@ -2,49 +2,63 @@ require 'json'
 require 'httpclient'
 
 class Dankie
-    add_handler Handler::Comando.new(:du, :diccionario_urbano,
-                                     descripción:
-                                    'Busco una definición en Urban Dictionary '\
-                                    '(en vez de /du, también podés usar /ud ' \
-                                     'o /urban)',
-                                     permitir_params: true,
-                                     disable_notification: true)
-    add_handler Handler::Comando.new(:ud, :diccionario_urbano,
-                                     permitir_params: true,
-                                     disable_notification: true)
-    add_handler Handler::Comando.new(:urban, :diccionario_urbano,
-                                     permitir_params: true,
-                                     disable_notification: true)
+    add_handler Handler::Comando.new(
+        :du,
+        :diccionario_urbano,
+        permitir_params: true,
+        descripción: 'Busco una definición en Urban Dictionary (en vez de /du, '\
+                     'también podés usar /ud o /urban)'
+    )
+
+    add_handler Handler::Comando.new(
+        :ud,
+        :diccionario_urbano,
+        permitir_params: true
+    )
+
+    add_handler Handler::Comando.new(
+        :urban,
+        :diccionario_urbano,
+        permitir_params: true
+    )
 
     def diccionario_urbano(msj, params)
         # Caso input vacía.
-        return respuesta_error_ud(msj.chat.id, 'Tirame algo') if params.nil?
+        if params.nil?
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                text: "Tirame algo, #{TROESMAS.sample}."
+            )
+            return
+        end
 
         # Tomo el mensaje de entrada y busco una definición.
-        diccionario = DiccionarioUrbano.new
-        búsqueda = diccionario.búsqueda(params)
-        # Caso búsqueda sin resultados, ya sea porque no existe la
-        # definición, o porque el UD está caído, hasta donde pude
-        # comprobar, si el UD está caído, búsqueda debería
-        # ser un objeto nil.
+        @dicc_urbano ||= DiccionarioUrbano.new
+        búsqueda = @dicc_urbano.búsqueda(params)
+
+        # Caso búsqueda sin resultados, ya sea porque no existe la definición, o porque
+        # el UD está caído, hasta donde pude comprobar, si el UD está caído, búsqueda
+        # debería ser un objeto nil.
         if búsqueda.nil?
-            return respuesta_error_ud(msj.chat.id,
-                                      'Mmmm, puede ser que esté caído el UD ')
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                text: "Mmmm, puede ser que esté caído el UD, #{TROESMAS.sample}."
+            )
+            return
+        elsif búsqueda.empty?
+            @tg.send_message(chat_id: msj.chat.id, text: "Ay no c, #{TROESMAS.sample}.")
+            return
         end
-        return respuesta_error_ud(msj.chat.id, 'Ay no c') if búsqueda.empty?
 
         # La búsqueda viene como un array con varias definiciones,
         # esta función se encarga de agrupar todo de manera coherente.
-        búsqueda = ordenar_resultados(búsqueda)
+        búsqueda = ordenar_resultados_urban_dict(búsqueda)
         mandar_botonera(msj, búsqueda)
     end
 
-    def respuesta_error_ud(id, text)
-        @tg.send_message(chat_id: id,
-                         text: "#{text}, #{TROESMAS.sample}.")
-    end
+    private
 
-    def ordenar_resultados(búsqueda)
+    def ordenar_resultados_urban_dict(búsqueda)
         # Ordeno según upvotes.
         búsqueda.sort_by! do |resultado|
             -resultado.upvotes
@@ -65,64 +79,53 @@ class Dankie
             "#{bajivotos}|<a href=\"#{dirección}\">link</a>"
         end
     end
+end
 
-    class DiccionarioUrbano
-        URL = 'http://api.urbandictionary.com/v0/define'.freeze
-        def inicialize; end
+class DiccionarioUrbano
+    URL = 'http://api.urbandictionary.com/v0/define'.freeze
 
-        def búsqueda(palabra)
-            params = { term: palabra }
+    def inicialize; end
 
-            @cliente = comprobar_estado_cliente
-            respuesta = JSON.parse(@cliente.get(URI.parse(URL), params).body)
-            procesar_respuesta(respuesta)
-        end
-
-        private
-
-        def procesar_respuesta(respuesta)
-            res = []
-            lista = respuesta['list']
-            return res if lista.nil?
-
-            lista.each do |entrada|
-                res << Entrada.new(entrada)
-            end
-            res
-        end
-
-        def comprobar_estado_cliente
-            @cliente = HTTPClient.new if @cliente.nil?
-            @cliente
-        end
+    def búsqueda(palabra)
+        params = { term: palabra }
+        respuesta = JSON.parse(HTTPClient.new.get(URI.parse(URL), params).body)
+        procesar_respuesta(respuesta)
     end
 
-    class Entrada
-        attr_reader :id, :word, :author, :permalink, :definition, :example, :upvotes,
-                    :downvotes
+    private
 
-        def initialize(opts = {})
-            @id = opts['defid'] || opts[:defid]
-            @word = opts['word'] || opts[:word]
-            @author = opts['author'] || opts[:author]
-            @permalink = opts['permalink'] || opts[:permalink]
-            @definition = opts['definition'] || opts[:definition]
-            @example = opts['example'] || opts[:example]
-            @upvotes = opts['thumbs_up'] || opts[:thumbs_up]
-            @downvotes = opts['thumbs_down'] || opts[:thumbs_down]
-        end
+    def procesar_respuesta(respuesta)
+        return [] unless (lista = respuesta['list'])
 
-        def to_h
-            {
-                id: @id,
-                word: @word,
-                author: @author,
-                permalink: @permalink,
-                definition: @definition,
-                example: @example,
-                upvotes: @upvotes,
-                downvotes: @downvotes
-            }
-        end
+        lista.map { |entrada| Entrada.new(entrada) }
+    end
+end
+
+class Entrada
+    attr_reader :id, :word, :author, :permalink, :definition, :example, :upvotes,
+                :downvotes
+
+    def initialize(opts = {})
+        @id = opts['defid'] || opts[:defid]
+        @word = opts['word'] || opts[:word]
+        @author = opts['author'] || opts[:author]
+        @permalink = opts['permalink'] || opts[:permalink]
+        @definition = opts['definition'] || opts[:definition]
+        @example = opts['example'] || opts[:example]
+        @upvotes = opts['thumbs_up'] || opts[:thumbs_up]
+        @downvotes = opts['thumbs_down'] || opts[:thumbs_down]
+    end
+
+    def to_h
+        {
+            id: @id,
+            word: @word,
+            author: @author,
+            permalink: @permalink,
+            definition: @definition,
+            example: @example,
+            upvotes: @upvotes,
+            downvotes: @downvotes
+        }
     end
 end

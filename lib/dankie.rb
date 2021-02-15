@@ -94,7 +94,6 @@ class Dankie
         inicializar_apis_externas args
 
         Telegram::Bot::Types::Base.attr_accessor :datos_crudos
-
         return unless /\A--(no|s(in|altear))-updates\z/i.match? ARGV.first
 
         @redis.set('datos_bot:id_actualización_inicial', -1)
