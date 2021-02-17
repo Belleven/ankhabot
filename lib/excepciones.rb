@@ -153,6 +153,24 @@ class ManejoExcepciones
         manejado
     end
 
+    def manejar_error_409(mensaje_error, _chat, _args)
+        manejado = true
+
+        case mensaje_error
+        when /terminated\ by\ other\ getUpdates\ request;
+             \ make\ sure\ that\ only\ one\ bot\ instance\ is\ running/x
+            @logger.fatal(
+                'Error turbina de telegram, parece que detecta como que hay dos '\
+                'o más instancias de dankie corriendo a la vez al hacer get_updates '\
+                "en el bucle principal.\n#{mensaje_error}",
+                al_canal: true
+            )
+        else
+            manejado = false
+        end
+        manejado
+    end
+
     def manejar_error_429(mensaje_error, chat, _args)
         manejado = true
 

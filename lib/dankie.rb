@@ -135,18 +135,19 @@ class Dankie
             procesando = false
 
             return apagar_bot if apagar_programa
+
+        rescue Faraday::ConnectionFailed, Faraday::TimeoutError,
+               HTTPClient::ReceiveTimeoutError, Net::OpenTimeout => e
+            @logger.fatal "Error de conección, no hay internés: #{e.class}"
+            return apagar_bot if apagar_programa
+
+            retry
+        rescue StandardError => e
+            manejar_excepción_asesina(e)
+            return apagar_bot if apagar_programa
+
+            retry
         end
-    rescue Faraday::ConnectionFailed, Faraday::TimeoutError,
-           HTTPClient::ReceiveTimeoutError, Net::OpenTimeout => e
-        @logger.fatal "Error de conección, no hay internés: #{e.class}", al_canal: false
-        return apagar_bot if apagar_programa
-
-        retry
-    rescue StandardError => e
-        manejar_excepción_asesina(e)
-        return apagar_bot if apagar_programa
-
-        retry
     end
 
     def obtener_comando(msj)
