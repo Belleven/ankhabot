@@ -32,13 +32,7 @@ class Dankie
             # Si hay parámetros, sobreescribo la cuenta actual.
             usuario = @lastfm.user.get_info user: params
         rescue StandardError => e
-            logger.error e.to_s, al_canal: true
-            @tg.send_message(
-                chat_id: msj.chat.id,
-                reply_to_message_id: msj.message_id,
-                text: 'Saltó un error, probablemente pusiste mal tu usuario '\
-                      'o hay mala conexión.'
-            )
+            manejar_excepción_lastfm(msj, e)
             return
         end
 
@@ -89,13 +83,7 @@ class Dankie
         begin
             temazo = @lastfm.user.get_recent_tracks(user: usuario, limit: 1)
         rescue StandardError => e
-            @logger.error e.to_s
-            @tg.send_message(
-                chat_id: msj.chat.id,
-                reply_to_message_id: msj.message_id,
-                text: 'Saltó un error, probablemente pusiste mal tu usuario '\
-                      'o hay mala conexión.'
-            )
+            manejar_excepción_lastfm(msj, e)
             return
         end
 
@@ -234,13 +222,8 @@ class Dankie
         begin
             temas = @lastfm.user.get_recent_tracks(user: usuario, limit: cantidad)
         rescue StandardError => e
-            logger.error e.to_s
-            @tg.send_message(
-                chat_id: msj.chat.id,
-                reply_to_message_id: msj.message_id,
-                text: 'Saltó un error, probablemente pusiste mal tu usuario '\
-                      'o hay mala conexión.'
-            )
+            manejar_excepción_lastfm(msj, e)
+            return
         end
 
         unless temas
@@ -318,5 +301,21 @@ class Dankie
                  end
 
         texto
+    end
+
+    def manejar_excepción_lastfm(msj, exc)
+        exc = exc.to_s
+        json_error = JSON.parse(exc)
+
+        case json_error['message']
+        when 'User not found'
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                reply_to_message_id: msj.message_id,
+                text: 'El usuario de lastfm que me diste es inválido'
+            )
+        else
+            logger.error exc, al_canal: true
+        end
     end
 end

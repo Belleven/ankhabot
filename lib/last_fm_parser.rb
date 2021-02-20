@@ -64,8 +64,7 @@ module LastFM
         end
 
         def camellizar(método)
-            método = método.to_s
-            palabras = método.split '_'
+            palabras = método.to_s.split '_'
             palabras.drop(1).each(&:capitalize!)
             palabras.join
         end
