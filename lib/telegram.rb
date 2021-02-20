@@ -227,6 +227,13 @@ class TelegramAPI
                 callback_query_id: callback.id,
                 text: 'Gomenasai, no tengo permisos para editar ese mensaje uwu'
             )
+        elsif %r{(wrong\ type\ of\ the\ web\ page\ content)|
+                 (wrong\ file\ identifier/HTTP\ URL\ specified)}x.match? e.message
+            @client.logger.error(
+                'Error al querer editar un mensaje con nueva multimedia de internet, '\
+                'esto es solo para los args que rompieron, después se va a relanzar '\
+                "la excepción.\nargs: #{args}"
+            )
         end
 
         raise unless args[:ignorar_excepciones_telegram]
@@ -237,17 +244,28 @@ class TelegramAPI
     def analizar_excepción_400_enviar(args, exc)
         case exc.message
         when /reply message not found/
-            @client.logger.error('No puedo responder a un mensaje '\
-                                    "borrado (ID: #{args[:reply_to_message_id]}) "\
-                                    "en #{args[:chat_id]}. Error:\n#{exc.message}")
+            @client.logger.error(
+                'No puedo responder a un mensaje borrado (ID: '\
+                "#{args[:reply_to_message_id]}) en #{args[:chat_id]}. "\
+                "Error:\n#{exc.message}"
+            )
         when /group chat was upgraded to a supergroup chat/
             corte_al_inicio = exc.message.split('{"migrate_to_chat_id"=>').last
             id_supergrupo = corte_al_inicio.split('}').first
 
-            @client.logger.error("Error en #{args[:chat_id]}. El grupo se "\
-                                 'actualizó y ahora es un supergrupo '\
-                                 "(#{id_supergrupo}).\n#{exc.message}")
+            @client.logger.error(
+                "Error en #{args[:chat_id]}. El grupo se actualizó y ahora es un "\
+                "supergrupo (#{id_supergrupo}).\n#{exc.message}"
+            )
             args[:chat_id] = id_supergrupo.to_i
+        when /wrong type of the web page content/,
+             %r{wrong file identifier/HTTP URL specified}
+            @client.logger.error(
+                'Error al querer mandar multimedia de internet, esto es solo para '\
+                "los args que rompieron, después se va a relanzar la excepción.\n"\
+                "args: #{args}"
+            )
+            raise
         else
             raise
         end

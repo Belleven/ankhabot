@@ -59,12 +59,11 @@ class ManejoExcepciones
         when /message to delete not found/
             @logger.error(
                 "Traté de borrar un mensaje (id mensaje: #{id_mensaje}) "\
-                "muy viejo (id chat: #{chat})."
+                "muy viejo #{chat}."
             )
         when /message can't be deleted/
             @logger.error(
-                "No pude borrar un mensaje (id mensaje: #{id_mensaje}) "\
-                "(id chat: #{chat})."
+                "No pude borrar un mensaje (id mensaje: #{id_mensaje}) #{chat}."
             )
         else
             manejado = manejar_error_400_parte_2(mensaje_error, chat, id_mensaje)
