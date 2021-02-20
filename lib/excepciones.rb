@@ -117,6 +117,8 @@ class ManejoExcepciones
         when /MESSAGE_ID_INVALID/
             @logger.fatal('Extraño error con el id mensaje, no sabemos por qué salta '\
                           "todavía #{chat}: #{mensaje_error}")
+        when /CHAT_WRITE_FORBIDDEN/ # esta aparece tambien con código de error 403
+            @logger.error("No puedo mandar mensajes #{chat}.")
         else
             manejado = false
         end
@@ -145,8 +147,8 @@ class ManejoExcepciones
                           "eliminadas.\n#{mensaje_error}")
         when /bot was blocked by the user/
             @logger.error("Error en #{chat}. Ese usuario me bloqueó.")
-        when /CHAT_WRITE_FORBIDDEN/
-            @logger.error("No puedo mandar mensajes en #{chat}.")
+        when /CHAT_WRITE_FORBIDDEN/ # esta aparece tambien con código de error 400
+            @logger.error("No puedo mandar mensajes #{chat}.")
         else
             manejado = false
         end
