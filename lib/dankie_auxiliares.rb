@@ -88,7 +88,9 @@ class Dankie
         /\A\d*[1-9]\d*\z/.match?(número) ? número.to_i : false
     end
 
-    def validar_desarrollador(usuario_id, chat_id, mensaje_id)
+    # Los últimos 2 parámetros son para que esto sea polimórfico con
+    # es_admin y chequeo_local (lista_negra.rb)
+    def validar_desarrollador(usuario_id, chat_id, mensaje_id, _text = nil, _id = nil)
         # Chequeo que quien llama al comando sea o desarrollador
         unless DEVS.include?(usuario_id)
             @tg.send_message(
@@ -111,6 +113,8 @@ class Dankie
         true
     end
 
+    # Los últimos 2 parámetros son para que esto sea polimórfico con
+    # validar_desarrollador y chequeo_local (lista_negra.rb)
     def es_admin(usuario_id, chat_id, mensaje_id, text = nil, _id = nil)
         member = @tg.get_chat_member(chat_id: chat_id, user_id: usuario_id)
         member = Telegram::Bot::Types::ChatMember.new(member['result'])
