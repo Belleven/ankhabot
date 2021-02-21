@@ -68,7 +68,7 @@ class TelegramAPI
         end
         args[:text].strip
 
-        enviar(:edit_message_text, args) unless args[:text].empty?
+        editar(:edit_message_text, args) unless args[:text].empty?
     end
 
     def forward_message(args)
@@ -115,12 +115,42 @@ class TelegramAPI
         enviar(:send_media_group, args, 'upload_photo')
     end
 
+    def edit_message_caption(args)
+        editar(:edit_message_caption, args)
+    end
+
+    def edit_message_media(args)
+        editar(:edit_message_media, args)
+    end
+
+    def edit_message_reply_markup(args)
+        editar(:edit_message_reply_markup, args)
+    end
+
     def answer_callback_query(args)
-        enviar :answer_callback_query, args
+        @client.api.answer_callback_query args
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        case e.message
+        when /query is too old and response timeout expired or query ID is invalid/
+            # No hacer nada LEL
+        else
+            raise e
+        end
     end
 
     def delete_message(args)
         @client.api.delete_message args
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        if (callback = args[:callback]) && e.error_code.to_i == 403
+            answer_callback_query(
+                callback_query_id: callback.id,
+                text: 'Gomenasai, no tengo permisos para borrar ese mensaje uwu'
+            )
+        end
+
+        raise unless args[:ignorar_excepciones_telegram]
+
+        @excepciones.loggear(e, args)
     end
 
     def unban_chat_member(args)
@@ -159,7 +189,7 @@ class TelegramAPI
 
     private
 
-    def enviar(función_envío, args, acción = nil)
+    def enviar(método_edición, args, acción = nil)
         # Si hay una acción que mandar, la mando
         if acción
             @client.api.send_chat_action(chat_id: args[:chat_id],
@@ -167,7 +197,7 @@ class TelegramAPI
         end
 
         # Mando el mensaje (de texto, sticker, lo que sea)
-        enviado = @client.api.send(función_envío, args)
+        enviado = @client.api.send(método_edición, args)
         # Como los métodos que tienen acción son los que envían mensajes,
         # voy a aumentar las estadísticas de mensajes enviados acá.
         Estadísticas::Contador.incr('msj_enviados', hora: Time.now.to_i, intervalo: 600)
@@ -178,7 +208,6 @@ class TelegramAPI
     rescue Telegram::Bot::Exceptions::ResponseError => e
         if e.error_code.to_i == 400
             analizar_excepción_400_enviar(args, e)
-
             retry
         else
             # Esto es para poder loggear el chat_id y luego hace raise para que no
@@ -188,19 +217,36 @@ class TelegramAPI
         end
     end
 
+    # ignorar_excepciones_telegram: true para capturar cualquier excepción al editar
+    # un msj y que siga la ejecución del método
+    def editar(método_edición, args)
+        @client.api.send(método_edición, args)
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        if (callback = args[:callback]) && e.error_code.to_i == 403
+            answer_callback_query(
+                callback_query_id: callback.id,
+                text: 'Gomenasai, no tengo permisos para editar ese mensaje uwu'
+            )
+        end
+
+        raise unless args[:ignorar_excepciones_telegram]
+
+        @excepciones.loggear(e, args)
+    end
+
     def analizar_excepción_400_enviar(args, exc)
-        if exc.message.include?('reply message not found')
+        case exc.message
+        when /reply message not found/
             @client.logger.error('No puedo responder a un mensaje '\
                                     "borrado (ID: #{args[:reply_to_message_id]}) "\
                                     "en #{args[:chat_id]}. Error:\n#{exc.message}")
-        elsif exc.message.include?('group chat was upgraded to a supergroup chat')
+        when /group chat was upgraded to a supergroup chat/
             corte_al_inicio = exc.message.split('{"migrate_to_chat_id"=>').last
             id_supergrupo = corte_al_inicio.split('}').first
 
             @client.logger.error("Error en #{args[:chat_id]}. El grupo se "\
                                  'actualizó y ahora es un supergrupo '\
-                                 "(#{id_supergrupo}).\n#{exc.message}",
-                                 al_canal: true)
+                                 "(#{id_supergrupo}).\n#{exc.message}")
             args[:chat_id] = id_supergrupo.to_i
         else
             raise

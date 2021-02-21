@@ -56,11 +56,11 @@ class Dankie
         chats_permitidos: %i[supergroup]
     )
 
-    def cambiar_rep(msj)
+    def cambiar_rep(msj) # rubocop:disable Metrics/AbcSize
         # Δrep: 1  si max - min = 0
-        #                                   |rep1 - min|
-        #       1 + log(1 + rep1 - rep2) * -------------- sí rep1 >= rep2
-        #                                   |max - min|
+        #                                      |rep1 - min|
+        #       (1 + log(1 + rep1 - rep2) ) * -------------- sí rep1 >= rep2
+        #                                      |max - min|
         #
         #       |rep1 + (max - min)|
         #       --------------------    si rep1 < rep2
@@ -81,7 +81,10 @@ class Dankie
         # la rep más baja y la más alta
         rango = calcular_rango(msj)
         # El mínimo incremento es 0,001
-        delta_rep = calcular_delta_rep(rango, msj) * cambio
+        delta = calcular_delta_rep(rango, msj)
+        return unless delta
+
+        delta_rep = delta * cambio
 
         @redis.zincrby(
             "rep:#{msj.chat.id}",
@@ -170,18 +173,20 @@ class Dankie
             return
         end
 
-        @redis.mapped_hmset("disparador_temp:#{id_mensaje}",
-                            id_usuario: id_usuario, cambio: cambio, tipo: tipo,
-                            id_chat: id_chat)
-        @redis.expire("disparador_temp:#{id_mensaje}", 172_800) # dos días en segundos
-
+        # Si explota al editar el mensaje dejarlo morir así no se edita la db al pedo
         @tg.edit_message_text(
+            callback: callback,
             chat_id: id_chat,
             message_id: id_mensaje,
             parse_mode: :html,
             text: texto + "Tipo de match: <b>#{TIPOS_DE_MATCH[tipo.to_sym]}</b>\n" +
                   html_parser('Respondeme a este mensaje con el texto >w<')
         )
+
+        @redis.mapped_hmset("disparador_temp:#{id_mensaje}",
+                            id_usuario: id_usuario, cambio: cambio, tipo: tipo,
+                            id_chat: id_chat)
+        @redis.expire("disparador_temp:#{id_mensaje}", 172_800) # dos días en segundos
     end
 
     def añadir_disparador(msj)
@@ -310,7 +315,7 @@ class Dankie
     def disparadores_regexp(clave, cambio, texto)
         @redis.smembers(format(clave, tipo: 'regexp', cambio: cambio)).each do |d|
             Timeout.timeout(0.05) do
-                return cambio == 'más' ? 1 : -1 if texto =~ /#{d}/i
+                return cambio == 'más' ? 1 : -1 if /#{d}/i.match?(texto)
             rescue Timeout::Error
                 # Borrar coso
             end
@@ -351,11 +356,20 @@ class Dankie
         rep1 = @redis.zscore("rep:#{msj.chat.id}", msj.from.id) || 0
         rep2 = @redis.zscore("rep:#{msj.chat.id}", msj.reply_to_message.from.id) || 0
 
+        # Me aseguro de que rango tome 0 en caso de que rango no contemple 0
+        # (es el caso donde un usuario no tiene reputación asignada y le asigna 0)
+        rango << rep1 << rep2
+
         delta = if rep1 < rep2
                     delta_rep_cociente(rep1, rep2, rango)
                 else
                     delta_rep_log(rep1, rep2, rango)
                 end
+
+        unless delta.finite? && rep1.finite? && rep2.finite?
+            domar_reputación_ilegal(msj, rep1, rep2, rango, delta)
+            return
+        end
 
         [delta, 0.001].max
     end
@@ -365,8 +379,54 @@ class Dankie
     end
 
     def delta_rep_log(rep1, rep2, rango)
-        1 + Math.log(1 + rep1 - rep2) *
+        (1 + Math.log(1 + rep1 - rep2)) *
             ((rep1 - rango.min) / (rango.max - rango.min)).abs
+    end
+
+    # Borrar a la mierda esto cuando se haya arreglado el problema de la reputación
+    def domar_reputación_ilegal(msj, rep1, rep2, rango, delta) # rubocop:disable Metrics/AbcSize
+        usuario1 = obtener_enlace_usuario(msj.from, msj.chat.id)
+        usuario2 = obtener_enlace_usuario(msj.reply_to_message.from, msj.chat.id)
+
+        @logger.error(
+            "En el chat #{html_parser(msj.chat.title)} hubo un quilombazo con la "\
+            "reputación y salió un valor turbina y no finito. El usuario #{usuario1} "\
+            "(#{msj.from.id}) tenía de reputación (rep1) #{rep1}, el usuario "\
+            "#{usuario2} (#{msj.reply_to_message.from.id}) tenía de reputación (rep2) "\
+            "#{rep2}, el delta calculado fue #{delta} y el rango es\n\n#{rango}",
+            parsear_html: false,
+            al_canal: true
+        )
+
+        texto = 'Hubo un problema con las reputaciones.'
+
+        unless rep1.finite?
+            @redis.zrem("rep:#{msj.chat.id}", msj.from.id)
+            @redis.zincrby("rep:#{msj.chat.id}", 0.0, msj.from.id)
+            texto << " La reputación de #{usuario1} era ilegal (#{rep1}) así que ahora "\
+                     'pasará a ser 0.'
+        end
+
+        unless rep2.finite?
+            @redis.zrem("rep:#{msj.chat.id}", msj.reply_to_message.from.id)
+            @redis.zincrby("rep:#{msj.chat.id}", 0.0, msj.reply_to_message.from.id)
+            texto << " La reputación de #{usuario2} era ilegal (#{rep2}) así que ahora "\
+                     'pasará a ser 0.'
+        end
+
+        unless delta.finite?
+            texto << ' El resultado del cálculo para cambiar de reputación es ilegal '\
+                     "(#{delta})."
+        end
+
+        @tg.send_message(
+            chat_id: msj.chat.id,
+            reply_to_message_id: msj.message_id,
+            text: texto,
+            parse_mode: :html,
+            disable_web_page_preview: true,
+            disable_notification: true
+        )
     end
 
     def crear_texto_msj(msj, delta_rep)
@@ -442,12 +502,15 @@ class Dankie
             end
         )
 
-        @tg.answer_callback_query(callback_query_id: callback.id)
+        # Si explota acá ignoro las excepciones total se termina la ejecución
         @tg.edit_message_text(
+            callback: callback,
             chat_id: callback.message.chat.id,
             reply_markup: opciones,
+            parse_mode: :html,
             message_id: callback.message.message_id,
-            text: texto
+            text: texto,
+            ignorar_excepciones_telegram: true
         )
     end
 
@@ -497,7 +560,7 @@ class Dankie
             contador = arreglo_tablero(
                 arr: arr,
                 título: "<b>Lista de disparadores del grupo</b>\n",
-                contador: contador,
+                contador: contador || 0,
                 max_cant: 30,
                 max_tam: 1000,
                 inicio_en_subtítulo: true,
@@ -505,7 +568,7 @@ class Dankie
                     format(
                         "\n<b>%<sig>s</b> <code>%<texto>s</code>",
                         sig: fila[:signo] == 'más' ? '+' : '-',
-                        texto: fila[:texto]
+                        texto: html_parser(fila[:texto])
                     )
                 end,
                 conjunto_iterable: arreglo_disparadores(chat_id, tipo),

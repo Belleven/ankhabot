@@ -18,30 +18,31 @@ class Dankie
                 chat_id: msj.chat.id,
                 reply_to_message_id: msj.message_id,
                 text: "Perdón #{TROESMAS.sample}, pero "\
-                                   'no encontré nada :('
+                      'no encontré nada :('
             )
-        else
-            # Tomo post
-            post = resultado.sample
-            # Tomo atributos
-            título = "<b>#{post.title}</b>"
-            id_post = post.id.split('_').last
+            return
+        end
 
-            # Separo según el tipo de resultado
-            case post.kind
-            # t3 => Link
-            when 't3'
-                # Mando el post
-                mandar_post(msj, post, título, id_post)
-            # t5 => Subreddit
-            when 't5'
-                # Mando el sub
-                mandar_sub(msj, post, título)
-            # Otros
-            else
-                # Mando otro
-                mandar_otro(msj, post, título, id_post, subr)
-            end
+        # Tomo post
+        post = resultado.sample
+        # Tomo atributos
+        título = "<b>#{post.title}</b>"
+        id_post = post.id.split('_').last
+
+        # Separo según el tipo de resultado
+        case post.kind
+        # t3 => Link
+        when 't3'
+            # Mando el post
+            mandar_post(msj, post, título, id_post)
+        # t5 => Subreddit
+        when 't5'
+            # Mando el sub
+            mandar_sub(msj, post, título)
+        # Otros
+        else
+            # Mando otro
+            mandar_otro(msj, post, título, id_post, subr)
         end
     end
 
@@ -70,19 +71,25 @@ class Dankie
         @logger.info("Mandando post texto: #{post.url}", al_canal: false)
 
         # Me fijo que el mensaje supere los 4096 cracteres (y si lo hace, lo corto)
-        longitud_otros = título.length + enlace_post.length + 17
+        longitud_otros = título.length + enlace_post.length + 45
         # Si el texto parseado + título + post + otros caracteres que voy a poner
         # para acomodar el texto (como <i> o </i> o \n, etc) supera los 4096
         # caracteres, corto el post para que no lo haga y le agrego tres puntos
         # para que se sepa que continúa
+
+        post_con_links = post.selftext.gsub(
+            /\[(.+)\]\((.+)\)/,
+            '</i><a href="\\2">\\1</a><i>'
+        )
+
         texto_post = if post.selftext.length + longitud_otros > 4096
-                         "#{post.selftext[0..(4092 - longitud_otros)]}..."
+                         "#{post_con_links[0..(4092 - longitud_otros)]}..."
                      else
-                         post.selftext
+                         post_con_links
                      end
 
-        texto = "#{título}\n\n<i>#{texto_post}</i> <b>[</b>"\
-                "<a href=\"#{enlace_post}\">post</a><b>]</b>"
+        texto = "#{título}\n\n<i>#{texto_post}</i>\n"\
+                "<b>[</b><a href=\"#{enlace_post}\">post</a><b>]</b>"
 
         @tg.send_message(
             chat_id: msj.chat.id,
@@ -96,7 +103,7 @@ class Dankie
         # Tomo link
         enlace = post.media['reddit_video']['fallback_url']
         # Armo el texto de acompañamiento
-        texto = "#{título} <b>[</b><a href=\"#{enlace_post}\">post</a><b>]</b>"
+        texto = "#{título}\n<b>[</b><a href=\"#{enlace_post}\">post</a><b>]</b>"
 
         # Depende si es gif o video, cómo lo mando
         if post.media['reddit_video']['is_gif']
@@ -144,65 +151,59 @@ class Dankie
         enlace_post = "redd.it/#{id_post}"
         mandar_link_error(
             msj,
-            "#{título} <b>[</b><a href=\"#{enlace_post}\">post</a><b>]</b>"
+            "#{título}\n<b>[</b><a href=\"#{enlace_post}\">post</a><b>]</b>"
         )
     end
 
     def enviar_multimedia(msj, título, enlace_post, enlace_media)
         enlace = Link.new enlace_media, :link
+        texto_reddit = "#{título}\n<b>[</b><a href=\"#{enlace_post}\">post</a><b>]</b>"
 
-        mensaje_log = "Enviando link: #{enlace.link}"\
-                        " del tipo: #{enlace.type}"
-        @logger.info(mensaje_log, al_canal: false)
-
-        enviar_tipo_correspondiente(enlace, enlace_post, msj, título)
+        enviar_tipo_correspondiente(enlace, enlace_post, msj, título, texto_reddit)
     rescue Telegram::Bot::Exceptions::ResponseError => e
-        if e.to_s.include? 'failed to get HTTP URL content'
-            error = 'Error de telegram con el link al querer mandar multimedia'
-            @logger.error(error, al_canal: true)
-        else
-            @logger.error("Error al querer mandar el linkazo: #{e}", al_canal: true)
-        end
+        error = "Enlace enviado: #{enlace.link} del tipo #{enlace.type}"
+        msj_log = if e.message.include? 'failed to get HTTP URL content'
+                      "Error interno de telegram con el enlace: #{e.message}.\n#{error}"
+                  else
+                      "Error desconocido con el enlace: #{e.message}.\n#{error}"
+                  end
+
+        @logger.error(msj_log, al_canal: true)
+
         # Si hay error mando el texto que me quedó
-        mandar_link_error(msj, texto)
+        mandar_link_error(msj, texto_reddit)
     end
 
-    def enviar_tipo_correspondiente(enlace, enlace_post, msj, texto)
+    def enviar_tipo_correspondiente(enlace, enlace_post, msj, texto, texto_reddit)
         case enlace.type
         when :image
-            # Agrego link del post
-            texto << " <b>[</b><a href=\"#{enlace_post}\">post</a><b>]</b>"
             @tg.send_photo(
                 chat_id: msj.chat.id,
                 photo: enlace.link,
-                caption: texto,
+                caption: texto_reddit,
                 parse_mode: :html
             )
         when :link
             # Agrego link media y link post
             texto << "\n#{html_parser enlace.link}"\
-                     " <b>[</b><a href=\"#{enlace_post}\">post</a><b>]</b>"
+                     "\n<b>[</b><a href=\"#{enlace_post}\">post</a><b>]</b>"
             @tg.send_message(
                 chat_id: msj.chat.id,
                 text: texto,
                 parse_mode: :html
             )
         when :gif
-            # Agrego link del post
-            texto << " <b>[</b><a href=\"#{enlace_post}\">post</a><b>]</b>"
             @tg.send_animation(
                 chat_id: msj.chat.id,
                 animation: enlace.link,
-                caption: texto,
+                caption: texto_reddit,
                 parse_mode: :html
             )
         when :video
-            # Agrego link del post
-            texto << " <b>[</b><a href=\"#{enlace_post}\">post</a><b>]</b>"
             @tg.send_video(
                 chat_id: msj.chat.id,
                 video: enlace.link,
-                caption: texto,
+                caption: texto_reddit,
                 parse_mode: :html
             )
         end

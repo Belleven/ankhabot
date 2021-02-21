@@ -33,13 +33,17 @@ class ManejoExcepciones
         false
     end
 
+    # Si pongo manejado = false es para que loggee la excepción con el backtrace
+    # Tener en cuenta que hay muchas que no se loggean en el canal por spamosas
+
     def manejar_error_400(mensaje_error, chat, args)
         manejado = true
 
         id_mensaje = conseguir_id_mensaje args
 
         case mensaje_error
-        when /have no rights to send a message/
+        when /have no rights to send a message/,
+             /need administrator rights in the channel chat/
             @logger.error("Me restringieron los mensajes #{chat} y"\
                           "no puedo mandar nada:\n#{mensaje_error}")
         when /have no write access to the chat/
@@ -55,28 +59,64 @@ class ManejoExcepciones
         when /message to delete not found/
             @logger.error(
                 "Traté de borrar un mensaje (id mensaje: #{id_mensaje}) "\
-                "muy viejo (id chat: #{chat}).",
-                al_canal: false
+                "muy viejo (id chat: #{chat})."
             )
         when /message can't be deleted/
             @logger.error(
                 "No pude borrar un mensaje (id mensaje: #{id_mensaje}) "\
-                "(id chat: #{chat}).",
-                al_canal: false
+                "(id chat: #{chat})."
             )
+        else
+            manejado = manejar_error_400_parte_2(mensaje_error, chat, id_mensaje)
+        end
+        manejado
+    end
+
+    def manejar_error_400_parte_2(mensaje_error, chat, id_mensaje)
+        manejado = true
+
+        case mensaje_error
         when /PEER_ID_INVALID/
-            @logger.fatal("Le quise mandar un mensaje privado #{chat}"\
-                          ' a alguien que no me habló primero o me bloqueó.',
-                          al_canal: true)
-            manejado = false
+            @logger.fatal('Error extraño que indica que no puedo mandar mensajes a '\
+                          'ese chat, en general es cuando el bot le habla por privado '\
+                          'a alguien que nunca le habló o que lo bloqueó, pero puede '\
+                          'saltar en grupos comunes también '\
+                          "aparentemente: #{mensaje_error}")
+        when /CHAT_SEND_GIFS_FORBIDDEN/
+            @logger.fatal("Quise mandar un gif #{chat} "\
+                          "pero parece que está prohibido: #{mensaje_error}")
+        when /CHAT_SEND_MEDIA_FORBIDDEN/
+            @logger.fatal("Quise mandar multimedia #{chat} "\
+                          "pero parece que está prohibido: #{mensaje_error}")
         when /chat not found/
             @logger.fatal("Quise mandar un mensaje #{chat} pero parece que el "\
                           'chat no existe o fue brutalmente DOMADO y ULTRAJADO '\
-                          'por telegram', al_canal: true)
-            manejado = false
+                          'por telegram')
         when /CHANNEL_PRIVATE/
             @logger.fatal('Error que todavía no se por que pasa pero tengo un '\
                           "problema al mandar mensajes (id: #{chat}).")
+        when /group chat was deactivated/
+            @logger.fatal("Error: el grupo fue eliminado (id: #{chat}).")
+        when /CHAT_RESTRICTED/
+            @logger.fatal("Error: chat restringido (id: #{chat}).")
+        when /user is deactivated/
+            @logger.fatal('Le intenté hablar por privado a una '\
+                          "cuenta eliminada #{chat}.")
+        else
+            manejado = manejar_error_400_parte_3(mensaje_error, chat, id_mensaje)
+        end
+        manejado
+    end
+
+    def manejar_error_400_parte_3(mensaje_error, chat, _id_mensaje)
+        manejado = true
+
+        case mensaje_error
+        when /message to edit not found/
+            @logger.fatal("Borraron el mensaje que iba a editar #{chat}")
+        when /MESSAGE_ID_INVALID/
+            @logger.fatal('Extraño error con el id mensaje, no sabemos por qué salta '\
+                          "todavía #{chat}: #{mensaje_error}")
         else
             manejado = false
         end
@@ -93,7 +133,7 @@ class ManejoExcepciones
         when /bot is not a member of the channel chat/
             @logger.error("Error en #{chat}. Me fui o me sacaron los permisos de "\
                           "mandar mensaje en el canal.\n#{mensaje_error}")
-        when /bot was kicked from the (super)?group chat/
+        when /bot was kicked from the ((super)?group|channel) chat/
             @logger.error("Error en #{chat}. Me echaron y no puedo "\
                           "mandar mensajes.\n#{mensaje_error}")
         when /bot can't send messages to bots/
@@ -103,7 +143,10 @@ class ManejoExcepciones
         when /user is deactivated/
             @logger.error("Error en #{chat}. No puedo hablar por privado con cuentas "\
                           "eliminadas.\n#{mensaje_error}")
-            manejado = false
+        when /bot was blocked by the user/
+            @logger.error("Error en #{chat}. Ese usuario me bloqueó.")
+        when /CHAT_WRITE_FORBIDDEN/
+            @logger.error("No puedo mandar mensajes en #{chat}.")
         else
             manejado = false
         end

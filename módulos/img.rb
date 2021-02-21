@@ -65,9 +65,7 @@ class Dankie
             begin
                 return @tg.send_photo(chat_id: msj.chat.id, photo: enlace.link)
             rescue Telegram::Bot::Exceptions::ResponseError => e
-                e = e.to_s
-
-                log = if e.include?('failed to get HTTP URL content')
+                log = if e.message.include?('failed to get HTTP URL content')
                           "Error al querer mandar este link: #{enlace.link}"
                       else
                           "Error desconocido: #{e}"

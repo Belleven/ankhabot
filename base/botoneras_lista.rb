@@ -33,15 +33,22 @@ class Dankie
             editable: metadatos[:editable_por] == 'todos'
         )
 
-        editar_según_el_tipo(metadatos, id_chat, id_mensaje, valor, opciones)
+        # Si tira una excepción al querer editar la botonera NO quiero que se siga
+        # porque si no va a meter datos inválidos en la db
+        editar_según_el_tipo(
+            callback: callback,
+            metadatos: metadatos,
+            id_chat: id_chat,
+            id_mensaje: id_mensaje,
+            valor: valor,
+            opciones: opciones
+        )
 
         @redis.hset(
             "botonera:#{id_chat}:#{id_mensaje}:metadatos",
             'índice',
             índice
         )
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        @logger.error e.to_s, al_canal: true
     end
 
     def acciones_inferiores_lista(callback)
@@ -67,8 +74,6 @@ class Dankie
             índice: índice,
             botones_personalizados: botones_personalizados
         )
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        @logger.error e.to_s, al_canal: false
     end
 
     private
@@ -93,12 +98,17 @@ class Dankie
                 text: 'Gomenasai, esta lista ya no está habilitada, '\
                       'pedí una nueva oniisan.'
             )
+            @tg.delete_message(
+                chat_id: callback.message.chat.id,
+                message_id: callback.message.message_id,
+                ignorar_excepciones_telegram: true
+            )
             return false
         elsif índice == metadatos[:índice].to_i
             @tg.answer_callback_query(callback_query_id: callback.id)
             return false
         # valido id_usuario y que sea editable
-        elsif id_usuario.to_i != callback.from.id && metadatos[:editable_por] == 'dueño'
+        elsif id_usuario != callback.from.id && metadatos[:editable_por] == 'dueño'
             @tg.answer_callback_query(
                 callback_query_id: callback.id,
                 text: "Pedite tu propia lista, #{TROESMAS.sample}."
@@ -161,35 +171,38 @@ class Dankie
         Telegram::Bot::Types::InlineKeyboardMarkup.new(inline_keyboard: arr)
     end
 
-    def editar_según_el_tipo(metadatos, id_chat, id_mensaje, valor, opciones)
-        case metadatos[:tipo]
+    def editar_según_el_tipo(args)
+        case args[:metadatos][:tipo]
         when 'texto'
             @tg.edit_message_text(
-                chat_id: id_chat,
+                chat_id: args[:id_chat],
                 parse_mode: :html,
-                message_id: id_mensaje,
+                message_id: args[:id_mensaje],
                 disable_web_page_preview: true,
                 disable_notification: true,
-                text: valor,
-                reply_markup: opciones
+                text: args[:valor],
+                reply_markup: args[:opciones],
+                callback: args[:callback]
             )
         when 'caption'
             @tg.edit_message_caption(
-                chat_id: id_chat,
-                message_id: id_mensaje,
+                chat_id: args[:id_chat],
+                message_id: args[:id_mensaje],
                 parse_mode: :html,
-                caption: valor,
-                reply_markup: opciones
+                caption: args[:valor],
+                reply_markup: args[:opciones],
+                callback: args[:callback]
             )
         else
             @tg.edit_message_media(
-                chat_id: id_chat,
-                message_id: id_mensaje,
+                chat_id: args[:id_chat],
+                message_id: args[:id_mensaje],
                 media: {
-                    type: metadatos[:tipo],
-                    media: valor
+                    type: args[:metadatos][:tipo],
+                    media: args[:valor]
                 }.to_json,
-                reply_markup: opciones
+                reply_markup: args[:opciones],
+                callback: args[:callback]
             )
         end
     end
@@ -198,12 +211,16 @@ class Dankie
         id_chat = callback.message.chat.id
         id_mensaje = callback.message.message_id
 
-        # qué pasa si el msj fue borrado? mmm
         if edit.nil? || !@redis.exists?("botonera:#{id_chat}:#{id_mensaje}")
             @tg.answer_callback_query(
                 callback_query_id: callback.id,
                 text: 'Gomenasai, esta lista ya no está habilitada, '\
                       'pedí una nueva oniisan.'
+            )
+            @tg.delete_message(
+                chat_id: callback.message.chat.id,
+                message_id: callback.message.message_id,
+                ignorar_excepciones_telegram: true
             )
             return false
         # Esto es para cuando se aprieta el botón de candadito muy rápido antes
@@ -233,35 +250,50 @@ class Dankie
 
         case params[:match][:acción]
         when 'borrar'
+            # Si rompe al querer borrar este mensaje SÍ quiero que siga la ejecución
+            # porque lo que quería el usuario era borrar el mensaje y como eso no se
+            # puede hacer, a lo sumo se inhabilitará si falla en el delete_message
             @redis.del "botonera:#{id_chat}:#{id_mensaje}:metadatos"
             @redis.del "botonera:#{id_chat}:#{id_mensaje}"
-            @tg.delete_message(chat_id: id_chat, message_id: id_mensaje)
-            @tg.answer_callback_query(callback_query_id: callback.id,
-                                      text: 'Mensaje borrado.')
+            @tg.delete_message(
+                chat_id: id_chat,
+                message_id: id_mensaje,
+                callback: callback
+            )
+
+            @tg.answer_callback_query(
+                callback_query_id: callback.id,
+                text: 'Mensaje borrado.'
+            )
         when 'edit'
-            @redis.hset("botonera:#{id_chat}:#{id_mensaje}:metadatos",
-                        'editable_por', 'todos')
             opciones = armar_botonera(índice, obtener_tamaño_lista(id_chat, id_mensaje),
                                       id_usuario,
                                       botones_personalizados: botones_personalizados,
                                       editable: true)
+            # Si rompe al editar esta botonera NO quiero que siga la ejecución porque
+            # quedaría una inconsistencia entre la db y lo que se muestra en la botonera
             @tg.edit_message_reply_markup(chat_id: id_chat, message_id: id_mensaje,
-                                          reply_markup: opciones)
+                                          reply_markup: opciones, callback: callback)
             @tg.answer_callback_query(callback_query_id: callback.id,
                                       text: 'Botonera ahora es presionable por todos.')
-        when 'noedit'
             @redis.hset("botonera:#{id_chat}:#{id_mensaje}:metadatos",
-                        'editable_por', 'dueño')
+                        'editable_por', 'todos')
+
+        when 'noedit'
             opciones = armar_botonera(índice,
                                       obtener_tamaño_lista(id_chat, id_mensaje),
                                       id_usuario,
                                       botones_personalizados: botones_personalizados,
                                       editable: false)
+            # Si rompe al editar esta botonera NO quiero que siga la ejecución porque
+            # quedaría una inconsistencia entre la db y lo que se muestra en la botonera
             @tg.edit_message_reply_markup(chat_id: id_chat, message_id: id_mensaje,
-                                          reply_markup: opciones)
+                                          reply_markup: opciones, callback: callback)
             @tg.answer_callback_query(callback_query_id: callback.id,
                                       text: 'Botonera ahora solo es presionable '\
                                       'por el que la pidió.')
+            @redis.hset("botonera:#{id_chat}:#{id_mensaje}:metadatos",
+                        'editable_por', 'dueño')
         end
     end
 
@@ -286,8 +318,8 @@ class Dankie
         ]
     end
 
-    def completar_secuencia_botones(botones,
-                                    página_actual, inicial, final, nombres_botones)
+    def completar_secuencia_botones(botones, página_actual, inicial,
+                                    final, nombres_botones)
         (inicial..final).each do |i|
             nombre = nombres_botones[i]
             botones << [página_actual == i ? "<#{nombre}>" : nombre.to_s, i]
@@ -306,7 +338,7 @@ class Dankie
         botones = []
 
         if página_actual < 3
-            botones = completar_secuencia_botones(botones, página_actual, 0, 4,
+            botones = completar_secuencia_botones(botones, página_actual, 0, 3,
                                                   nombres_botones)
             botones << ["#{nombres_botones[tamaño_máximo - 1]} >>", tamaño_máximo - 1]
         elsif página_actual > (tamaño_máximo - 4)

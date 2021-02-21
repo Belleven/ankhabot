@@ -115,7 +115,7 @@ class Dankie
         match = callback.data.match(/settrigger:(?<id_regexp>\d+):(?<acción>.+)/)
         Trigger.redis ||= @redis
 
-        return if existe_temporal_callback(callback, match)
+        return if callback_trigger_temporal_procesado(callback, match)
 
         resultado_callback = resolver_callback(
             match: match,
@@ -126,13 +126,18 @@ class Dankie
             args_primer_método: [match[:id_regexp]]
         )
 
+        # ignorar_excepciones_telegram: true porque si rompe acá igual quiero que
+        # continúe la ejecución y avise en el chat que lo pidió si el trigger fue
+        # aceptado o rechazado: ojo que la excepción se loggea igual
         @tg.edit_message_text(
+            callback: callback,
             chat_id: callback.message.chat.id,
             parse_mode: :html,
             text: resultado_callback[:texto],
             message_id: callback.message.message_id,
             disable_web_page_preview: true,
-            disable_notification: true
+            disable_notification: true,
+            ignorar_excepciones_telegram: true
         )
 
         resultado = if match[:acción] == 'confirmar'
@@ -152,8 +157,6 @@ class Dankie
             text: texto,
             reply_to_message_id: temp[:id_msj]
         )
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        @logger.warn e.to_s, al_canal: true
     end
 
     def callback_del_trigger_global(callback)
@@ -163,7 +166,7 @@ class Dankie
         match = callback.data.match(/deltrigger:(?<id_regexp>\d+):(?<acción>.+)/)
         Trigger.redis ||= @redis
 
-        return if existe_temporal_callback(callback, match)
+        return if callback_trigger_temporal_procesado(callback, match)
 
         temp = Trigger.obtener_del_trigger_temp match[:id_regexp]
         Trigger.borrar_global_resuelto(temp[:regexp])
@@ -177,13 +180,18 @@ class Dankie
             args_primer_método: [:global, temp[:regexp], match[:id_regexp]]
         )[:texto]
 
+        # ignorar_excepciones_telegram: true porque si rompe acá igual quiero que
+        # continúe la ejecución y avise en el chat que lo pidió si el trigger fue
+        # aceptado o rechazado: ojo que la excepción se loggea igual
         @tg.edit_message_text(
+            callback: callback,
             chat_id: callback.message.chat.id,
             parse_mode: :html,
             text: texto,
             message_id: callback.message.message_id,
             disable_web_page_preview: true,
-            disable_notification: true
+            disable_notification: true,
+            ignorar_excepciones_telegram: true
         )
 
         resultado = match[:acción] == 'borrar' ? 'borrado' : 'no fue borrado'
@@ -197,8 +205,6 @@ class Dankie
             disable_web_page_preview: true,
             disable_notification: true
         )
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        @logger.warn e.to_s, al_canal: true
     end
 
     def validar_borrar_trigger(msj, params)
@@ -410,7 +416,7 @@ class Dankie
         end
     end
 
-    def existe_temporal_callback(callback, match)
+    def callback_trigger_temporal_procesado(callback, match)
         unless Trigger.existe_temporal? match[:id_regexp]
             @tg.answer_callback_query(callback_query_id: callback.id,
                                       text: 'Procesando otra respuesta')
@@ -457,7 +463,7 @@ class Dankie
     def analizar_match_trigger(msj, regexp, texto, id_grupo)
         return unless chequear_flood(@trigger_flood[msj.chat.id])
 
-        match = Timeout.timeout(0.50) { regexp.match? texto }
+        match = Timeout.timeout(0.750) { regexp.match? texto }
         return unless match
 
         trigger = Trigger.new(id_grupo, regexp)

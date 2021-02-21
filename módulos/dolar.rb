@@ -1,92 +1,249 @@
 require 'nokogiri'
+require 'httpclient'
 
 class Dankie
     add_handler Handler::Comando.new(
         :dolar,
         :dolar,
-        permitir_params: false
+        permitir_params: true,
+        descripción: 'Te muestra el precio del dolar'
     )
-    def dolar(msj)
-        dolar = Dolar.new
-        texto = dolar.scrap
-        @tg.send_message(chat_id: msj.chat.id, parse_mode: :html,
-                         text: texto,
-                         disable_web_page_preview: true,
-                         disable_notification: true)
+    def dolar(msj, params)
+        factor = obtener_factor_valor_dolar(msj, params)
+        return unless factor
+
+        @dolar ||= Dolar.new @logger
+
+        @tg.send_message(
+            chat_id: msj.chat.id,
+            text: @dolar.obtener_valores(factor),
+            parse_mode: :html,
+            disable_web_page_preview: true
+        )
     end
 
-    class Dolar
-        def initialize
-            @doc = Nokogiri::HTML(URI.open('https://www.dolarhoy.com/'))
-            # puts(@doc)
+    private
+
+    def obtener_factor_valor_dolar(msj, params)
+        return 1.to_r if params.nil?
+
+        params.gsub!(',', '.')
+        return params.to_r if /\A-?(\d{1,9})(\.\d{0,2})?\z/.match? params
+
+        @tg.send_message(
+            chat_id: msj.chat.id,
+            reply_to_message_id: msj.message_id,
+            text: 'Tenés que pasarme un número válido con hasta 2 decimales entre '\
+                  '-999999999,99 y 999999999,99'
+        )
+        nil
+    end
+end
+
+class Dolar
+    URL_COTIZACIONES = 'https://www.dolarhoy.com/cotizacion'.freeze
+    URL_PRINCIPAL = 'https://www.dolarhoy.com'.freeze
+    XPATH_ACTUALIZADO = '//span[starts-with(text(),"Actualizado el")]'.freeze
+
+    def initialize(logger)
+        @valores_monedas = {}
+        @logger = logger
+        @cliente = HTTPClient.new
+
+        # Solo se puede loggear una vez por llamada al comando
+        @loggeado = false
+    end
+
+    def obtener_valores(factor)
+        # 3600 es una hora en segundos, me fijo si nunca fue parseada la página o
+        # si sí lo fue pero hace más de una hora, en ese caso lo hago de vuelta
+        if @fecha_act.nil? || ((fecha_ahora = Time.now) - @fecha_act).to_i > 3600
+            actualizar_página_dólar
+            # Esto es para que se loggee una sola vez por llamada al comando
+            # si se rompe la página
+            @loggeado = false
+            @fecha_act = fecha_ahora || Time.now
         end
 
-        def scrap
-            # Consigo la ruta general donde se encuentran los demas valores
-            paginas = @doc.xpath("//div[contains(@class,'container body-content')]/
-                div[contains(@class,'container')]/div[contains(@class,'row')]/
-                div[contains(@class,'col-md-8')]/div[contains(@class,'row')]/
-                div[contains(@class,'col-12 col-lg-6')]
-                /div[contains(@class,'pill pill-coti')]")
+        generar_texto_valores_monedas(factor)
+    end
 
-            # Agarro todos los dolares posibles
-            dolar = paginas.xpath('//h4/a').collect { |node| node.text.strip }
+    private
 
-            # Cuento su valor
-            # Los valores de compra y venta vienen juntos, por lo cual los
-            # que separar despues
-            valor = paginas.xpath("//div[contains(@class,'row')]/
-                div[contains(@class, 'col-6 text-center')]").collect do |node|
-                node.text.strip
-            end
+    # Toma las páginas y parsea los valores
+    def actualizar_página_dólar
+        actualizar_valores_principal(
+            Nokogiri.HTML(URI.parse(URL_PRINCIPAL).open, nil, 'UTF-8')
+        )
 
-            # Como soy solidario, pago mas
-            valor_solidario = paginas.xpath("//div[contains(@class,'row')]/
-                div[contains(@class, 'col-12 text-center')]").collect do |node|
-                node.text.strip
-            end
-            # Agrupo los valores de a dos, compra y venta juntos
-            compra_venta = agrupar_compra_venta(valor, 2)
-            # Tambien para el solidario
-            compra_venta_total = agrupar_compra_venta(valor_solidario, 1,
-                                                      compra_venta: compra_venta)
+        actualizar_valores_cotizaciones(
+            Nokogiri.HTML(URI.parse(URL_PRINCIPAL).open, nil, 'UTF-8')
+        )
+    end
 
-            # Leo cuando fue la ultima vez que se actualizo el valor
-            actualizacion = paginas.xpath("//div[contains(@class,'foot')]/
-                div[contains(@class,'row')]/
-                div[contains(@class,'col-7 text-right')]").first.text.strip
+    # Actualiza los valores de la página principal en el diccionario valores_monedas
+    # (el dólar oficial promedio y el dólar solidario), y después toma el texto
+    # que dice cuándo fue que la página actualizó los valores.
+    def actualizar_valores_principal(página)
+        promedio = 'Dólar oficial promedio'
+        @valores_monedas[promedio] = {
+            'COMPRA' => calc_valor(página, promedio, 'compra',
+                                   promedio, :valor_xpath_principal),
 
-            # Armo el texto con toda la informacion
-            texto = mezclar_dolar_valor(dolar, compra_venta_total)
-            texto << "\n" << actualizacion
+            'VENTA' => calc_valor(página, promedio, 'venta',
+                                  promedio, :valor_xpath_principal)
+        }
+
+        solidario = 'Dólar Solidario'
+        @valores_monedas[solidario] = {
+            'VENTA' => calc_valor(página, solidario, 'venta',
+                                  solidario, :valor_xpath_principal)
+        }
+
+        @fecha_valores_en_página = página.xpath(XPATH_ACTUALIZADO).text
+
+        if @fecha_valores_en_página.empty? && !@loggeado
+            @logger.error(
+                'El xpath para la fecha ya no es válido, se va a mostrar un valor '\
+                "viejo (o ninguno). Revisar si cambió el link: #{URL_PRINCIPAL}\n",
+                al_canal: true
+            )
+            @loggeado = true
+        else
+            @fecha_valores_en_página << ' (hora Argentina)'
+        end
+    end
+
+    # Actualiza los valores de las otras cotizaciones que no aparecen en la página
+    # principal (o sí aparecen pero es más fácil tomarlos acá)
+    def actualizar_valores_cotizaciones(página)
+        mapeos_nombres = {
+            'Banco Nación' => 'Dólar Banco Nación',
+            'Dólar Mayorista' => 'Dólar mayorista',
+            'Dólar Bolsa' => 'Dólar MEP - bolsa',
+            'Contado con liqui' => 'Dólar CCL (contado con liqui)',
+            'Dólar Libre' => 'Dólar blue',
+            'Euro' => 'Euro oficial',
+            'Real brasileño' => 'Real oficial',
+            'Peso uruguayo' => 'Peso uruguayo oficial',
+            'Peso chileno' => 'Peso chileno oficial'
+        }
+
+        mapeos_nombres.each_key do |moneda|
+            nombre_real = mapeos_nombres[moneda]
+
+            @valores_monedas[nombre_real] = {
+                'COMPRA' => calc_valor(página, moneda, 'compra',
+                                       nombre_real, :valor_xpath_cotizaciones),
+
+                'VENTA' => calc_valor(página, moneda, 'venta',
+                                      nombre_real, :valor_xpath_cotizaciones)
+            }
+        end
+    end
+
+    # Usa el xpath para buscar los valores en la página, si no los encuentra porque
+    # cambió la página entonces toma el último valor que registró (o ninguno si no
+    # llegó a hacerlo)
+    def calc_valor(página, moneda, cambio, nombre_real, valor_xpath)
+        valor = send(valor_xpath, página, moneda, cambio)
+
+        if valor.empty?
+            tomar_valor_antiguo_y_loggear(moneda, cambio, nombre_real)
+        else
+            valor.to_r
+        end
+    end
+
+    def valor_xpath_cotizaciones(página, moneda, cambio)
+        valor_xpath(
+            página,
+            "//div[text()=\"#{moneda}\"]/following-sibling::div[@class=\"#{cambio}\"]"
+        )
+    end
+
+    def valor_xpath_principal(página, moneda, cambio)
+        valor = valor_xpath(
+            página,
+            "//a[text()=\"#{moneda}\"]/following-sibling::div[@class=\"values\"]"\
+            "//div[@class=\"#{cambio}\"]//div[@class=\"val\"]"
+        )
+
+        valor.gsub!('$', '')
+        valor
+    end
+
+    def valor_xpath(página, xpath)
+        página.xpath(xpath).text
+    end
+
+    # Loggea en el canal si falla el xpath así nos apuramos a
+    # cambiar esta clase otra vez
+    def tomar_valor_antiguo_y_loggear(moneda, cambio, nombre_real)
+        unless @loggeado
+            @logger.error "El xpath para la moneda #{nombre_real} (#{moneda}) en "\
+                          "la operación #{cambio} ya no es válido, se va a mostrar "\
+                          'un valor viejo (o ninguno). Revisar si cambiaron los '\
+                          "links:\n- #{URL_PRINCIPAL}\n- #{URL_COTIZACIONES}\n",
+                          al_canal: true
+            @loggeado = true
+        end
+
+        if @valores_monedas && (mon = @valores_monedas[nombre_real]) &&
+           (precio = mon[cambio])
+
+            precio
+        end
+    end
+
+    # Arma el texto que se tiene que mandar en el mensaje y lo deja en una variable
+    # ya que estamos así no hay que generarlo a cada rato
+    def generar_texto_valores_monedas(factor)
+        array_textos = @valores_monedas.to_a.map do |moneda, valores|
+            texto = "<b><i>#{moneda}</i></b>"
+
+            añadir_valor_dólar_a_texto!(texto, valores, 'COMPRA', factor)
+            añadir_valor_dólar_a_texto!(texto, valores, 'VENTA', factor)
 
             texto
         end
 
-        private
+        array_textos << @fecha_valores_en_página
 
-        def agrupar_compra_venta(valores, contador_limite, compra_venta: [])
-            texto = ''
-            contador = 0
-            valores.each do |valor|
-                palabra = valor.gsub("\n", '').gsub(' ', '').gsub('$', ' $')
-                texto << palabra << "\n"
-                contador += 1
-                next unless contador == contador_limite
+        "Valor en pesos argentinos para #{cant_dólares_sustantivo(factor)} "\
+        '(y de otras monedas también, en distintas cotizaciones, '\
+        "según información de #{URL_PRINCIPAL})\n\n#{array_textos.join("\n\n")}"
+    end
 
-                compra_venta << (texto << "\n")
-                texto = ''
-                contador = 0
-            end
-            compra_venta
-        end
+    def añadir_valor_dólar_a_texto!(texto, valores, cambio, factor)
+        return unless valores.key?(cambio)
 
-        def mezclar_dolar_valor(dolares, valores)
-            texto = ''
-            dolares.zip(valores).each do |dolar, valor|
-                texto << '<b><i>' << dolar << '</i></b>' << "\n" << valor
-            end
-            texto
+        texto << "\n#{cambio}: #{calcular_valor_precio(valores[cambio], factor)}"
+    end
+
+    def calcular_valor_precio(precio, factor)
+        return 'No encontré el precio F' unless precio
+
+        cálculo_precio = (precio * factor).round(2).to_f
+        precio = float_en_string_precio(cálculo_precio)
+
+        "$#{precio}"
+    end
+
+    def cant_dólares_sustantivo(valor)
+        cantidad = float_en_string_precio(valor.to_f)
+
+        cantidad == '1' ? '1 dólar' : "#{cantidad} dólares"
+    end
+
+    def float_en_string_precio(float)
+        # Este if chequea si es un "float entero" (ej: 1.0)
+        if float == (valor_int = float.to_i)
+            valor_int.to_s
+        else
+            valor_string = float.to_s
+            valor_string.gsub!('.', ',')
+            valor_string
         end
     end
 end

@@ -198,7 +198,7 @@ class Dankie
         when 'mention'
             # La entidad arranca con un @, por eso el 1..
             resultado[:alias] = texto_entidad[1..].strip
-            resultado[:id] = obtener_id_de_alias(resultado[:alias])
+            resultado[:id] = obtener_id_de_alias(resultado[:alias])&.to_i
         when 'text_mention'
             resultado[:id] = entidad.user.id
             resultado[:usuario] = entidad.user
@@ -287,6 +287,7 @@ class Dankie
                 text: error_no_permisos,
                 reply_to_message_id: msj.message_id
             )
+            return false
         end
         true
     end
@@ -338,17 +339,17 @@ class Dankie
         hora = Time.now.to_i
         cambios = []
 
-        unless obtener_nombre_usuario(usuario.id) == usuario.first_name
+        if (nombre = obtener_nombre_usuario(usuario.id)) && nombre != usuario.first_name
             cambios << redis_actualizar_dato_usuario(usuario.id, usuario.first_name,
                                                      :nombre, hora)
         end
 
-        unless obtener_apellido_usuario(usuario.id) == usuario.last_name.to_s
+        if obtener_apellido_usuario(usuario.id) != usuario.last_name
             cambios << redis_actualizar_dato_usuario(usuario.id, usuario.last_name,
                                                      :apellido, hora)
         end
 
-        unless obtener_username_usuario(usuario.id) == usuario.username.to_s
+        if obtener_username_usuario(usuario.id) != usuario.username
             cambios << redis_actualizar_dato_usuario(usuario.id, usuario.username,
                                                      :username, hora)
         end
@@ -374,15 +375,24 @@ class Dankie
     # Las siguientes tres funciones devuelven dicho campo, o
     # un String vacío si el usuario no tiene dicho campo
     def obtener_nombre_usuario(id)
-        @redis.lindex("nombre:#{id}", -1)
+        nombre = @redis.lindex("nombre:#{id}", -1)
+        return if nombre.nil? || nombre.empty?
+
+        nombre
     end
 
     def obtener_apellido_usuario(id)
-        @redis.lindex("apellido:#{id}", -1)
+        apellido = @redis.lindex("apellido:#{id}", -1)
+        return if apellido.nil? || apellido.empty?
+
+        apellido
     end
 
     def obtener_username_usuario(id)
-        @redis.lindex("username:#{id}", -1)
+        username = @redis.lindex("username:#{id}", -1)
+        return if username.nil? || username.empty?
+
+        username
     end
 
     def nombres_usuario(id, &block)
@@ -437,15 +447,9 @@ class Dankie
         borrado = []
         @redis.rpush "spam:#{id_chat}", id_mensaje
         while @redis.llen("spam:#{id_chat}") > 24
-            begin
-                id_borrar = @redis.lpop("spam:#{id_chat}").to_i
-                borrado << @tg.delete_message(chat_id: id_chat, message_id: id_borrar)
-            rescue Telegram::Bot::Exceptions::ResponseError => e
-                @logger.warn('No pude borrar un mensaje. '\
-                             "mensaje: #{id_borrar}, chat: #{id_chat}, "\
-                             "error: #{e.message}",
-                             al_canal: false)
-            end
+            id_borrar = @redis.lpop("spam:#{id_chat}").to_i
+            borrado << @tg.delete_message(chat_id: id_chat, message_id: id_borrar,
+                                          ignorar_excepciones_telegram: true)
         end
         borrado
     end

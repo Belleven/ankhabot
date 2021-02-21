@@ -9,7 +9,7 @@ class Dankie
     )
 
     # Comando calcular.
-    def calcular(msj, operación)
+    def calcular(msj, operación) # rubocop:disable Metrics/AbcSize
         # Captura la operación al responder un mensaje.
         operación = operación || msj.reply_to_message&.text ||
                     msj.reply_to_message&.caption
@@ -27,20 +27,21 @@ class Dankie
         # Si es evaluable.
         begin
             # Calculo todo.
-            operación_resultado = deducir(operación.to_s).to_s
+            operación_resultado = deducir(operación).to_s
 
         # Y si no.
-        rescue NoMethodError, ZeroDivisionError => e
-            # Log y respuesta ante algún error.
-            @logger.error(
-                "#{e}\nAl usar el comando /calcular.",
-                al_canal: true
-            )
-
+        rescue NoMethodError
             @tg.send_message(
                 chat_id: msj.chat.id,
                 reply_to_message_id: msj.message_id,
-                text: "Revisá tu operación, #{TROESMAS.sample}."
+                text: "Hay un error en tu cuenta, #{TROESMAS.sample}."
+            )
+            return
+        rescue ZeroDivisionError
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                reply_to_message_id: msj.message_id,
+                text: "No se puede dividir por 0, #{TROESMAS.sample}."
             )
             return
         end
@@ -104,10 +105,10 @@ class Dankie
             nuevo = factorial(f)
             expresión = expresión.gsub(regex, nuevo.to_s)
         end
+
         # Árbol de nodos | root
         #                 |-> child
         tree = Ripper.sexp(expresión)
-
         # Toma la primera expresión.
         evaluar(tree[-1][0])
     end
@@ -132,11 +133,14 @@ class Dankie
 
         case operador
         when :* then evaluar(izquierda) * evaluar(derecha)
-        when :/ then evaluar(izquierda) / evaluar(derecha).to_f
         when :+ then evaluar(izquierda) + evaluar(derecha)
         when :- then evaluar(izquierda) - evaluar(derecha)
         when :** then evaluar(izquierda)**evaluar(derecha)
         when :% then evaluar(izquierda) % evaluar(derecha)
+        when :/
+            res = evaluar(izquierda) / evaluar(derecha).to_f
+            res = res.to_i if (res % 1).zero?
+            res
         end
     end
 

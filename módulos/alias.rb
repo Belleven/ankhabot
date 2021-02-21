@@ -22,6 +22,8 @@ class Dankie
     # es una id
 
     def registrar_alias_usuario(usuario)
+        return if usuario.nil?
+
         alias_actual = usuario.username
         id_usuario = usuario.id.to_s
 
@@ -52,7 +54,7 @@ class Dankie
     private
 
     def obtener_id_de_alias(alias_usuario)
-        @redis.get("id:#{alias_usuario}").to_i
+        @redis.get("id:#{alias_usuario}")
     end
 
     def obtener_alias_de_id(id_usuario)
