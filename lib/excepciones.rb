@@ -118,6 +118,9 @@ class ManejoExcepciones
                           "todavía #{chat}: #{mensaje_error}")
         when /CHAT_WRITE_FORBIDDEN/ # esta aparece tambien con código de error 403
             @logger.error("No puedo mandar mensajes #{chat}.")
+        when /CHAT_SEND_STICKERS_FORBIDDEN/
+            @logger.fatal("Quize mandar un sticker #{chat}, pero parece "\
+                'que esta prohibido.')
         else
             manejado = false
         end
