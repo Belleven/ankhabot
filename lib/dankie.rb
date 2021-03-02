@@ -40,14 +40,14 @@ class Dankie
 
     class << self
         attr_reader :comandos, :inlinequeries, :callback_queries,
-            :handlers_generales, :handlers_sincrónicos
+                    :handlers_generales, :handlers_sincrónicos
     end
 
     def self.add_handler(handler)
-        if ([Handler::Comando,
-                Handler::Mensaje,
-                Handler::EventoDeChat].include?(handler.class) &&
-            handler.sincronía == :global)
+        if [Handler::Comando,
+            Handler::Mensaje,
+            Handler::EventoDeChat].include?(handler.class) &&
+           handler.sincronía == :global
 
             @handlers_sincrónicos ||= []
             @handlers_sincrónicos << handler
@@ -245,12 +245,12 @@ class Dankie
             password: args[:redis_pass],
             db: 1
         )
-#        Colita.redis = Redis.new(
-#            port: args[:redis_port],
-#            host: args[:redis_host],
-#            password: args[:redis_pass],
-#            db: 2
-#        )
+        #        Colita.redis = Redis.new(
+        #            port: args[:redis_port],
+        #            host: args[:redis_host],
+        #            password: args[:redis_pass],
+        #            db: 2
+        #        )
         Planificador.redis = Procesador.redis = Colita.redis = @redis
     end
 
@@ -300,7 +300,7 @@ class Dankie
             when Telegram::Bot::Types::CallbackQuery
                 clave = msj.data.split(':').first
                 Dankie.callback_queries[clave].ejecutar self, msj
-                
+
             when Telegram::Bot::Types::InlineQuery
                 Dankie.inlinequeries.each do |handler|
                     handler.ejecutar self, msj

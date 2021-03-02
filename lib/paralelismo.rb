@@ -119,8 +119,8 @@ class Procesador
         redis.srem @clave_chats, chat_id
     end
 
-
     private
+
     def redis
         self.class.redis
     end
@@ -153,14 +153,14 @@ class Planificador
         Colita.meter(chat_id, actualización)
         Colita.meter(0, actualización)
 
-#        return if @procesos.map(&:chats).flatten.include?(chat_id)
+        #        return if @procesos.map(&:chats).flatten.include?(chat_id)
         return unless chats[chat_id].nil?
 
         asignar_chat(proceso_con_menos_chats, chat_id)
     end
 
     def desasignar_chat(procesador, chat)
-        redis.multi do      
+        redis.multi do
             procesador.bajar_chat(chat)
             redis.hset(CLAVE_COLAS, chat, nil)
         end
@@ -184,12 +184,12 @@ class Planificador
     end
 
     def proceso_con_menos_chats
-        @procesos.sort { |a, b| a.chats.size <=> b.chats.size }.first
+        @procesos.min { |a, b| a.chats.size <=> b.chats.size }
     end
 
     private
+
     def redis
         self.class.redis
     end
 end
-

@@ -5,6 +5,7 @@ module Handler
                        location venue poll reply_markup].freeze
 
         attr_reader :sincronía
+
         def initialize(callback, args = {})
             @callback = callback
             @permitir_editados = args[:permitir_editados] || false
@@ -109,6 +110,7 @@ module Handler
                        successful_payment connected_website passport_data].freeze
 
         attr_reader :sincronía
+
         def initialize(callback, args = {})
             @tipos = args[:tipos] || MSJ_TYPES
 
