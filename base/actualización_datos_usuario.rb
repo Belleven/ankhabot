@@ -1,13 +1,15 @@
 class Dankie
-    add_handler Handler::Mensaje.new(:actualizar_datos_usuarios)
+    add_handler Handler::Mensaje.new(:actualizar_datos_usuarios, sincronía: :global)
     add_handler Handler::Mensaje.new(
         :informar_cambio_datos_en_grupo,
-        chats_permitidos: %w[group supergroup]
+        chats_permitidos: %w[group supergroup],
+        sincronía: :global
     )
     add_handler Handler::EventoDeChat.new(
         :datos_usuario_supergrupo,
         tipos: [:migrate_from_chat_id],
-        chats_permitidos: %i[supergroup]
+        chats_permitidos: %i[supergroup],
+        sincronía: :global
     )
 
     # Método recursivo que actualiza los nombres de usuarios en redis
