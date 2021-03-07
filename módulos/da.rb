@@ -1,18 +1,17 @@
 require 'nokogiri'
 require 'open-uri'
 require 'json'
-
 # Ayuditas para el nokogiri
 # http://ruby.bastardsbook.com/chapters/html-parsing/
 # https://www.jdbean.net/scraping-with-nokogiri/
-# 1. Búsquedas personalizadas
-# 2. Arreglar el código por el amor de dios
-# 3. Imitar a du_ud
+# TODO:
+# 1.[x] Búsquedas personalizadas
+# 2.[ ] Arreglar el código por el amor de dios
+# 3.[ ]Imitar a du_ud
 class Dankie
     add_handler Handler::Comando.new(:da, :diccionario_argentino,
                                      permitir_params: true)
     def diccionario_argentino(msj, params)
-        # Nuestro target
         url = 'https://www.diccionarioargentino.com/'
         html = URI.parse(url).open
         document = Nokogiri::HTML(html)
@@ -28,14 +27,6 @@ class Dankie
             texto = "#{primer_titulo} \n #{primer_parrafo} \n #{url}"
             @tg.send_message(chat_id: msj.chat.id, parse_mode: :html, text: texto)
         else
-            # Idea:
-            # Vemos si está definido el parámetro que nos pasaron, esto
-            # lo podemos ver con un div que nos tira la página con el texto "tal
-            # palabra no ha sido definida aún". Si no, con el link hardcodeado,
-            # devolvemos la url y el significado de lo que nos pidieron.
-            # Parece ser que las url de las definiciones de la página no son
-            # case sensitive, entonces, me parece conveniente directamente
-            # pasar el parámetro a minúsculas y listo.
             # Implementación:
             # Una definición  (existente) consiste de 2 divs dentro de un
             # div clase "panel-heading":
@@ -48,7 +39,23 @@ class Dankie
             @tg.send_message(chat_id: msj.chat.id,
                              text: params.to_s)
             url = "#{url}term/#{params.downcase}"
-            @tg.send_message(chat_id: msj.chat.id, text: url.to_s)
+            html = URI.parse(url).open
+            document = Nokogiri::HTML(html)
+            # Texto que devuelvo.
+            texto = ''
+            document.css('.panel-body').collect do |algo|
+                # Saco los botones de 'Bueno' y 'Malo'
+                algo.css('button')&.remove
+                # Saco quién mandó la definición, porque soy un forro.
+                algo.css('small')&.remove
+                texto += algo.text
+            end
+            if texto.empty?
+                @tg.send_message(chat_id: msj.chat.id, text: 'La verdad que' \
+                "no encontré nada, #{TROESMAS.sample}")
+            end
+            # target_text = document.css('.panel-body > p').text
+            @tg.send_message(chat_id: msj.chat.id, text: texto)
         end
     end
 end
