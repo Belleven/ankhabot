@@ -243,7 +243,7 @@ class TelegramAPI
 
     def analizar_excepción_400_enviar(args, exc)
         case exc.message
-        when /reply message not found/
+        when /replied message not found/
             @client.logger.error(
                 'No puedo responder a un mensaje borrado (ID: '\
                 "#{args[:reply_to_message_id]}) en #{args[:chat_id]}. "\
