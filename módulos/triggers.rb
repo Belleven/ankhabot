@@ -812,13 +812,22 @@ class Dankie
 
         nombre = obtener_enlace_usuario(id_usuario, chat.id, con_apodo: false)
         nombre ||= 'eliminado'
+        nombre_chat_log = comprobar_tenga_alias_log(chat&.title, chat&.username)
 
         texto = fecha.strftime("<code>[%d/%m/%Y %T]</code>\n")
         texto << "Usuario #{nombre} (#{id_usuario}) en el chat "
-        texto << "#{html_parser(chat&.title || chat&.username)} (#{chat.id}) "
+        texto << "#{html_parser(nombre_chat_log)} (#{chat.id}) "
         texto << "quiere #{acción} el trigger: "
         texto << " <code>#{regexp_sanitizada}</code>\n"
         texto
+    end
+
+    # Comprueba si un usuario tiene alias para el log
+    # Devuelve el nombre del chat, salvo que sea el caso
+    # que no tenga alias y hable al chat privado.
+    def comprobar_tenga_alias_log(titulo, usuario)
+        nombre_chat = (titulo || usuario)
+        nombre_chat.nil? ? 'privado' : nombre_chat
     end
 
     def cambiar_claves_triggers_temporales(vieja_id, nueva_id, tipo_temp)
