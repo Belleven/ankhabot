@@ -56,7 +56,7 @@ class Dankie
         chats_permitidos: %i[supergroup]
     )
 
-    def cambiar_rep(msj) # rubocop:disable Metrics/AbcSize
+    def cambiar_rep(msj)
         # Δrep: 1  si max - min = 0
         #                                      |rep1 - min|
         #       (1 + log(1 + rep1 - rep2) ) * -------------- sí rep1 >= rep2
@@ -81,10 +81,7 @@ class Dankie
         # la rep más baja y la más alta
         rango = calcular_rango(msj)
         # El mínimo incremento es 0,001
-        delta = calcular_delta_rep(rango, msj)
-        return unless delta
-
-        delta_rep = delta * cambio
+        delta_rep = calcular_delta_rep(rango, msj) * cambio
 
         @redis.zincrby(
             "rep:#{msj.chat.id}",
@@ -366,11 +363,6 @@ class Dankie
                     delta_rep_log(rep1, rep2, rango)
                 end
 
-        unless delta.finite? && rep1.finite? && rep2.finite?
-            domar_reputación_ilegal(msj, rep1, rep2, rango, delta)
-            return
-        end
-
         [delta, 0.001].max
     end
 
@@ -381,52 +373,6 @@ class Dankie
     def delta_rep_log(rep1, rep2, rango)
         (1 + Math.log(1 + rep1 - rep2)) *
             ((rep1 - rango.min) / (rango.max - rango.min)).abs
-    end
-
-    # Borrar a la mierda esto cuando se haya arreglado el problema de la reputación
-    def domar_reputación_ilegal(msj, rep1, rep2, rango, delta) # rubocop:disable Metrics/AbcSize
-        usuario1 = obtener_enlace_usuario(msj.from, msj.chat.id)
-        usuario2 = obtener_enlace_usuario(msj.reply_to_message.from, msj.chat.id)
-
-        @logger.error(
-            "En el chat #{html_parser(msj.chat.title)} hubo un quilombazo con la "\
-            "reputación y salió un valor turbina y no finito. El usuario #{usuario1} "\
-            "(#{msj.from.id}) tenía de reputación (rep1) #{rep1}, el usuario "\
-            "#{usuario2} (#{msj.reply_to_message.from.id}) tenía de reputación (rep2) "\
-            "#{rep2}, el delta calculado fue #{delta} y el rango es\n\n#{rango}",
-            parsear_html: false,
-            al_canal: true
-        )
-
-        texto = 'Hubo un problema con las reputaciones.'
-
-        unless rep1.finite?
-            @redis.zrem("rep:#{msj.chat.id}", msj.from.id)
-            @redis.zincrby("rep:#{msj.chat.id}", 0.0, msj.from.id)
-            texto << " La reputación de #{usuario1} era ilegal (#{rep1}) así que ahora "\
-                     'pasará a ser 0.'
-        end
-
-        unless rep2.finite?
-            @redis.zrem("rep:#{msj.chat.id}", msj.reply_to_message.from.id)
-            @redis.zincrby("rep:#{msj.chat.id}", 0.0, msj.reply_to_message.from.id)
-            texto << " La reputación de #{usuario2} era ilegal (#{rep2}) así que ahora "\
-                     'pasará a ser 0.'
-        end
-
-        unless delta.finite?
-            texto << ' El resultado del cálculo para cambiar de reputación es ilegal '\
-                     "(#{delta})."
-        end
-
-        @tg.send_message(
-            chat_id: msj.chat.id,
-            reply_to_message_id: msj.message_id,
-            text: texto,
-            parse_mode: :html,
-            disable_web_page_preview: true,
-            disable_notification: true
-        )
     end
 
     def crear_texto_msj(msj, delta_rep)
