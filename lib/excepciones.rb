@@ -66,6 +66,11 @@ class ManejoExcepciones
                 "No pude borrar un mensaje (id mensaje: #{id_mensaje}) "\
                 "(id chat: #{chat})."
             )
+        when /replied message not found/
+            @logger.error(
+                'Me dice que no puedo encontrar el mensaje al que respondo '\
+                "(id mensaje: #{id_mensaje}) (id chat: #{chat})"
+            )
         else
             manejado = manejar_error_400_parte_2(mensaje_error, chat, id_mensaje)
         end
