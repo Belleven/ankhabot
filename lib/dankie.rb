@@ -68,6 +68,7 @@ class Dankie
     # Recibe un Hash con los datos de config.yml
     def initialize(args)
         @canal = args[:canal_logging]
+        @canal_triggers = args[:canal_triggers]
         @archivo_logging = args[:archivo_logging] || $stderr
         # Tanto tg como dankielogger usan un cliente para mandar mensajes
         # Y además tg usa un logger

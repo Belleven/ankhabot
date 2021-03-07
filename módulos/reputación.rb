@@ -252,7 +252,7 @@ class Dankie
         tipo, cambio = tipo_de_disparador(msj.chat.id, params)
 
         clave = "disparadores:#{tipo}:#{msj.chat.id}:#{cambio}"
-        @redis.srem(clave, msj.text.downcase)
+        @redis.srem(clave, params.downcase)
 
         @tg.send_message(chat_id: msj.chat.id,
                          reply_to_message_id: msj.message_id,
