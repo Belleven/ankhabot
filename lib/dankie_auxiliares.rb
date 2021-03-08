@@ -264,11 +264,6 @@ class Dankie
         nil
     end
 
-    def obtener_chat(chat_id)
-        chat = @tg.get_chat(chat_id: chat_id)
-        Telegram::Bot::Types::Chat.new(chat['result'])
-    end
-
     # Chequea que el miembro sea admin y tenga los permisos adecuados
     def tiene_permisos(msj, id_usuario, permiso, error_no_admin, error_no_permisos)
         miembro = obtener_miembro(msj, id_usuario)
