@@ -235,7 +235,7 @@ class Dankie
                 act = Telegram::Bot::Types::Update.new(actualización)
                 @logger.info "Procesando update #{act.update_id}"
                 mensaje = act.current_message
-                
+
                 if mensaje.nil?
                     @logger.fatal "Update vacía (nil):\n\nJSON:\n#{actualización}\n"\
                                   "Objeto:\n#{act}", al_canal: true
