@@ -12,7 +12,7 @@ Ensure to have installed the following linux packages
     $ git clone git@gitlab.com:lukeovalle/dankiebot.git
     $ cd dankiebot
 
-if you do not have ruby in your machine i don't know dude just google how to install it
+if you do not have ruby in your machine google how to install it xd
 ruby 2.6 at least is needed (check with ruby -v in console)
 if you have a lower version update it, you can use rvm (to install rvm: https://rvm.io/rvm/install)
 	
@@ -24,7 +24,7 @@ if you don't have bundle installed in your master race:
 	
 	$ gem install bundler
 
-if this warning shows "WARNING: You don't have /home/USER/.gem/ruby/2.7.0/bin in your PATH, gem executables will not run. (with USER being your user dou, and not necesary be 2.7.0)
+if this warning shows "WARNING: You don't have /home/USER/.gem/ruby/2.7.0/bin in your PATH, gem executables will not run. (with USER being your user, and not necesary be 2.7.0)
 
 you have to add this as en enviroment variable (in manjaro case is in the file /home/USER/.bashrc)
 add this line at the end
@@ -50,17 +50,17 @@ and then again
 
 	$ sudo bundle install
 
-Redis server installation (for debian, if you use another magic distro you would know wich package manager you have to use):
+Redis server installation (for debian, if you use another distro you would know wich package manager you have to use):
 
 	$  sudo apt-get install redis
 
 Change the default por to 42069:
-First open /etc/redis.conf with your favourite text editor, here I will user nano but you can use whathever shit you want
+First open /etc/redis.conf with your favourite text editor, here I will user nano but you can use another
 On Ubuntu:
 
 	$ sudo nano /etc/redis/redis.conf
 
-On other distributions:
+On other distributions (maybe):
 
 	$ sudo nano /etc/redis.conf
 
@@ -83,7 +83,7 @@ Start redis
 	$ systemctl start redis.service
 
 
-And enable if you are a big pajero like me and don't want to start the server every time you turn on the bot (instead the server will start with the pc)
+And enable if you don't want to start the server every time you turn on the bot (instead, the server will start with the pc)
 
 	$ systemctl enable redis.service
 
@@ -100,7 +100,7 @@ Copy config-sample.yml to config.yml
 7) A country code (https://developers.google.com/custom-search/docs/xml_results_appendices#countryCodes) in 'google_image_gl'
 8) Get a last.fm api (follow instructions https://www.last.fm/api/) and put it in 'last_fm_api'
 9) Set a chat to see the logs of the bot (you can use a channel setting the bot as an administrator, or your private chat for example). Put the chat's id in 'canal_logging' as a string. Plz use a valid id, not a bot id or id of a chat that the bot has not acces to it.
-
+10) Set a file to dump the logs in 'archivo_logging' if no one is setted, then STDERR is used by default
 
 ## Usage
 
@@ -108,12 +108,14 @@ The bot runs with the following command
 
     $ ruby bot.rb
 
+Use the flag --no-updates to receive only the last update in telegram
+
+    $ ruby bot.rb --no-updates
 
 ## Contributing
 
 Bug reports and pull requests are welcome on GitLab at https://gitlab.com/lukeovalle/dankiebot.
 
-
 ## License
 
-see LICENSE dou
+see LICENSE

@@ -235,6 +235,7 @@ class Dankie
                 act = Telegram::Bot::Types::Update.new(actualización)
                 @logger.info "Procesando update #{act.update_id}"
                 mensaje = act.current_message
+                break if mensaje.nil?
 
                 mensaje.datos_crudos = actualización
                 loop_principal(mensaje)
