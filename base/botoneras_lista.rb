@@ -405,10 +405,9 @@ class Dankie
         respuesta = Telegram::Bot::Types::Message.new respuesta['result']
         armar_lista(msj.chat.id, respuesta.message_id, búsqueda, 'texto',
                     editable)
+        # return unless número_versiones
 
-        return unless número_versiones
-
-        armar_lista_botones(msj.chat.id, respuesta.message_id,
-                            número_versiones)
+        # armar_lista_botones(msj.chat.id, respuesta.message_id,
+        #                     número_versiones)
     end
 end
