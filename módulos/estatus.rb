@@ -220,8 +220,15 @@ class Dankie
     end
 
     def agregar_permisos_chat(msj, texto)
-        permisos = obtener_chat(msj.chat.id).permissions
+        permisos = @tg.get_chat(chat_id: msj.chat.id).permissions
         agr_cualidades_generales(permisos, texto, miembro_específico: false)
         agr_cualidades_admin_restr(permisos, texto, miembro_específico: false)
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+        @tg.send_message(
+            chat_id: msj.chat.id,
+            text: 'Hubo un error y no pude conseguir los permisos del chat',
+            reply_to_message_id: msj.message_id
+        )
+        raise unless @excepciones.loggear(e, { chat_id: msj.chat.id })
     end
 end

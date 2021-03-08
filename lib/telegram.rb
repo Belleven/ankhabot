@@ -127,6 +127,11 @@ class TelegramAPI
         editar(:edit_message_reply_markup, args)
     end
 
+    def get_chat(args)
+        chat = @client.api.get_chat args
+        Telegram::Bot::Types::Chat.new(chat['result'])
+    end
+
     def answer_callback_query(args)
         @client.api.answer_callback_query args
     rescue Telegram::Bot::Exceptions::ResponseError => e
@@ -296,9 +301,6 @@ class TelegramAPI
     def method_missing(method_name, **args)
         super unless @client.api.respond_to?(method_name)
         @client.api.send(method_name, **args)
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        # Si la excepción fue manejada entonces no hay que loggear
-        raise unless @excepciones.loggear(e, args)
     end
 
     def respond_to_missing?(method_name)
