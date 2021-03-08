@@ -1,34 +1,45 @@
 class Dankie
-    add_handler Handler::EventoDeChat.new(:lista_negra_supergrupo,
-                                          tipos: [:migrate_from_chat_id],
-                                          chats_permitidos: %i[supergroup])
+    add_handler Handler::EventoDeChat.new(
+        :lista_negra_supergrupo,
+        tipos: [:migrate_from_chat_id],
+        chats_permitidos: %i[supergroup]
+    )
 
-    add_handler Handler::Comando.new(:restringir, :restringir,
-                                     chats_permitidos: %i[group supergroup],
-                                     descripción: 'Restrinjo a alguien en el chat '\
-                                                  'para que no interactúe conmigo '\
-                                                  '(solo admins)',
-                                     permitir_params: true)
+    add_handler Handler::Comando.new(
+        :restringir, :restringir,
+        chats_permitidos: %i[group supergroup],
+        permitir_params: true,
+        descripción: 'Restrinjo a alguien en el chat para que no interactúe conmigo '\
+                     '(solo admins)'
+    )
 
-    add_handler Handler::Comando.new(:habilitar, :habilitar,
-                                     chats_permitidos: %i[group supergroup],
-                                     descripción: 'Habilito a alguien en el '\
-                                                  'chat de para que pueda '\
-                                                  'interactuar conmigo (solo admins)',
-                                     permitir_params: true)
+    add_handler Handler::Comando.new(
+        :habilitar, :habilitar,
+        chats_permitidos: %i[group supergroup],
+        permitir_params: true,
+        descripción: 'Habilito a alguien en el chat de para que pueda '\
+                     'interactuar conmigo (solo admins)'
+    )
 
-    add_handler Handler::Comando.new(:bloquear, :bloquear,
-                                     chats_permitidos: %i[group supergroup],
-                                     permitir_params: true)
-    add_handler Handler::Comando.new(:desbloquear, :desbloquear,
-                                     chats_permitidos: %i[group supergroup],
-                                     permitir_params: true)
+    add_handler Handler::Comando.new(
+        :bloquear, :bloquear,
+        chats_permitidos: %i[group supergroup],
+        permitir_params: true
+    )
+
+    add_handler Handler::Comando.new(
+        :desbloquear, :desbloquear,
+        chats_permitidos: %i[group supergroup],
+        permitir_params: true
+    )
 
     add_handler Handler::Comando.new(:bloqueados, :bloqueados)
-    add_handler Handler::Comando.new(:restringidos, :restringidos,
-                                     chats_permitidos: %i[group supergroup],
-                                     descripción: 'Lista de miembros del chat '\
-                                                  'bloqueados por el bot')
+
+    add_handler Handler::Comando.new(
+        :restringidos, :restringidos,
+        chats_permitidos: %i[group supergroup],
+        descripción: 'Lista de miembros del chat bloqueados por el bot'
+    )
 
     def restringir(msj, params)
         funciones = {
@@ -137,7 +148,7 @@ class Dankie
         if id.nil?
             if msj.reply_to_message
                 id = msj.reply_to_message.from.id
-                return if caso_inválido(id, id_chat, msj)
+                return if caso_inválido_resp_msj(id, id_chat, msj)
             else
                 @tg.send_message(chat_id: id_chat,
                                  reply_to_message_id: msj.message_id,
@@ -146,7 +157,7 @@ class Dankie
             end
         end
 
-        return if caso_de_no_bloqueo(id, msj, id_chat, id_grupo)
+        return if caso_de_no_bloqueo_param(id, msj, id_chat, id_grupo)
 
         # Chequeo que no esté bloqueado ya
         id = id.to_s
@@ -162,8 +173,18 @@ class Dankie
         end
     end
 
-    def caso_inválido(_id, id_chat, msj)
-        if msj.reply_to_message.from.is_bot
+    def caso_inválido_resp_msj(id, id_chat, msj)
+        # Este if está repetido también en caso_de_no_bloqueo_param porque
+        # por como está el método que llama a este no hay forma de que se
+        # chequee esto sin repetir el código, igualmente no se ejecuta 2 veces
+        # pórque caso_de_no_bloqueo_param solo se ejecuta si llaman al comando con
+        # un parámetro
+        if id == @user.id
+            @tg.send_message(chat_id: id_chat,
+                             reply_to_message_id: msj.message_id,
+                             text: 'Ni se te ocurra')
+            return true
+        elsif msj.reply_to_message.from.is_bot
             @tg.send_message(chat_id: id_chat,
                              reply_to_message_id: msj.message_id,
                              text: 'Para qué querés bloquear a un '\
@@ -179,7 +200,7 @@ class Dankie
         false
     end
 
-    def caso_de_no_bloqueo(id, msj, id_chat, id_grupo)
+    def caso_de_no_bloqueo_param(id, msj, id_chat, id_grupo)
         if id == msj.from.id
             @tg.send_message(chat_id: id_chat,
                              reply_to_message_id: msj.message_id,

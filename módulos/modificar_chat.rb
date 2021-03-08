@@ -10,11 +10,16 @@ class Dankie
         :anclar,
         :anclar,
         permitir_params: true,
+        chats_permitidos: %i[group supergroup]
+    )
+
+    add_handler Handler::Comando.new(
+        :fijar,
+        :anclar,
+        permitir_params: true,
         chats_permitidos: %i[group supergroup],
-        descripción: 'Anclo el mensaje al que respondas '\
-                     "en el grupete (agregá ''tranca'' "\
-                     'para que no mande notificaciones '\
-                     'al hacerlo)'
+        descripción: 'Fijo el mensaje al que respondas en el grupete (agregá '\
+                     "''tranca'' para que no mande notificaciones al hacerlo)"
     )
 
     add_handler Handler::Comando.new(:unpin, :desanclar)
@@ -22,8 +27,14 @@ class Dankie
     add_handler Handler::Comando.new(
         :desanclar,
         :desanclar,
+        chats_permitidos: %i[group supergroup]
+    )
+
+    add_handler Handler::Comando.new(
+        :desfijar,
+        :desanclar,
         chats_permitidos: %i[group supergroup],
-        descripción: 'Desanclo el mensaje anclado en el grupete'
+        descripción: 'Desfijo el mensaje fijado en el grupete'
     )
 
     # add_handler Handler::Comando.new(:ponerfoto, :poner_foto,
@@ -106,7 +117,7 @@ class Dankie
                 args_modif,
                 :manejar_excepciones_anclar,
                 msj,
-                'Ese mensaje ya está anclado'
+                'Ese mensaje ya está fijado'
             )
         end
     end
@@ -121,7 +132,7 @@ class Dankie
             :can_pin_messages,
             :unpin_chat_message,
             { chat_id: msj.chat.id },
-            'Desancladísimo'
+            'Desfijadísimo'
         )
     end
 
@@ -195,11 +206,33 @@ class Dankie
         if msj.reply_to_message.nil?
             @tg.send_message(
                 chat_id: msj.chat.id,
-                text: 'Tenés que responderle al mensaje que querés que ancle',
+                text: 'Tenés que responderle al mensaje que querés que fije',
                 reply_to_message_id: msj.message_id
             )
             return false
         end
+
+        tipos_msj_servicio = %i[
+            new_chat_members left_chat_member new_chat_title new_chat_photo
+            delete_chat_photo group_chat_created supergroup_chat_created
+            channel_chat_created migrate_from_chat_id pinned_message invoice
+            migrate_to_chat_id successful_payment connected_website passport_data
+        ]
+
+        # Prefiero chequear esto acá y no esperar a que rompa así nos ahorramos
+        # un llamado a la api (igualmente agregué la excepción abajo por las dudas)
+        tipos_msj_servicio.each do |tipo|
+            atributo = msj.reply_to_message.send tipo
+            next unless atributo && !(atributo.is_a?(Array) && atributo.empty?)
+
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                text: 'No puedo fijar eventos de chat',
+                reply_to_message_id: msj.message_id
+            )
+            return false
+        end
+
         true
     end
 
@@ -276,7 +309,7 @@ class Dankie
             @tg.send_message(
                 chat_id: msj.chat.id,
                 reply_to_message_id: msj.message_id,
-                text: 'No tengo suficientes permisos para anclar un mensaje'
+                text: 'No tengo suficientes permisos para fijar un mensaje'
             )
             return
         when /CHAT_NOT_MODIFIED/
@@ -290,7 +323,14 @@ class Dankie
             @tg.send_message(
                 chat_id: msj.chat.id,
                 reply_to_message_id: msj.message_id,
-                text: 'No puedo anclar eso, no encontré el mensaje'
+                text: 'No puedo fijar eso, no encontré el mensaje'
+            )
+            return
+        when /a service message can't be pinned/
+            @tg.send_message(
+                chat_id: msj.chat.id,
+                reply_to_message_id: msj.message_id,
+                text: "No puedo fijar eventos de chat #{TROESMAS.sample}"
             )
             return
         end
@@ -324,7 +364,7 @@ class Dankie
             @tg.send_message(
                 chat_id: msj.chat.id,
                 reply_to_message_id: msj.message_id,
-                text: 'No hay ningún mensaje para desanclar'
+                text: 'No hay ningún mensaje para desfijar'
             )
             return
         end

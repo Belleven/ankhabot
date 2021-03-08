@@ -127,6 +127,11 @@ class TelegramAPI
         editar(:edit_message_reply_markup, args)
     end
 
+    def get_chat(args)
+        chat = @client.api.get_chat args
+        Telegram::Bot::Types::Chat.new(chat['result'])
+    end
+
     def answer_callback_query(args)
         @client.api.answer_callback_query args
     rescue Telegram::Bot::Exceptions::ResponseError => e
@@ -190,30 +195,40 @@ class TelegramAPI
     private
 
     def enviar(método_edición, args, acción = nil)
-        # Si hay una acción que mandar, la mando
-        if acción
-            @client.api.send_chat_action(chat_id: args[:chat_id],
-                                         action: acción)
-        end
+        intentos = 0
 
-        # Mando el mensaje (de texto, sticker, lo que sea)
-        enviado = @client.api.send(método_edición, args)
-        # Como los métodos que tienen acción son los que envían mensajes,
-        # voy a aumentar las estadísticas de mensajes enviados acá.
-        Estadísticas::Contador.incr('msj_enviados', hora: Time.now.to_i, intervalo: 600)
-        enviado
+        begin
+            # Si hay una acción que mandar, la mando
+            if acción
+                @client.api.send_chat_action(chat_id: args[:chat_id],
+                                             action: acción)
+            end
 
-    # Si hay un error de telegram, loggeo si es conocido,
-    # si no lo vuelvo a lanzar
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        if e.error_code.to_i == 400
-            analizar_excepción_400_enviar(args, e)
-            retry
-        else
-            # Esto es para poder loggear el chat_id y luego hace raise para que no
-            # continue con la ejecución normal
-            @excepciones.loggear(e, args)
-            raise
+            # Mando el mensaje (de texto, sticker, lo que sea)
+            enviado = @client.api.send(método_edición, args)
+            # Como los métodos que tienen acción son los que envían mensajes,
+            # voy a aumentar las estadísticas de mensajes enviados acá.
+            Estadísticas::Contador.incr('msj_enviados', hora: Time.now.to_i,
+                                                        intervalo: 600)
+            enviado
+
+        # Si hay un error de telegram, loggeo si es conocido,
+        # si no lo vuelvo a lanzar
+        rescue Telegram::Bot::Exceptions::ResponseError => e
+            case e.error_code.to_i
+            when 400
+                analizar_excepción_400_enviar(args, e)
+                retry
+            when 500
+                intentos += 1
+                analizar_excepción_500_enviar(args, exc, intentos)
+                retry
+            else
+                # Esto es para poder loggear el chat_id y luego hace raise para que no
+                # continue con la ejecución normal
+                @excepciones.loggear(e, args)
+                raise
+            end
         end
     end
 
@@ -227,6 +242,13 @@ class TelegramAPI
                 callback_query_id: callback.id,
                 text: 'Gomenasai, no tengo permisos para editar ese mensaje uwu'
             )
+        elsif %r{(wrong\ type\ of\ the\ web\ page\ content)|
+                 (wrong\ file\ identifier/HTTP\ URL\ specified)}x.match? e.message
+            @client.logger.error(
+                'Error al querer editar un mensaje con nueva multimedia de internet, '\
+                'esto es solo para los args que rompieron, después se va a relanzar '\
+                "la excepción.\nargs: #{args}"
+            )
         end
 
         raise unless args[:ignorar_excepciones_telegram]
@@ -236,31 +258,49 @@ class TelegramAPI
 
     def analizar_excepción_400_enviar(args, exc)
         case exc.message
-        when /reply message not found/
-            @client.logger.error('No puedo responder a un mensaje '\
-                                    "borrado (ID: #{args[:reply_to_message_id]}) "\
-                                    "en #{args[:chat_id]}. Error:\n#{exc.message}")
+        when /replied message not found/
+            @client.logger.error(
+                'No puedo responder a un mensaje borrado (ID: '\
+                "#{args[:reply_to_message_id]}) en #{args[:chat_id]}. "\
+                "Error:\n#{exc.message}"
+            )
         when /group chat was upgraded to a supergroup chat/
             corte_al_inicio = exc.message.split('{"migrate_to_chat_id"=>').last
             id_supergrupo = corte_al_inicio.split('}').first
 
-            @client.logger.error("Error en #{args[:chat_id]}. El grupo se "\
-                                 'actualizó y ahora es un supergrupo '\
-                                 "(#{id_supergrupo}).\n#{exc.message}")
+            @client.logger.error(
+                "Error en #{args[:chat_id]}. El grupo se actualizó y ahora es un "\
+                "supergrupo (#{id_supergrupo}).\n#{exc.message}"
+            )
             args[:chat_id] = id_supergrupo.to_i
+        when /wrong type of the web page content/,
+             %r{wrong file identifier/HTTP URL specified}
+            @client.logger.error(
+                'Error al querer mandar multimedia de internet, esto es solo para '\
+                "los args que rompieron, después se va a relanzar la excepción.\n"\
+                "args: #{args}"
+            )
+            raise
         else
             raise
         end
         args[:reply_to_message_id] = nil
     end
 
+    def analizar_excepción_500_enviar(_args, exc, intentos)
+        case (error = exc.message)
+        when /sent message was immediately deleted and can't be returned/
+            @client.logger.fatal "Error interno de telegram: #{error}"
+            raise if intentos > 1
+        else
+            raise
+        end
+    end
+
     # Tengo acceso a toda la api de telegram (bot.api) desde esta clase
     def method_missing(method_name, **args)
         super unless @client.api.respond_to?(method_name)
         @client.api.send(method_name, **args)
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-        # Si la excepción fue manejada entonces no hay que loggear
-        raise unless @excepciones.loggear(e, args)
     end
 
     def respond_to_missing?(method_name)

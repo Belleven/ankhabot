@@ -59,7 +59,7 @@ class Dankie
         end
 
         clave = "botonera:#{id_chat}:#{id_mensaje}"
-        return if botonera_expirada(id_chat, id_mensaje, callback.id, clave)
+        return if botonera_expirada(callback, id_chat, id_mensaje, clave)
 
         case match[:acción]
         when 'Borrar'
@@ -93,15 +93,15 @@ class Dankie
 
     private
 
-    def botonera_expirada(id_chat, id_mensaje, id_callback, clave)
+    def botonera_expirada(callback, id_chat, id_mensaje, clave)
         unless @redis.exists?("activo_nsfw:#{id_chat}:#{id_mensaje}") &&
                @redis.exists?(clave) && @redis.exists?("#{clave}:metadatos")
 
             @tg.answer_callback_query(
-                callback_query_id: id_callback,
+                callback_query_id: callback.id,
                 text: 'Este porno chino ya expiró, pedite otro'
             )
-            borrar_claves_y_msj_doujin(id_chat, id_mensaje, clave)
+            borrar_claves_y_msj_doujin(callback, id_chat, id_mensaje, clave)
             return true
         end
 

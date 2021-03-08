@@ -56,7 +56,7 @@ class Dankie
         chats_permitidos: %i[supergroup]
     )
 
-    def cambiar_rep(msj) # rubocop:disable Metrics/AbcSize
+    def cambiar_rep(msj)
         # Δrep: 1  si max - min = 0
         #                                      |rep1 - min|
         #       (1 + log(1 + rep1 - rep2) ) * -------------- sí rep1 >= rep2
@@ -81,10 +81,7 @@ class Dankie
         # la rep más baja y la más alta
         rango = calcular_rango(msj)
         # El mínimo incremento es 0,001
-        delta = calcular_delta_rep(rango, msj)
-        return unless delta
-
-        delta_rep = delta * cambio
+        delta_rep = calcular_delta_rep(rango, msj) * cambio
 
         @redis.zincrby(
             "rep:#{msj.chat.id}",
@@ -130,44 +127,76 @@ class Dankie
     end
 
     def enviar_botonera_crear_disparador(msj)
-        return unless es_admin(msj.from.id, msj.chat.id, msj.message_id,
+        id_chat = msj.chat.id
+        id_msj = msj.message_id
+
+        return unless es_admin(msj.from.id, id_chat, id_msj,
                                "Solo los admines pueden hacer eso, #{TROESMAS.sample}.")
 
-        opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new(
-            inline_keyboard: [] << { más: '➕', menos: '➖' }.map do |cambio, texto|
+        tablero = [
+            { más: '➕', menos: '➖' }.map do |cambio, texto|
                 Telegram::Bot::Types::InlineKeyboardButton.new(
                     text: texto,
-                    callback_data: "rep_crear_disparador:#{msj.from.id}:#{cambio}:"
+                    callback_data: "rep_crear_disparador:#{msj.from.id}:"\
+                                   "cambio_rep:#{cambio}:"
                 )
-            end
+            end,
+            Telegram::Bot::Types::InlineKeyboardButton.new(
+                text: 'Cancelar',
+                callback_data: "rep_crear_disparador:#{msj.from.id}:"\
+                                'cambio_rep:cancelar:'
+            )
+        ]
+
+        opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new(
+            inline_keyboard: tablero
         )
 
-        @tg.send_message(
-            chat_id: msj.chat.id,
+        respuesta = @tg.send_message(
+            chat_id: id_chat,
             parse_mode: :html,
             text: '¿Querés añadir un disparador que aumente o baje la reputación?',
             reply_markup: opciones,
-            reply_to_message_id: msj.message_id
+            reply_to_message_id: id_msj
         )
+
+        return unless respuesta && respuesta['ok']
+
+        respuesta = Telegram::Bot::Types::Message.new respuesta['result']
+        rta_chat = respuesta.chat.id
+        rta_msj = respuesta.message_id
+
+        @redis.set("disparador_temp_estado:#{rta_chat}:#{rta_msj}", 'cambio_rep')
+        @redis.expire "disparador_temp_estado:#{rta_chat}:#{rta_msj}", 172_800 # dos días
     end
 
     def botonera_crear_disparador(callback)
         match = callback.data.match(
-            /rep_crear_disparador:(?<id_usuario>\d+):(?<cambio>[[:word:]]+):(?<tipo>\w*)/
+            /rep_crear_disparador:(?<id_usuario>\d+):(?<estado>\w+):
+             (?<botón>[[:word:]]+):(?<tipo>\w*)/x
         )
         id_usuario = match[:id_usuario].to_i
         id_chat = callback.message.chat.id
         id_mensaje = callback.message.message_id
-        cambio = match[:cambio]
+        botón = match[:botón]
         tipo = match[:tipo]
 
-        return unless id_usuario == callback.from.id
+        if id_usuario != callback.from.id
+            @tg.answer_callback_query(
+                callback_query_id: callback.id,
+                text: 'No podés usar este tablero'
+            )
+            return
+        end
+
+        estado_msj = @redis.get("disparador_temp_estado:#{id_chat}:#{id_mensaje}")
+        return if estado_inválido_o_cancelado_rep(callback, match, estado_msj, botón)
 
         texto = format("Cambio elegido: <b>%<cambio>s</b>\n",
-                       cambio: cambio == 'más' ? 'positivo' : 'negativo')
+                       cambio: botón == 'más' ? 'positivo' : 'negativo')
 
         if tipo.empty?
-            botonera_elegir_tipo_de_cambio(id_usuario, cambio,
+            botonera_elegir_tipo_de_cambio(id_usuario, botón,
                                            callback, texto)
 
             return
@@ -179,28 +208,42 @@ class Dankie
             chat_id: id_chat,
             message_id: id_mensaje,
             parse_mode: :html,
-            text: texto + "Tipo de match: <b>#{TIPOS_DE_MATCH[tipo.to_sym]}</b>\n" +
-                  html_parser('Respondeme a este mensaje con el texto >w<')
+            text: "#{texto}Tipo de match: <b>#{TIPOS_DE_MATCH[tipo.to_sym]}</b>\n"\
+                  "Respondeme a este mensaje con el texto #{html_parser('>w<')}"
         )
 
-        @redis.mapped_hmset("disparador_temp:#{id_mensaje}",
-                            id_usuario: id_usuario, cambio: cambio, tipo: tipo,
-                            id_chat: id_chat)
-        @redis.expire("disparador_temp:#{id_mensaje}", 172_800) # dos días en segundos
+        @redis.set("disparador_temp_estado:#{id_chat}:#{id_mensaje}", 'añadiendo')
+
+        @redis.mapped_hmset(
+            "disparador_temp:#{id_chat}:#{id_mensaje}",
+            id_usuario: id_usuario,
+            cambio: botón,
+            tipo: tipo,
+            id_chat: id_chat
+        )
+
+        # dos días en segundos
+        @redis.expire("disparador_temp:#{id_chat}:#{id_mensaje}", 172_800)
+        @redis.expire("disparador_temp_estado:#{id_chat}:#{id_mensaje}", 172_800)
     end
 
     def añadir_disparador(msj)
         return unless msj.reply_to_message
 
         id_mensaje = msj.reply_to_message.message_id
-        datos = @redis.hgetall("disparador_temp:#{id_mensaje}").transform_keys!(&:to_sym)
-        return if datos.empty?
+        id_chat = msj.chat.id
 
+        datos = @redis.hgetall("disparador_temp:#{id_chat}:#{id_mensaje}")
+                      .transform_keys!(&:to_sym)
+
+        return if datos.empty?
+        return unless @redis.get("disparador_temp_estado:#{id_chat}:#{id_mensaje}")
         return unless validaciones_añadir_disparador(msj, datos)
 
         clave = "disparadores:#{datos[:tipo]}:#{msj.chat.id}:#{datos[:cambio]}"
         @redis.sadd(clave, msj.text.downcase)
         @redis.del("disparador_temp:#{id_mensaje}")
+        @redis.del("disparador_temp_estado:#{id_chat}:#{id_mensaje}")
 
         @tg.send_message(
             chat_id: msj.chat.id,
@@ -217,7 +260,7 @@ class Dankie
         if arr.empty?
             @tg.send_message(
                 chat_id: msj.chat.id,
-                text: 'No hay disparadores umu, se usan los por defecto + y 👍'
+                text: 'No hay disparadores umu, se usan por defecto + y 👍'
             )
             return
         end
@@ -252,7 +295,7 @@ class Dankie
         tipo, cambio = tipo_de_disparador(msj.chat.id, params)
 
         clave = "disparadores:#{tipo}:#{msj.chat.id}:#{cambio}"
-        @redis.srem(clave, msj.text.downcase)
+        @redis.srem(clave, params.downcase)
 
         @tg.send_message(chat_id: msj.chat.id,
                          reply_to_message_id: msj.message_id,
@@ -366,11 +409,6 @@ class Dankie
                     delta_rep_log(rep1, rep2, rango)
                 end
 
-        unless delta.finite? && rep1.finite? && rep2.finite?
-            domar_reputación_ilegal(msj, rep1, rep2, rango, delta)
-            return
-        end
-
         [delta, 0.001].max
     end
 
@@ -381,52 +419,6 @@ class Dankie
     def delta_rep_log(rep1, rep2, rango)
         (1 + Math.log(1 + rep1 - rep2)) *
             ((rep1 - rango.min) / (rango.max - rango.min)).abs
-    end
-
-    # Borrar a la mierda esto cuando se haya arreglado el problema de la reputación
-    def domar_reputación_ilegal(msj, rep1, rep2, rango, delta) # rubocop:disable Metrics/AbcSize
-        usuario1 = obtener_enlace_usuario(msj.from, msj.chat.id)
-        usuario2 = obtener_enlace_usuario(msj.reply_to_message.from, msj.chat.id)
-
-        @logger.error(
-            "En el chat #{html_parser(msj.chat.title)} hubo un quilombazo con la "\
-            "reputación y salió un valor turbina y no finito. El usuario #{usuario1} "\
-            "(#{msj.from.id}) tenía de reputación (rep1) #{rep1}, el usuario "\
-            "#{usuario2} (#{msj.reply_to_message.from.id}) tenía de reputación (rep2) "\
-            "#{rep2}, el delta calculado fue #{delta} y el rango es\n\n#{rango}",
-            parsear_html: false,
-            al_canal: true
-        )
-
-        texto = 'Hubo un problema con las reputaciones.'
-
-        unless rep1.finite?
-            @redis.zrem("rep:#{msj.chat.id}", msj.from.id)
-            @redis.zincrby("rep:#{msj.chat.id}", 0.0, msj.from.id)
-            texto << " La reputación de #{usuario1} era ilegal (#{rep1}) así que ahora "\
-                     'pasará a ser 0.'
-        end
-
-        unless rep2.finite?
-            @redis.zrem("rep:#{msj.chat.id}", msj.reply_to_message.from.id)
-            @redis.zincrby("rep:#{msj.chat.id}", 0.0, msj.reply_to_message.from.id)
-            texto << " La reputación de #{usuario2} era ilegal (#{rep2}) así que ahora "\
-                     'pasará a ser 0.'
-        end
-
-        unless delta.finite?
-            texto << ' El resultado del cálculo para cambiar de reputación es ilegal '\
-                     "(#{delta})."
-        end
-
-        @tg.send_message(
-            chat_id: msj.chat.id,
-            reply_to_message_id: msj.message_id,
-            text: texto,
-            parse_mode: :html,
-            disable_web_page_preview: true,
-            disable_notification: true
-        )
     end
 
     def crear_texto_msj(msj, delta_rep)
@@ -492,23 +484,39 @@ class Dankie
     def botonera_elegir_tipo_de_cambio(id_usuario, cambio,
                                        callback, texto)
 
-        opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new(
-            inline_keyboard: TIPOS_DE_MATCH.map do |t, nombre|
-                [Telegram::Bot::Types::InlineKeyboardButton.new(
+        tablero = TIPOS_DE_MATCH.map do |t, nombre|
+            [
+                Telegram::Bot::Types::InlineKeyboardButton.new(
                     text: nombre,
-                    callback_data:
-                    "rep_crear_disparador:#{id_usuario}:#{cambio}:#{t}"
-                )]
-            end
+                    callback_data: "rep_crear_disparador:#{id_usuario}:"\
+                                   "tipo_rep:#{cambio}:#{t}"
+                )
+            ]
+        end
+
+        tablero << Telegram::Bot::Types::InlineKeyboardButton.new(
+            text: 'Cancelar',
+            callback_data: "rep_crear_disparador:#{id_usuario}:"\
+                            'tipo_rep:cancelar:'
         )
+
+        opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new(
+            inline_keyboard: tablero
+        )
+
+        id_chat = callback.message.chat.id
+        id_msj = callback.message.message_id
+
+        @redis.set("disparador_temp_estado:#{id_chat}:#{id_msj}", 'tipo_rep')
+        @redis.expire("disparador_temp_estado:#{id_chat}:#{id_msj}", 172_800)
 
         # Si explota acá ignoro las excepciones total se termina la ejecución
         @tg.edit_message_text(
             callback: callback,
-            chat_id: callback.message.chat.id,
+            chat_id: id_chat,
             reply_markup: opciones,
             parse_mode: :html,
-            message_id: callback.message.message_id,
+            message_id: id_msj,
             text: texto,
             ignorar_excepciones_telegram: true
         )
@@ -516,7 +524,6 @@ class Dankie
 
     def validaciones_añadir_disparador(msj, datos)
         return false unless msj.from.id == datos[:id_usuario].to_i
-        return false unless msj.chat.id == datos[:id_chat].to_i
 
         if tipo_de_disparador(msj.chat.id, msj.text.downcase)
             @tg.send_message(
@@ -551,6 +558,54 @@ class Dankie
         end
 
         nil
+    end
+
+    def estado_inválido_o_cancelado_rep(callback, match, estado_msj, botón)
+        unless estado_msj
+            @tg.answer_callback_query(
+                callback_query_id: callback.id,
+                text: 'Gomenasai, estos botones no están más habilitados'
+            )
+            @tg.delete_message(
+                chat_id: callback.message.chat.id,
+                message_id: callback.message.message_id,
+                ignorar_excepciones_telegram: true
+            )
+
+            return true
+        end
+
+        if match[:estado] != estado_msj
+            @tg.answer_callback_query(
+                callback_query_id: callback.id,
+                text: 'Este tablero ya fue respondido'
+            )
+            return true
+        end
+
+        tablero_rep_cancelado?(callback, botón)
+    end
+
+    def tablero_rep_cancelado?(callback, botón)
+        if (cancelado = botón == 'cancelar')
+            id_msj = callback.message.message_id
+            id_chat = callback.message.chat.id
+
+            @redis.del("disparador_temp:#{id_chat}:#{id_msj}")
+            @redis.del("disparador_temp_estado:#{id_chat}:#{id_msj}")
+
+            @tg.answer_callback_query(
+                callback_query_id: callback.id,
+                text: 'Tablero eliminado'
+            )
+            @tg.delete_message(
+                chat_id: callback.message.chat.id,
+                message_id: id_msj,
+                ignorar_excepciones_telegram: true
+            )
+        end
+
+        cancelado
     end
 
     def cargar_arreglo_lista_disparadores(arr, chat_id)

@@ -68,6 +68,7 @@ class Dankie
     # Recibe un Hash con los datos de config.yml
     def initialize(args)
         @canal = args[:canal_logging]
+        @canal_triggers = args[:canal_triggers]
         @archivo_logging = args[:archivo_logging] || $stderr
         # Tanto tg como dankielogger usan un cliente para mandar mensajes
         # Y además tg usa un logger
@@ -135,18 +136,19 @@ class Dankie
             procesando = false
 
             return apagar_bot if apagar_programa
+
+        rescue Faraday::ConnectionFailed, Faraday::TimeoutError,
+               HTTPClient::ReceiveTimeoutError, Net::OpenTimeout => e
+            @logger.fatal "Error de conección, no hay internés: #{e.class}"
+            return apagar_bot if apagar_programa
+
+            retry
+        rescue StandardError => e
+            manejar_excepción_asesina(e)
+            return apagar_bot if apagar_programa
+
+            retry
         end
-    rescue Faraday::ConnectionFailed, Faraday::TimeoutError,
-           HTTPClient::ReceiveTimeoutError, Net::OpenTimeout => e
-        @logger.fatal "Error de conección, no hay internés: #{e.class}", al_canal: false
-        return apagar_bot if apagar_programa
-
-        retry
-    rescue StandardError => e
-        manejar_excepción_asesina(e)
-        return apagar_bot if apagar_programa
-
-        retry
     end
 
     def obtener_comando(msj)
@@ -233,6 +235,7 @@ class Dankie
                 act = Telegram::Bot::Types::Update.new(actualización)
                 @logger.info "Procesando update #{act.update_id}"
                 mensaje = act.current_message
+                break if mensaje.nil?
 
                 mensaje.datos_crudos = actualización
                 loop_principal(mensaje)
