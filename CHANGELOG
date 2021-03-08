@@ -1,4 +1,6 @@
 Versión 1.3.3
+-agregado botón de cancelar en tableros para crear disparadores
+-ahora las botoneras para aceptar triggers globales pueden ir en un canal distinto al de logging
 -arreglos menores
 
 Versión 1.3.2

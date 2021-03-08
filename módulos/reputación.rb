@@ -133,14 +133,23 @@ class Dankie
         return unless es_admin(msj.from.id, id_chat, id_msj,
                                "Solo los admines pueden hacer eso, #{TROESMAS.sample}.")
 
-        opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new(
-            inline_keyboard: [] << { más: '➕', menos: '➖' }.map do |cambio, texto|
+        tablero = [
+            { más: '➕', menos: '➖' }.map do |cambio, texto|
                 Telegram::Bot::Types::InlineKeyboardButton.new(
                     text: texto,
                     callback_data: "rep_crear_disparador:#{msj.from.id}:"\
                                    "cambio_rep:#{cambio}:"
                 )
-            end
+            end,
+            Telegram::Bot::Types::InlineKeyboardButton.new(
+                text: 'Cancelar',
+                callback_data: "rep_crear_disparador:#{msj.from.id}:"\
+                                'cambio_rep:cancelar:'
+            )
+        ]
+
+        opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new(
+            inline_keyboard: tablero
         )
 
         respuesta = @tg.send_message(
@@ -164,12 +173,12 @@ class Dankie
     def botonera_crear_disparador(callback)
         match = callback.data.match(
             /rep_crear_disparador:(?<id_usuario>\d+):(?<estado>\w+):
-             (?<cambio>[[:word:]]+):(?<tipo>\w*)/x
+             (?<botón>[[:word:]]+):(?<tipo>\w*)/x
         )
         id_usuario = match[:id_usuario].to_i
         id_chat = callback.message.chat.id
         id_mensaje = callback.message.message_id
-        cambio = match[:cambio]
+        botón = match[:botón]
         tipo = match[:tipo]
 
         if id_usuario != callback.from.id
@@ -181,13 +190,13 @@ class Dankie
         end
 
         estado_msj = @redis.get("disparador_temp_estado:#{id_chat}:#{id_mensaje}")
-        return unless validar_estado_tablero_rep(callback, match, estado_msj)
+        return if estado_inválido_o_cancelado_rep(callback, match, estado_msj, botón)
 
         texto = format("Cambio elegido: <b>%<cambio>s</b>\n",
-                       cambio: cambio == 'más' ? 'positivo' : 'negativo')
+                       cambio: botón == 'más' ? 'positivo' : 'negativo')
 
         if tipo.empty?
-            botonera_elegir_tipo_de_cambio(id_usuario, cambio,
+            botonera_elegir_tipo_de_cambio(id_usuario, botón,
                                            callback, texto)
 
             return
@@ -205,9 +214,13 @@ class Dankie
 
         @redis.set("disparador_temp_estado:#{id_chat}:#{id_mensaje}", 'añadiendo')
 
-        @redis.mapped_hmset("disparador_temp:#{id_chat}:#{id_mensaje}",
-                            id_usuario: id_usuario, cambio: cambio, tipo: tipo,
-                            id_chat: id_chat)
+        @redis.mapped_hmset(
+            "disparador_temp:#{id_chat}:#{id_mensaje}",
+            id_usuario: id_usuario,
+            cambio: botón,
+            tipo: tipo,
+            id_chat: id_chat
+        )
 
         # dos días en segundos
         @redis.expire("disparador_temp:#{id_chat}:#{id_mensaje}", 172_800)
@@ -471,14 +484,24 @@ class Dankie
     def botonera_elegir_tipo_de_cambio(id_usuario, cambio,
                                        callback, texto)
 
-        opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new(
-            inline_keyboard: TIPOS_DE_MATCH.map do |t, nombre|
-                [Telegram::Bot::Types::InlineKeyboardButton.new(
+        tablero = TIPOS_DE_MATCH.map do |t, nombre|
+            [
+                Telegram::Bot::Types::InlineKeyboardButton.new(
                     text: nombre,
-                    callback_data:
-                    "rep_crear_disparador:#{id_usuario}:tipo_rep:#{cambio}:#{t}"
-                )]
-            end
+                    callback_data: "rep_crear_disparador:#{id_usuario}:"\
+                                   "tipo_rep:#{cambio}:#{t}"
+                )
+            ]
+        end
+
+        tablero << Telegram::Bot::Types::InlineKeyboardButton.new(
+            text: 'Cancelar',
+            callback_data: "rep_crear_disparador:#{id_usuario}:"\
+                            'tipo_rep:cancelar:'
+        )
+
+        opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new(
+            inline_keyboard: tablero
         )
 
         id_chat = callback.message.chat.id
@@ -537,7 +560,7 @@ class Dankie
         nil
     end
 
-    def validar_estado_tablero_rep(callback, match, estado_msj)
+    def estado_inválido_o_cancelado_rep(callback, match, estado_msj, botón)
         unless estado_msj
             @tg.answer_callback_query(
                 callback_query_id: callback.id,
@@ -548,16 +571,41 @@ class Dankie
                 message_id: callback.message.message_id,
                 ignorar_excepciones_telegram: true
             )
-            return false
+
+            return true
         end
 
-        return true if match[:estado] == estado_msj
+        if match[:estado] != estado_msj
+            @tg.answer_callback_query(
+                callback_query_id: callback.id,
+                text: 'Este tablero ya fue respondido'
+            )
+            return true
+        end
 
-        @tg.answer_callback_query(
-            callback_query_id: callback.id,
-            text: 'Este tablero ya fue respondido'
-        )
-        false
+        tablero_rep_cancelado?(callback, botón)
+    end
+
+    def tablero_rep_cancelado?(callback, botón)
+        if (cancelado = botón == 'cancelar')
+            id_msj = callback.message.message_id
+            id_chat = callback.message.chat.id
+
+            @redis.del("disparador_temp:#{id_chat}:#{id_msj}")
+            @redis.del("disparador_temp_estado:#{id_chat}:#{id_msj}")
+
+            @tg.answer_callback_query(
+                callback_query_id: callback.id,
+                text: 'Tablero eliminado'
+            )
+            @tg.delete_message(
+                chat_id: callback.message.chat.id,
+                message_id: id_msj,
+                ignorar_excepciones_telegram: true
+            )
+        end
+
+        cancelado
     end
 
     def cargar_arreglo_lista_disparadores(arr, chat_id)
