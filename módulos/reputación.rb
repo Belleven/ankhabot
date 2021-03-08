@@ -127,30 +127,44 @@ class Dankie
     end
 
     def enviar_botonera_crear_disparador(msj)
-        return unless es_admin(msj.from.id, msj.chat.id, msj.message_id,
+        id_chat = msj.chat.id
+        id_msj = msj.message_id
+
+        return unless es_admin(msj.from.id, id_chat, id_msj,
                                "Solo los admines pueden hacer eso, #{TROESMAS.sample}.")
 
         opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new(
             inline_keyboard: [] << { más: '➕', menos: '➖' }.map do |cambio, texto|
                 Telegram::Bot::Types::InlineKeyboardButton.new(
                     text: texto,
-                    callback_data: "rep_crear_disparador:#{msj.from.id}:#{cambio}:"
+                    callback_data: "rep_crear_disparador:#{msj.from.id}:"\
+                                   "cambio_rep:#{cambio}:"
                 )
             end
         )
 
-        @tg.send_message(
-            chat_id: msj.chat.id,
+        respuesta = @tg.send_message(
+            chat_id: id_chat,
             parse_mode: :html,
             text: '¿Querés añadir un disparador que aumente o baje la reputación?',
             reply_markup: opciones,
-            reply_to_message_id: msj.message_id
+            reply_to_message_id: id_msj
         )
+
+        return unless respuesta && respuesta['ok']
+
+        respuesta = Telegram::Bot::Types::Message.new respuesta['result']
+        rta_chat = respuesta.chat.id
+        rta_msj = respuesta.message_id
+
+        @redis.set("disparador_temp_estado:#{rta_chat}:#{rta_msj}", 'cambio_rep')
+        @redis.expire "disparador_temp_estado:#{rta_chat}:#{rta_msj}", 172_800 # dos días
     end
 
     def botonera_crear_disparador(callback)
         match = callback.data.match(
-            /rep_crear_disparador:(?<id_usuario>\d+):(?<cambio>[[:word:]]+):(?<tipo>\w*)/
+            /rep_crear_disparador:(?<id_usuario>\d+):(?<estado>\w+):
+             (?<cambio>[[:word:]]+):(?<tipo>\w*)/x
         )
         id_usuario = match[:id_usuario].to_i
         id_chat = callback.message.chat.id
@@ -158,7 +172,16 @@ class Dankie
         cambio = match[:cambio]
         tipo = match[:tipo]
 
-        return unless id_usuario == callback.from.id
+        if id_usuario != callback.from.id
+            @tg.answer_callback_query(
+                callback_query_id: callback.id,
+                text: 'No podés usar este tablero'
+            )
+            return
+        end
+
+        estado_msj = @redis.get("disparador_temp_estado:#{id_chat}:#{id_mensaje}")
+        return unless validar_estado_tablero_rep(callback, match, estado_msj)
 
         texto = format("Cambio elegido: <b>%<cambio>s</b>\n",
                        cambio: cambio == 'más' ? 'positivo' : 'negativo')
@@ -176,28 +199,38 @@ class Dankie
             chat_id: id_chat,
             message_id: id_mensaje,
             parse_mode: :html,
-            text: texto + "Tipo de match: <b>#{TIPOS_DE_MATCH[tipo.to_sym]}</b>\n" +
-                  html_parser('Respondeme a este mensaje con el texto >w<')
+            text: "#{texto}Tipo de match: <b>#{TIPOS_DE_MATCH[tipo.to_sym]}</b>\n"\
+                  "Respondeme a este mensaje con el texto #{html_parser('>w<')}"
         )
 
-        @redis.mapped_hmset("disparador_temp:#{id_mensaje}",
+        @redis.set("disparador_temp_estado:#{id_chat}:#{id_mensaje}", 'añadiendo')
+
+        @redis.mapped_hmset("disparador_temp:#{id_chat}:#{id_mensaje}",
                             id_usuario: id_usuario, cambio: cambio, tipo: tipo,
                             id_chat: id_chat)
-        @redis.expire("disparador_temp:#{id_mensaje}", 172_800) # dos días en segundos
+
+        # dos días en segundos
+        @redis.expire("disparador_temp:#{id_chat}:#{id_mensaje}", 172_800)
+        @redis.expire("disparador_temp_estado:#{id_chat}:#{id_mensaje}", 172_800)
     end
 
     def añadir_disparador(msj)
         return unless msj.reply_to_message
 
         id_mensaje = msj.reply_to_message.message_id
-        datos = @redis.hgetall("disparador_temp:#{id_mensaje}").transform_keys!(&:to_sym)
-        return if datos.empty?
+        id_chat = msj.chat.id
 
+        datos = @redis.hgetall("disparador_temp:#{id_chat}:#{id_mensaje}")
+                      .transform_keys!(&:to_sym)
+
+        return if datos.empty?
+        return unless @redis.get("disparador_temp_estado:#{id_chat}:#{id_mensaje}")
         return unless validaciones_añadir_disparador(msj, datos)
 
         clave = "disparadores:#{datos[:tipo]}:#{msj.chat.id}:#{datos[:cambio]}"
         @redis.sadd(clave, msj.text.downcase)
         @redis.del("disparador_temp:#{id_mensaje}")
+        @redis.del("disparador_temp_estado:#{id_chat}:#{id_mensaje}")
 
         @tg.send_message(
             chat_id: msj.chat.id,
@@ -214,7 +247,7 @@ class Dankie
         if arr.empty?
             @tg.send_message(
                 chat_id: msj.chat.id,
-                text: 'No hay disparadores umu, se usan los por defecto + y 👍'
+                text: 'No hay disparadores umu, se usan por defecto + y 👍'
             )
             return
         end
@@ -443,18 +476,24 @@ class Dankie
                 [Telegram::Bot::Types::InlineKeyboardButton.new(
                     text: nombre,
                     callback_data:
-                    "rep_crear_disparador:#{id_usuario}:#{cambio}:#{t}"
+                    "rep_crear_disparador:#{id_usuario}:tipo_rep:#{cambio}:#{t}"
                 )]
             end
         )
 
+        id_chat = callback.message.chat.id
+        id_msj = callback.message.message_id
+
+        @redis.set("disparador_temp_estado:#{id_chat}:#{id_msj}", 'tipo_rep')
+        @redis.expire("disparador_temp_estado:#{id_chat}:#{id_msj}", 172_800)
+
         # Si explota acá ignoro las excepciones total se termina la ejecución
         @tg.edit_message_text(
             callback: callback,
-            chat_id: callback.message.chat.id,
+            chat_id: id_chat,
             reply_markup: opciones,
             parse_mode: :html,
-            message_id: callback.message.message_id,
+            message_id: id_msj,
             text: texto,
             ignorar_excepciones_telegram: true
         )
@@ -462,7 +501,6 @@ class Dankie
 
     def validaciones_añadir_disparador(msj, datos)
         return false unless msj.from.id == datos[:id_usuario].to_i
-        return false unless msj.chat.id == datos[:id_chat].to_i
 
         if tipo_de_disparador(msj.chat.id, msj.text.downcase)
             @tg.send_message(
@@ -497,6 +535,29 @@ class Dankie
         end
 
         nil
+    end
+
+    def validar_estado_tablero_rep(callback, match, estado_msj)
+        unless estado_msj
+            @tg.answer_callback_query(
+                callback_query_id: callback.id,
+                text: 'Gomenasai, estos botones no están más habilitados'
+            )
+            @tg.delete_message(
+                chat_id: callback.message.chat.id,
+                message_id: callback.message.message_id,
+                ignorar_excepciones_telegram: true
+            )
+            return false
+        end
+
+        return true if match[:estado] == estado_msj
+
+        @tg.answer_callback_query(
+            callback_query_id: callback.id,
+            text: 'Este tablero ya fue respondido'
+        )
+        false
     end
 
     def cargar_arreglo_lista_disparadores(arr, chat_id)

@@ -119,7 +119,7 @@ class ManejoExcepciones
         when /CHAT_WRITE_FORBIDDEN/ # esta aparece tambien con código de error 403
             @logger.error("No puedo mandar mensajes #{chat}.")
         when /CHAT_SEND_STICKERS_FORBIDDEN/
-            @logger.fatal("Quize mandar un sticker #{chat}, pero parece "\
+            @logger.error("Quise mandar un sticker #{chat}, pero parece "\
                 'que esta prohibido.')
         else
             manejado = false
@@ -186,6 +186,20 @@ class ManejoExcepciones
         else
             manejado = false
         end
+        manejado
+    end
+
+    def manejar_error_500(mensaje_error, _chat, _args)
+        manejado = true
+
+        case mensaje_error
+        when /sent message was immediately deleted and can't be returned/
+            @logger.fatal 'Error interno de telegram: no me pueden devolver el mensaje'\
+                          "que mandé porque lo borraron antes.\n#{mensaje_error}"
+        else
+            manejado = false
+        end
+
         manejado
     end
 
