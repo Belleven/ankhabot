@@ -2,6 +2,9 @@ require 'telegram/bot'
 require 'httpclient'
 
 class TelegramAPI
+    class BotExpulsada < StandardError
+    end
+
     attr_reader :client, :token, :ultima_excepción_data
 
     # token es String, logger es Logger

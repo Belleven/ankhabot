@@ -39,20 +39,12 @@ class Dankie
     ).freeze
 
     class << self
-        attr_reader :comandos, :inlinequeries, :callback_queries,
+        attr_reader :comandos, :inline_queries, :callback_queries,
                     :handlers_generales, :handlers_sincrónicos
     end
 
     def self.add_handler(handler)
-        if [Handler::Comando,
-            Handler::Mensaje,
-            Handler::EventoDeChat].include?(handler.class) &&
-           handler.sincronía == :global
-
-            @handlers_sincrónicos ||= []
-            @handlers_sincrónicos << handler
-            return
-        end
+        añadir_handler_global(handler)
 
         case handler
 
@@ -69,16 +61,30 @@ class Dankie
             @callback_queries[handler.clave] = handler
 
         when Handler::InlineQuery
-            @inlinequeries ||= []
-            @inlinequeries << handler
+            @inline_queries ||= []
+            @inline_queries << handler
 
         else
             printf @archivo_logging, "\nHandler inválido: #{handler}\n"
         end
     end
 
+    def self.añadir_handler_global(handler)
+        if [Handler::Comando,
+            Handler::Mensaje,
+            Handler::EventoDeChat].include?(handler.class) &&
+           handler.sincronía == :global
+
+            @handlers_sincrónicos ||= []
+            @handlers_sincrónicos << handler
+            nil
+        end
+    end
+
+    private_class_method :añadir_handler_global
+
     # Recibe un Hash con los datos de config.yml
-    def initialize(args)
+    def initialize(args, proceso_hijo: false)
         @canal = args[:canal_logging]
         @archivo_logging = args[:archivo_logging] || $stderr
         # Tanto tg como dankielogger usan un cliente para mandar mensajes
@@ -97,7 +103,7 @@ class Dankie
 
         Telegram::Bot::Types::Base.attr_accessor :datos_crudos
 
-        @planificador = Planificador.new(self)
+        @planificador = Planificador.new(args) unless proceso_hijo
 
         return unless /\A--(no|s(in|altear))-updates\z/i.match? ARGV.first
 
@@ -277,6 +283,8 @@ class Dankie
             return if actualización_de_usuario_bloqueado? mensaje
 
             despachar mensaje, sincronía: sincronía
+        rescue TelegramAPI::BotExpulsada, TelegramAPI::DemasiadasSolicitudes
+            raise
         # Acá está bueno handlear excepciones de updates porque si rompe más arriba
         # se puede romper el bucle donde se analizan las otras updates y como pueden
         # venir de hasta 100 no queremos que pase eso
@@ -289,27 +297,10 @@ class Dankie
 
     # Creo que esto es un dispatch si entendí bien
     def despachar(msj, sincronía: :local)
-        if sincronía == :global
-            case msj
-            when Telegram::Bot::Types::Message
-                Dankie.handlers_sincrónicos.each do |handler|
-                    next unless handler.verificar(self, msj)
+        sincronía == :local ? despache_local(msj) : despache_global(msj)
+    end
 
-                    handler.ejecutar self, msj
-                end
-            when Telegram::Bot::Types::CallbackQuery
-                clave = msj.data.split(':').first
-                Dankie.callback_queries[clave].ejecutar self, msj
-
-            when Telegram::Bot::Types::InlineQuery
-                Dankie.inlinequeries.each do |handler|
-                    handler.ejecutar self, msj
-                end
-            end
-
-            return
-        end
-
+    def despache_local(msj)
         case msj
         when Telegram::Bot::Types::Message
             # Handlers generales, no los de comandos, si no
@@ -325,6 +316,25 @@ class Dankie
 
         else
             actualizaciones_poco_usuales msj
+        end
+    end
+
+    def despache_global(msj)
+        case msj
+        when Telegram::Bot::Types::Message
+            Dankie.handlers_sincrónicos.each do |handler|
+                next unless handler.verificar(self, msj)
+
+                handler.ejecutar self, msj
+            end
+        when Telegram::Bot::Types::CallbackQuery
+            clave = msj.data.split(':').first
+            Dankie.callback_queries[clave].ejecutar self, msj
+
+        when Telegram::Bot::Types::InlineQuery
+            Dankie.inline_queries.each do |handler|
+                handler.ejecutar self, msj
+            end
         end
     end
 
@@ -388,6 +398,12 @@ class Dankie
     # si hay que hacer más cosas se puede agregar acá
     def apagar_bot
         printf @archivo_logging, "\nApagando bot...\n"
+
+        if @planificador
+            @planificador.procesos.each { |p| Process.kill('INT', p.pid) }
+            Process.kill('INT', @planificador.proceso_sincrónico_global.pid)
+        end
+
         exit
     end
 

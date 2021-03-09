@@ -61,7 +61,7 @@ class Procesador
         Redis.new
     end
 
-    attr_reader :id
+    attr_reader :id, :pid
 
     def initialize(id, planificador, bot)
         @id = id
@@ -74,28 +74,10 @@ class Procesador
     end
 
     def procesar_colas
-        fork do
-            loop do
-                # Tomo una update de cada grupo por vez
-                chats.each do |chat|
-                    actualización = Colita.sacar(chat)
-                    # Puede haber una condición de carrera donde chat_vacío?
-                    # devuelva true, luego se encole un mensaje, y luego se
-                    # llame a desasignar_chat. Pero si pasa esto, el chat va a
-                    # pasar a otro Procesador así que ta to' OK supongo, a ver
-                    # que dice el vergalera.
-                    if chat_vacío?(chat) && id != -1 # Al procesador -1 nunca le saco
-                        @planificador.desasignar_chat(self, chat)
-                    end
+        @pid = fork do
+            @pid = Process.pid
 
-                    next if actualización.nil?
-
-                    @bot.procesar_actualización(actualización,
-                                                sincronía: chat.zero? ? :global : :local)
-                end
-
-                sleep(0.2) if chats.empty?
-            end
+            bucle
         end
     end
 
@@ -121,6 +103,52 @@ class Procesador
 
     private
 
+    def bucle
+        loop do
+            # Tomo una update de cada grupo por vez
+            chats.each do |chat|
+                next if Colita.bloqueada?(chat)
+
+                actualización = Colita.sacar(chat)
+                # Puede haber una condición de carrera donde chat_vacío?
+                # devuelva true, luego se encole un mensaje, y luego se
+                # llame a desasignar_chat. Pero si pasa esto, el chat va a
+                # pasar a otro Procesador así que ta to' OK supongo, a ver
+                # que dice el vergalera.
+                if chat_vacío?(chat) && id != -1 # Al procesador -1 nunca le saco
+                    @planificador.desasignar_chat(self, chat)
+                end
+
+                next if actualización.nil?
+
+                @bot.procesar_actualización(actualización,
+                                            sincronía: chat.zero? ? :global : :local)
+            rescue TelegramAPI::BotExpulsada
+                vaciar_cola(chat)
+            rescue TelegramAPI::DemasiadasSolicitudes => e
+                Colita.bloquear(chat, e.message.to_i)
+            end
+
+            sleep(0.2) if dormir?
+        end
+    end
+
+    def dormir?
+        chats.empty? || chats.all? { |c| Colita.bloqueada?(c) }
+    end
+
+    def vaciar_cola(chat)
+        tamaño = Colita.tamaño(chat)
+
+        Colita.vaciar(chat)
+        bajar_chat(chat)
+
+        @bot.logger.info("Vaciada cola de grupo #{chat}, "\
+                         'mensajes eliminados de la cola: '\
+                         "#{tamaño}",
+                         al_canal: true)
+    end
+
     def redis
         self.class.redis
     end
@@ -143,10 +171,15 @@ class Planificador
         Redis.new
     end
 
-    def initialize(bot)
+    attr_reader :procesos, :proceso_sincrónico_global
+
+    def initialize(args)
         # Arreglo con todos los Procesador
-        @procesos = NÚM_PROCESOS.times.map { |i| Procesador.new(i, self, bot) }
-        @proceso_sincrónico_global = Procesador.new(-1, self, bot)
+        @procesos = NÚM_PROCESOS.times.map do |i|
+            Procesador.new(i, self, Dankie.new(args, proceso_hijo: true))
+        end
+        @proceso_sincrónico_global = Procesador.new(-1, self,
+                                                    Dankie.new(args, proceso_hijo: true))
     end
 
     def encolar(actualización, chat_id)

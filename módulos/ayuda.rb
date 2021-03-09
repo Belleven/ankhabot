@@ -7,6 +7,7 @@ class Dankie
         texto << "versión: <code>#{VERSIÓN}</code>\n"
 
         handlers = Dankie.comandos.values.filter(&:descripción)
+        # TODO: filtrar los comandos de Dankie.handlers_sincrónicos y meterlos acá
         handlers.sort! { |handler_a, handler_b| handler_a.cmd <=> handler_b.cmd }
         handlers.map! { |handler| "/#{handler.cmd} - #{handler.descripción}" }
         texto << handlers.join("\n")
