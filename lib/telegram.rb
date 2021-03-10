@@ -221,8 +221,9 @@ class TelegramAPI
                 retry
             when 500
                 intentos += 1
-                analizar_excepción_500_enviar(args, exc, intentos)
-                retry
+                analizar_excepción_500_enviar(args, e)
+                retry if intentos == 1
+                raise
             else
                 # Esto es para poder loggear el chat_id y luego hace raise para que no
                 # continue con la ejecución normal
@@ -287,11 +288,10 @@ class TelegramAPI
         args[:reply_to_message_id] = nil
     end
 
-    def analizar_excepción_500_enviar(_args, exc, intentos)
+    def analizar_excepción_500_enviar(_args, exc)
         case (error = exc.message)
         when /sent message was immediately deleted and can't be returned/
             @client.logger.fatal "Error interno de telegram: #{error}"
-            raise if intentos > 1
         else
             raise
         end
