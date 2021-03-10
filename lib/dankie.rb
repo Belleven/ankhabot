@@ -337,6 +337,7 @@ class Dankie
         texto, backtrace = @logger.excepcion_texto(excepción)
         @logger.fatal texto, al_canal: true, backtrace: backtrace
     rescue StandardError => e
+        exc1 = e # esto hasta que los de rubocop arreglen su bugazo
         begin
             @logger.fatal "EXCEPCIÓN: #{e}\n\n#{@logger.excepcion_texto(e).last}\n\n"\
                           "LEYENDO LA EXCEPCIÓN: #{excepción}\n\n"\
@@ -344,7 +345,7 @@ class Dankie
                           al_canal: true
         rescue StandardError => e
             printf @archivo_logging,
-                   "\nFATAL: Múltiples excepciones\n#{excepción}\n\n#{e}\n\n#{e}\n"
+                   "\nFATAL: Múltiples excepciones\n#{excepción}\n\n#{e}\n\n#{exc1}\n"
         end
     end
 
