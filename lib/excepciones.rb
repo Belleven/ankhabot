@@ -59,12 +59,11 @@ class ManejoExcepciones
         when /message to delete not found/
             @logger.error(
                 "Traté de borrar un mensaje (id mensaje: #{id_mensaje}) "\
-                "muy viejo (id chat: #{chat})."
+                "muy viejo #{chat}."
             )
         when /message can't be deleted/
             @logger.error(
-                "No pude borrar un mensaje (id mensaje: #{id_mensaje}) "\
-                "(id chat: #{chat})."
+                "No pude borrar un mensaje (id mensaje: #{id_mensaje}) #{chat}."
             )
         else
             manejado = manejar_error_400_parte_2(mensaje_error, chat, id_mensaje)
@@ -117,6 +116,11 @@ class ManejoExcepciones
         when /MESSAGE_ID_INVALID/
             @logger.fatal('Extraño error con el id mensaje, no sabemos por qué salta '\
                           "todavía #{chat}: #{mensaje_error}")
+        when /CHAT_WRITE_FORBIDDEN/ # esta aparece tambien con código de error 403
+            @logger.error("No puedo mandar mensajes #{chat}.")
+        when /CHAT_SEND_STICKERS_FORBIDDEN/
+            @logger.error("Quise mandar un sticker #{chat}, pero parece "\
+                'que esta prohibido.')
         else
             manejado = false
         end
@@ -148,8 +152,26 @@ class ManejoExcepciones
                           "eliminadas.\n#{mensaje_error}")
         when /bot was blocked by the user/
             @logger.info("Error en #{chat}. Ese usuario me bloqueó.")
-        when /CHAT_WRITE_FORBIDDEN/
+        when /CHAT_WRITE_FORBIDDEN/ # esta aparece tambien con código de error 400
             @logger.info("No puedo mandar mensajes en #{chat}.")
+        else
+            manejado = false
+        end
+        manejado
+    end
+
+    def manejar_error_409(mensaje_error, _chat, _args)
+        manejado = true
+
+        case mensaje_error
+        when /terminated\ by\ other\ getUpdates\ request;
+             \ make\ sure\ that\ only\ one\ bot\ instance\ is\ running/x
+            @logger.fatal(
+                'Error turbina de telegram, parece que detecta como que hay dos '\
+                'o más instancias de dankie corriendo a la vez al hacer get_updates '\
+                "en el bucle principal.\n#{mensaje_error}",
+                al_canal: true
+            )
         else
             manejado = false
         end
@@ -168,6 +190,20 @@ class ManejoExcepciones
         else
             manejado = false
         end
+        manejado
+    end
+
+    def manejar_error_500(mensaje_error, _chat, _args)
+        manejado = true
+
+        case mensaje_error
+        when /sent message was immediately deleted and can't be returned/
+            @logger.fatal 'Error interno de telegram: no me pueden devolver el mensaje'\
+                          "que mandé porque lo borraron antes.\n#{mensaje_error}"
+        else
+            manejado = false
+        end
+
         manejado
     end
 

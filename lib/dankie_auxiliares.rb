@@ -36,7 +36,7 @@ class Dankie
             nombre_usuario = usuario.first_name
         else
             id_usuario = usuario
-            alias_usuario = obtener_username_usuario(id_usuario)
+            alias_usuario = obtener_atributo_usuario(id_usuario, :username)
             nombre_usuario = nil
         end
 
@@ -69,7 +69,7 @@ class Dankie
             return mención
         end
 
-        if (nombre = obtener_nombre_usuario(id_usuario) || nombre_usuario)
+        if (nombre = obtener_atributo_usuario(id_usuario, :nombre) || nombre_usuario)
             mención << "#{html_parser nombre}</a>"
             return mención
         end
@@ -88,7 +88,9 @@ class Dankie
         /\A\d*[1-9]\d*\z/.match?(número) ? número.to_i : false
     end
 
-    def validar_desarrollador(usuario_id, chat_id, mensaje_id)
+    # Los últimos 2 parámetros son para que esto sea polimórfico con
+    # es_admin y chequeo_local (lista_negra.rb)
+    def validar_desarrollador(usuario_id, chat_id, mensaje_id, _text = nil, _id = nil)
         # Chequeo que quien llama al comando sea o desarrollador
         unless DEVS.include?(usuario_id)
             @tg.send_message(
@@ -111,6 +113,8 @@ class Dankie
         true
     end
 
+    # Los últimos 2 parámetros son para que esto sea polimórfico con
+    # validar_desarrollador y chequeo_local (lista_negra.rb)
     def es_admin(usuario_id, chat_id, mensaje_id, text = nil, _id = nil)
         member = @tg.get_chat_member(chat_id: chat_id, user_id: usuario_id)
         member = Telegram::Bot::Types::ChatMember.new(member['result'])
@@ -260,11 +264,6 @@ class Dankie
         nil
     end
 
-    def obtener_chat(chat_id)
-        chat = @tg.get_chat(chat_id: chat_id)
-        Telegram::Bot::Types::Chat.new(chat['result'])
-    end
-
     # Chequea que el miembro sea admin y tenga los permisos adecuados
     def tiene_permisos(msj, id_usuario, permiso, error_no_admin, error_no_permisos)
         miembro = obtener_miembro(msj, id_usuario)
@@ -339,22 +338,24 @@ class Dankie
         hora = Time.now.to_i
         cambios = []
 
-        if (nombre = obtener_nombre_usuario(usuario.id)) && nombre != usuario.first_name
-            cambios << redis_actualizar_dato_usuario(usuario.id, usuario.first_name,
-                                                     :nombre, hora)
-        end
+        datos_usuario_actual = devolver_todos_campos_usuario(usuario)
+        campos = %i[nombre apellido username]
 
-        if obtener_apellido_usuario(usuario.id) != usuario.last_name
-            cambios << redis_actualizar_dato_usuario(usuario.id, usuario.last_name,
-                                                     :apellido, hora)
-        end
+        campos.each_with_index do |campo, index|
+            # Consigo los campos anteriores
+            anterior = obtener_atributo_usuario(usuario.id, campo)
 
-        if obtener_username_usuario(usuario.id) != usuario.username
-            cambios << redis_actualizar_dato_usuario(usuario.id, usuario.username,
-                                                     :username, hora)
-        end
+            next unless datos_usuario_actual[index] != anterior
 
+            cambios << redis_actualizar_dato_usuario(usuario.id,
+                                                     datos_usuario_actual[index],
+                                                     campos[index], hora)
+        end
         cambios.compact
+    end
+
+    def devolver_todos_campos_usuario(usuario)
+        [usuario.first_name, usuario.last_name, usuario.username]
     end
 
     def redis_eliminar_datos_usuario(id_usuario)
@@ -372,27 +373,13 @@ class Dankie
         @redis.llen(clave) > 1 ? tipo_de_dato : nil
     end
 
-    # Las siguientes tres funciones devuelven dicho campo, o
+    # La siguientes funcion devuelven dicho campo, o
     # un String vacío si el usuario no tiene dicho campo
-    def obtener_nombre_usuario(id)
-        nombre = @redis.lindex("nombre:#{id}", -1)
-        return if nombre.nil? || nombre.empty?
+    def obtener_atributo_usuario(id, atributo)
+        atributo = @redis.lindex("#{atributo}:#{id}", -1)
+        return if atributo.nil? || atributo.empty?
 
-        nombre
-    end
-
-    def obtener_apellido_usuario(id)
-        apellido = @redis.lindex("apellido:#{id}", -1)
-        return if apellido.nil? || apellido.empty?
-
-        apellido
-    end
-
-    def obtener_username_usuario(id)
-        username = @redis.lindex("username:#{id}", -1)
-        return if username.nil? || username.empty?
-
-        username
+        atributo
     end
 
     def nombres_usuario(id, &block)

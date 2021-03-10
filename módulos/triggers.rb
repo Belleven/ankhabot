@@ -90,7 +90,7 @@ class Dankie
                     "#{html_parser msj.chat&.title} (#{msj.chat.id}) "\
                     "por ralentizar al bot.\n"
             @tg.send_message(chat_id: msj.chat.id, parse_mode: :html, text: texto)
-            @tg.send_message(chat_id: @canal, parse_mode: :html, text: texto)
+            @tg.send_message(chat_id: @canal_triggers, parse_mode: :html, text: texto)
         end
     end
 
@@ -645,7 +645,7 @@ class Dankie
         )
 
         msj_log = @tg.send_message(
-            chat_id: @canal,
+            chat_id: @canal_triggers,
             parse_mode: :html,
             text: texto,
             disable_web_page_preview: true,
@@ -655,12 +655,12 @@ class Dankie
 
         # Mando el trigger al canal de logging
         trigger = Trigger.new(:global, regexp, temp: true)
-        msj_enviado = enviar_trigger(@canal, trigger, id_msj_log)
+        msj_enviado = enviar_trigger(@canal_triggers, trigger, id_msj_log)
         id_enviado = msj_enviado['result']['message_id'].to_i
 
         # Mando el tablero para aceptar o rechazarlo
         opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new inline_keyboard: arr
-        @tg.send_message(chat_id: @canal, parse_mode: :html,
+        @tg.send_message(chat_id: @canal_triggers, parse_mode: :html,
                          text: "¿Aceptar el trigger <code>#{regexp_sanitizada}</code>?",
                          reply_markup: opciones, disable_web_page_preview: true,
                          disable_notification: true,
@@ -691,19 +691,20 @@ class Dankie
             'borrar'
         )
 
-        msj_log = @tg.send_message(chat_id: @canal, parse_mode: :html, text: texto,
+        msj_log = @tg.send_message(chat_id: @canal_triggers, parse_mode: :html,
+                                   text: texto,
                                    disable_web_page_preview: true,
                                    disable_notification: true)
         id_msj_log = msj_log['result']['message_id'].to_i
 
         # Mando el trigger al canal de logging
         trigger = Trigger.new(:global, regexp)
-        msj_enviado = enviar_trigger(@canal, trigger, id_msj_log)
+        msj_enviado = enviar_trigger(@canal_triggers, trigger, id_msj_log)
         id_enviado = msj_enviado['result']['message_id'].to_i
 
         # Mando tablero con opciones para decidir si borrarlo o no
         opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new inline_keyboard: arr
-        @tg.send_message(chat_id: @canal, parse_mode: :html,
+        @tg.send_message(chat_id: @canal_triggers, parse_mode: :html,
                          text: "¿Borrar el trigger <code>#{regexp_sanitizada}</code>?",
                          reply_markup: opciones, disable_web_page_preview: true,
                          reply_to_message_id: id_enviado,
@@ -811,13 +812,22 @@ class Dankie
 
         nombre = obtener_enlace_usuario(id_usuario, chat.id, con_apodo: false)
         nombre ||= 'eliminado'
+        nombre_chat_log = comprobar_tenga_alias_log(chat&.title, chat&.username)
 
         texto = fecha.strftime("<code>[%d/%m/%Y %T]</code>\n")
         texto << "Usuario #{nombre} (#{id_usuario}) en el chat "
-        texto << "#{html_parser(chat&.title || chat&.username)} (#{chat.id}) "
+        texto << "#{html_parser(nombre_chat_log)} (#{chat.id}) "
         texto << "quiere #{acción} el trigger: "
         texto << " <code>#{regexp_sanitizada}</code>\n"
         texto
+    end
+
+    # Comprueba si un usuario tiene alias para el log
+    # Devuelve el nombre del chat, salvo que sea el caso
+    # que no tenga alias y hable al chat privado.
+    def comprobar_tenga_alias_log(titulo, usuario)
+        nombre_chat = (titulo || usuario)
+        nombre_chat.nil? ? 'privado' : nombre_chat
     end
 
     def cambiar_claves_triggers_temporales(vieja_id, nueva_id, tipo_temp)
