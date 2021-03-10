@@ -345,7 +345,7 @@ class Dankie
                           al_canal: true
         rescue StandardError => e
             printf @archivo_logging,
-                   "\nFATAL: Múltiples excepciones\n#{excepción}\n\n#{e}\n\n#{exc1}\n"
+                   "\nFATAL: Múltiples excepciones\n#{e}\n\n#{exc1}\n\n#{excepción}\n"
         end
     end
 
