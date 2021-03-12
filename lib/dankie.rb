@@ -15,6 +15,7 @@ require 'set'
 require 'securerandom'
 require 'ruby_reddit_api'
 require 'cgi'
+require 'json'
 
 class Dankie
     # El único lugar donde se usa el logger por fuera del bot es en handlers, las
@@ -124,7 +125,11 @@ class Dankie
                 # Si la clave no existe, el .to_i convierte el nil en 0
                 offset: @redis.get('datos_bot:id_actualización_inicial').to_i,
                 timeout: 7,
-                url: 'https://api.telegram.org'
+                allowed_updates: %w[message edited_message channel_post
+                                    edited_channel_post inline_query
+                                    chosen_inline_result callback_query shipping_query
+                                    pre_checkout_query poll poll_answer my_chat_member
+                                    chat_member].to_json
             )
 
             next unless actualizaciones
@@ -237,8 +242,9 @@ class Dankie
                 mensaje = act.current_message
 
                 if mensaje.nil?
-                    @logger.fatal "Update vacía (nil):\n\nJSON:\n#{actualización}\n"\
-                                  "Objeto:\n#{act}", al_canal: true
+                    @logger.fatal "Update vacía (nil):\n\nJSON:\n"\
+                                  "#{debug_bonita(actualización)}\n\nObjeto:\n#{act}",
+                                  al_canal: true
                     break
                 end
 
@@ -289,36 +295,45 @@ class Dankie
             Dankie.inlinequery.each do |handler|
                 handler.ejecutar self, msj
             end
+
+        when Telegram::Bot::Types::ChatMemberUpdated
+            @logger.info "Actualización de miembro: #{debug_bonita msj.datos_crudos}"
+
+        # Si se cerró una encuesta, no hago nada más que loggear
+        when Telegram::Bot::Types::Poll
+            @logger.info 'Se acaba de cerrar una '\
+                         "encuesta: #{debug_bonita msj.datos_crudos}"
+
         else
             actualizaciones_poco_usuales msj
         end
     end
 
+    # Estas son las que no nos aparecen pero las pongo igual por si algún día tenemos
+    # handlers activos que las permiten
     def actualizaciones_poco_usuales(msj)
+        json_bonito = debug_bonita msj
+
         case msj
         when Telegram::Bot::Types::ChosenInlineResult
-            @logger.info 'Llegó el resultado elegido inline, '\
-                         "id: #{msj.result_id}", al_canal: true
-
-        # Si se cerró una encuesta, no hago nada más que loggear
-        when Telegram::Bot::Types::Poll
-            @logger.info "Se acaba de cerrar una encuesta con id: #{msj.id}"
+            @logger.info "Llegó el resultado elegido inline:\n\n#{json_bonito}",
+                         al_canal: true
 
         when Telegram::Bot::Types::PollAnswer
-            @logger.info "Recibí una PollAnswer como update: #{msj}",
+            @logger.info "Recibí una PollAnswer como update:\n\n#{json_bonito}",
                          al_canal: true
 
         when Telegram::Bot::Types::ShippingQuery
-            @logger.info "Recibí una ShippingQuery con id: #{msj.id}",
-                         al_canal: true
+            @logger.info "Recibí una ShippingQuery con id: #{msj.id}", al_canal: true
+            @logger.info "Recibí una ShippingQuery:\n\n#{json_bonito}"
 
         when Telegram::Bot::Types::PreCheckoutQuery
-            @logger.info "Recibí una PreCheckoutQuery con id: #{msj.id}",
-                         al_canal: true
+            @logger.info "Recibí una PreCheckoutQuery con id: #{msj.id}", al_canal: true
+            @logger.info "Recibí una PreCheckoutQuery:\n\n#{json_bonito}"
 
         else
-            @logger.error "Update desconocida: #{msj.class}\n"\
-                          "#{msj.inspect}", al_canal: true
+            @logger.error "Update desconocida: #{msj.class}\n\n"\
+                          "JSON:\n\n#{json_bonito}", al_canal: true
         end
     end
 
