@@ -16,6 +16,7 @@ require 'set'
 require 'securerandom'
 require 'ruby_reddit_api'
 require 'cgi'
+require 'json'
 
 class Dankie
     # El único lugar donde se usa el logger por fuera del bot es en handlers, las
@@ -135,7 +136,11 @@ class Dankie
                 # Si la clave no existe, el .to_i convierte el nil en 0
                 offset: @redis.get('datos_bot:id_actualización_inicial').to_i,
                 timeout: 7,
-                url: 'https://api.telegram.org'
+                allowed_updates: %w[message edited_message channel_post
+                                    edited_channel_post inline_query
+                                    chosen_inline_result callback_query shipping_query
+                                    pre_checkout_query poll poll_answer my_chat_member
+                                    chat_member].to_json
             )
 
             next unless actualizaciones
@@ -265,10 +270,25 @@ class Dankie
     def encolar_actualizaciones(actualizaciones)
         actualizaciones['result'].each do |actualización|
             act = Telegram::Bot::Types::Update.new(actualización)
+            @logger.info "Encolando update #{act.update_id}"
             mensaje = act.current_message
 
-            @planificador.encolar(actualización,
-                                  mensaje.respond_to?(:chat) ? mensaje.chat.id : 0)
+            if mensaje.nil?
+                @logger.fatal "Update vacía (nil):\n\nJSON:\n"\
+                                "#{debug_bonita(actualización)}\n\nObjeto:\n#{act}",
+                              al_canal: true
+                next
+            end
+
+            mensaje.datos_crudos = actualización
+
+            # hay que cambiar actualización por mensaje, pero para eso hay que hacer
+            # que el desencolador lo trate como un objeto update, quiero verlo con luke
+            # antes de hacerlo
+            @planificador.encolar(
+                actualización,
+                mensaje.respond_to?(:chat) ? mensaje.chat.id : 0
+            )
         end
 
         próxima_update = actualizaciones['result'].last['update_id'].next
@@ -318,6 +338,23 @@ class Dankie
             datos = _parsear_comando(msj)
             Dankie.comandos[datos[:comando]]&.ejecutar self, msj, datos
 
+        when Telegram::Bot::Types::CallbackQuery
+            clave = msj.data.split(':').first
+            Dankie.callback_queries[clave].ejecutar self, msj
+
+        when Telegram::Bot::Types::InlineQuery
+            Dankie.inline_queries.each do |handler|
+                handler.ejecutar self, msj
+            end
+
+        when Telegram::Bot::Types::ChatMemberUpdated
+            @logger.info "Actualización de miembro: #{debug_bonita msj.datos_crudos}"
+
+        # Si se cerró una encuesta, no hago nada más que loggear
+        when Telegram::Bot::Types::Poll
+            @logger.info 'Se acaba de cerrar una '\
+                         "encuesta: #{debug_bonita msj.datos_crudos}"
+
         else
             actualizaciones_poco_usuales msj
         end
@@ -331,6 +368,7 @@ class Dankie
 
                 handler.ejecutar self, msj
             end
+
         when Telegram::Bot::Types::CallbackQuery
             clave = msj.data.split(':').first
             Dankie.callback_queries[clave].ejecutar self, msj
@@ -342,33 +380,31 @@ class Dankie
         end
     end
 
-    # POR AHORA no se hace nada con esto pero más adelante ver si conviene
-    # hacerlas de sincronía global o local
+    # Estas son las que no nos aparecen pero las pongo igual por si algún día tenemos
+    # handlers activos que las permiten
     def actualizaciones_poco_usuales(msj)
+        json_bonito = debug_bonita msj
+
         case msj
         when Telegram::Bot::Types::ChosenInlineResult
-            @logger.info 'Llegó el resultado elegido inline, '\
-                         "id: #{msj.result_id}", al_canal: true
-
-        # Si se cerró una encuesta, no hago nada más que loggear
-        when Telegram::Bot::Types::Poll
-            @logger.info "Se acaba de cerrar una encuesta con id: #{msj.id}"
+            @logger.info "Llegó el resultado elegido inline:\n\n#{json_bonito}",
+                         al_canal: true
 
         when Telegram::Bot::Types::PollAnswer
-            @logger.info "Recibí una PollAnswer como update: #{msj}",
+            @logger.info "Recibí una PollAnswer como update:\n\n#{json_bonito}",
                          al_canal: true
 
         when Telegram::Bot::Types::ShippingQuery
-            @logger.info "Recibí una ShippingQuery con id: #{msj.id}",
-                         al_canal: true
+            @logger.info "Recibí una ShippingQuery con id: #{msj.id}", al_canal: true
+            @logger.info "Recibí una ShippingQuery:\n\n#{json_bonito}"
 
         when Telegram::Bot::Types::PreCheckoutQuery
-            @logger.info "Recibí una PreCheckoutQuery con id: #{msj.id}",
-                         al_canal: true
+            @logger.info "Recibí una PreCheckoutQuery con id: #{msj.id}", al_canal: true
+            @logger.info "Recibí una PreCheckoutQuery:\n\n#{json_bonito}"
 
         else
-            @logger.error "Update desconocida: #{msj.class}\n"\
-                          "#{msj.inspect}", al_canal: true
+            @logger.error "Update desconocida: #{msj.class}\n\n"\
+                          "JSON:\n\n#{json_bonito}", al_canal: true
         end
     end
 
@@ -387,6 +423,7 @@ class Dankie
         texto, backtrace = @logger.excepcion_texto(excepción)
         @logger.fatal texto, al_canal: true, backtrace: backtrace
     rescue StandardError => e
+        exc1 = e # esto hasta que los de rubocop arreglen su bugazo
         begin
             @logger.fatal "EXCEPCIÓN: #{e}\n\n#{@logger.excepcion_texto(e).last}\n\n"\
                           "LEYENDO LA EXCEPCIÓN: #{excepción}\n\n"\
@@ -394,7 +431,7 @@ class Dankie
                           al_canal: true
         rescue StandardError => e
             printf @archivo_logging,
-                   "\nFATAL: Múltiples excepciones\n#{excepción}\n\n#{e}\n\n#{e}\n"
+                   "\nFATAL: Múltiples excepciones\n#{e}\n\n#{exc1}\n\n#{excepción}\n"
         end
     end
 

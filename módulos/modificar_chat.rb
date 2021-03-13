@@ -335,7 +335,9 @@ class Dankie
             return
         end
 
-        @logger.error excepción.to_s, al_canal: true
+        @logger.error 'Error desconocido al querer fijar un '\
+                      "mensaje en el chat:\n#{excepción}",
+                      al_canal: true
         @tg.send_message(
             chat_id: msj.chat.id,
             text: 'Hubo un error re turbina, probablemente '\
@@ -346,7 +348,8 @@ class Dankie
 
     def manejar_excepciones_quitar(msj, excepción, error_ya_quitado)
         case excepción.message
-        when /not enough rights to (unpin a message|change chat photo)/
+        when /not\ enough\ rights\ to
+             \ (manage\ pinned\ messages\ in\ the\ chat|change\ chat\ photo)/x
             @tg.send_message(
                 chat_id: msj.chat.id,
                 reply_to_message_id: msj.message_id,
@@ -369,7 +372,9 @@ class Dankie
             return
         end
 
-        @logger.error excepción.to_s, al_canal: true
+        @logger.error 'Error desconocido al quitar algo del chat '\
+                      "(la foto, desanclar un msj, etc):\n#{excepción}",
+                      al_canal: true
         @tg.send_message(
             chat_id: msj.chat.id,
             text: 'Hubo un error re turbina, probablemente '\
@@ -396,7 +401,9 @@ class Dankie
             return
         end
 
-        @logger.error excepción.to_s, al_canal: true
+        @logger.error 'Error desconocido al querer cambiar el título o la descripción '\
+                      "de un chat:\n#{excepción}",
+                      al_canal: true
         @tg.send_message(
             chat_id: msj.chat.id,
             text: 'Hubo un error re turbina, probablemente '\
