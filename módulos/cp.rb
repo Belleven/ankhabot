@@ -15,49 +15,71 @@ class Dankie
     )
 
     def añadir_palabras_cp(msj)
-        crear_variables(msj)
+        CP.redis = @redis
 
-        msj.text.split.each do |pal|
-            next if pal.size > 30
+        palabras = msj.text.split.group_by { |pal| pal.chars.first.downcase }
+                      .select { |k, _v| %w[c p].include? k }
 
-            @palabras_c[msj.chat.id] << pal if pal[0].downcase == 'c'
-            @palabras_p[msj.chat.id] << pal if pal[0].downcase == 'p'
-        end
-
-        [@palabras_c[msj.chat.id], @palabras_p[msj.chat.id]].each do |arr|
-            arr.shift while arr.size > 40
-        end
+        CP.cargar_c(msj.chat.id, palabras['c']) if palabras['c']
+        CP.cargar_p(msj.chat.id, palabras['p']) if palabras['p']
     end
 
     def cp(msj)
-        if @palabras_c[msj.chat.id].empty? || @palabras_p[msj.chat.id].empty?
+        par_cp = CP.par_cp(msj.chat.id)
+
+        if par_cp.size != 2
             @tg.send_message(chat_id: msj.chat.id,
                              text: 'Hacen falta más mensajes')
             return
         end
 
-        cp = [@palabras_c[msj.chat.id].sample, @palabras_p[msj.chat.id].sample]
-        texto = cp.join ' '
+        texto = par_cp.join ' '
 
         @tg.send_message(chat_id: msj.chat.id, text: texto)
     end
 
     def cp_supergrupo(msj)
-        crear_variables(msj)
+        cambiar_claves_supergrupo(msj.migrate_from_chat_id,
+                                  msj.chat.id,
+                                  'cp:c:')
 
-        @palabras_c[msj.chat.id] = @palabras_c[msj.migrate_from_chat_id]
-        @palabras_c.delete(msj.migrate_from_chat_id)
-
-        @palabras_p[msj.chat.id] = @palabras_p[msj.migrate_from_chat_id]
-        @palabras_p.delete(msj.migrate_from_chat_id)
+        cambiar_claves_supergrupo(msj.migrate_from_chat_id,
+                                  msj.chat.id,
+                                  'cp:p:')
     end
+end
 
-    private
+class CP
+    class << self
+        attr_writer :redis
 
-    def crear_variables(msj)
-        @palabras_c ||= {}
-        @palabras_c[msj.chat.id] ||= []
-        @palabras_p ||= {}
-        @palabras_p[msj.chat.id] ||= []
+        def redis
+            return @redis if @redis
+
+            Redis.new
+        end
+
+        def par_cp(grupo)
+            palabras = %w[c p].map do |inicial|
+                @redis.lrange("cp:#{inicial}:#{grupo}", 0, -1).sample
+            end
+
+            palabras.compact
+        end
+
+        def cargar_c(grupo, palabras)
+            cargar_palabra(grupo, 'c', palabras)
+        end
+
+        def cargar_p(grupo, palabras)
+            cargar_palabra(grupo, 'p', palabras)
+        end
+
+        private
+
+        def cargar_palabra(grupo, inicial, palabras)
+            @redis.lpush("cp:#{inicial}:#{grupo}", palabras)
+            @redis.ltrim("cp:#{inicial}:#{grupo}", 0, 49)
+        end
     end
 end
