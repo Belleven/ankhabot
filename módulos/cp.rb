@@ -17,8 +17,7 @@ class Dankie
     def añadir_palabras_cp(msj)
         CP.redis = @redis
 
-        palabras = msj.text.split.group_by { |pal| pal.chars.first.downcase }
-                      .select { |k, _v| %w[c p].include? k }
+        palabras = msj.text.split.group_by { |pal| pal[0].downcase }
 
         CP.cargar_c(msj.chat.id, palabras['c']) if palabras['c']
         CP.cargar_p(msj.chat.id, palabras['p']) if palabras['p']
