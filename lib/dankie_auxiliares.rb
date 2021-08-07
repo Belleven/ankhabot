@@ -54,7 +54,7 @@ class Dankie
         mención = "ay no c (#{id_usuario})"
         if exc.to_s =~ /user not found|wrong user_id specified/
             @logger.error('Traté de obtener el nombre de una cuenta '\
-                        "eliminada: #{id_usuario}")
+                          "eliminada: #{id_usuario}")
             return nil
         else
             @logger.error exc

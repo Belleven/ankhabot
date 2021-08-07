@@ -2,7 +2,7 @@ require 'tmpdir'
 require 'gruff'
 
 class Dankie
-    add_handler Handler::Mensaje.new(:estadísticas_básicas)
+    add_handler Handler::Mensaje.new(:estadísticas_básicas, sincronía: :global)
 
     # add_handler Handler::Comando.new(
     #       :estadísticas, :enviar_estadísticas_grupo,

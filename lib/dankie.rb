@@ -9,6 +9,7 @@ require_relative 'configuración'
 require_relative 'estadísticas'
 require_relative 'excepciones'
 require_relative 'dankie_auxiliares'
+require_relative 'paralelismo'
 require 'redis'
 require 'tzinfo'
 require 'set'
@@ -39,10 +40,13 @@ class Dankie
     ).freeze
 
     class << self
-        attr_reader :comandos, :inlinequery, :callback_queries, :handlers_generales
+        attr_reader :comandos, :inline_queries, :callback_queries,
+                    :handlers_generales, :handlers_sincrónicos
     end
 
     def self.add_handler(handler)
+        añadir_handler_global(handler)
+
         case handler
 
         when Handler::Comando
@@ -58,16 +62,30 @@ class Dankie
             @callback_queries[handler.clave] = handler
 
         when Handler::InlineQuery
-            @inlinequery ||= []
-            @inlinequery << handler
+            @inline_queries ||= []
+            @inline_queries << handler
 
         else
             printf @archivo_logging, "\nHandler inválido: #{handler}\n"
         end
     end
 
+    def self.añadir_handler_global(handler)
+        if [Handler::Comando,
+            Handler::Mensaje,
+            Handler::EventoDeChat].include?(handler.class) &&
+           handler.sincronía == :global
+
+            @handlers_sincrónicos ||= []
+            @handlers_sincrónicos << handler
+            nil
+        end
+    end
+
+    private_class_method :añadir_handler_global
+
     # Recibe un Hash con los datos de config.yml
-    def initialize(args)
+    def initialize(args, proceso_hijo: false)
         @canal = args[:canal_logging]
         @canal_triggers = args[:canal_triggers]
         @archivo_logging = args[:archivo_logging] || $stderr
@@ -77,25 +95,18 @@ class Dankie
         @tg = TelegramAPI.new args[:tg_token], @logger
         @logger.inicializar_cliente @tg.client
 
-        # Creo dos instancias de Redis, una base de datos general y una de estadísticas
-        @redis = Redis.new(
-            port: args[:redis_port],
-            host: args[:redis_host],
-            password: args[:redis_pass],
-            db: 0
-        )
-        Estadísticas::Base.redis = Redis.new(
-            port: args[:redis_port],
-            host: args[:redis_host],
-            password: args[:redis_pass],
-            db: 1
-        )
+        # Creo tres instancias de Redis, una base de datos general,
+        # una para las colas de mensajes y una de estadísticas
+        inicializar_redis args
 
         @user = Telegram::Bot::Types::User.new @tg.get_me['result']
 
         inicializar_apis_externas args
 
         Telegram::Bot::Types::Base.attr_accessor :datos_crudos
+
+        @planificador = Planificador.new(args) unless proceso_hijo
+
         return unless /\A--(no|s(in|altear))-updates\z/i.match? ARGV.first
 
         @redis.set('datos_bot:id_actualización_inicial', -1)
@@ -137,7 +148,7 @@ class Dankie
             # El tan odiadio GIL de ruby nos asegura que no va a haber condiciones
             # de carrera entre estas tres líneas y el código dentro del Signal.trap
             procesando = true
-            procesar_actualizaciones(actualizaciones)
+            encolar_actualizaciones(actualizaciones)
             procesando = false
 
             return apagar_bot if apagar_programa
@@ -233,48 +244,88 @@ class Dankie
         @reddit_api = Reddit::Api.new
     end
 
-    # En un futuro este método puede lanar una corrutina por update
-    def procesar_actualizaciones(actualizaciones)
+    def inicializar_redis(args)
+        # Creo dos instancias de Redis, una base de datos general y una de estadísticas
+        @redis = Redis.new(
+            port: args[:redis_port],
+            host: args[:redis_host],
+            password: args[:redis_pass],
+            db: 0
+        )
+        Estadísticas::Base.redis = Redis.new(
+            port: args[:redis_port],
+            host: args[:redis_host],
+            password: args[:redis_pass],
+            db: 1
+        )
+        #        Colita.redis = Redis.new(
+        #            port: args[:redis_port],
+        #            host: args[:redis_host],
+        #            password: args[:redis_pass],
+        #            db: 2
+        #        )
+        Planificador.redis = Procesador.redis = Colita.redis = @redis
+    end
+
+    def encolar_actualizaciones(actualizaciones)
         actualizaciones['result'].each do |actualización|
-            Estadísticas::Temporizador.time('tiempo_loop', intervalo: 600) do
-                act = Telegram::Bot::Types::Update.new(actualización)
-                @logger.info "Procesando update #{act.update_id}"
-                mensaje = act.current_message
+            act = Telegram::Bot::Types::Update.new(actualización)
+            @logger.info "Encolando update #{act.update_id}"
+            mensaje = act.current_message
 
-                if mensaje.nil?
-                    @logger.fatal "Update vacía (nil):\n\nJSON:\n"\
-                                  "#{debug_bonita(actualización)}\n\nObjeto:\n#{act}",
-                                  al_canal: true
-                    break
-                end
-
-                mensaje.datos_crudos = actualización
-                loop_principal(mensaje)
+            if mensaje.nil?
+                @logger.fatal "Update vacía (nil):\n\nJSON:\n"\
+                              "#{debug_bonita(actualización)}\n\nObjeto:\n#{act}",
+                              al_canal: true
+                next
             end
+
+            mensaje.datos_crudos = actualización
+
+            # hay que cambiar actualización por mensaje, pero para eso hay que hacer
+            # que el desencolador lo trate como un objeto update, quiero verlo con luke
+            # antes de hacerlo
+            @planificador.encolar(
+                actualización,
+                mensaje.respond_to?(:chat) ? mensaje.chat.id : 0
+            )
         end
 
         próxima_update = actualizaciones['result'].last['update_id'].next
         @redis.set 'datos_bot:id_actualización_inicial', próxima_update
     end
 
-    # En el futuro concurrente de la dankie, acá vamos a estar en paralelo
-    # analizando una update, además se puede agregar otro hilo o algo así que
-    # las analice de forma sincrónica
-    def loop_principal(msj)
-        return if actualización_de_usuario_bloqueado? msj
+    def procesar_actualización(actualización, sincronía: :local)
+        Estadísticas::Temporizador.time('tiempo_loop', intervalo: 600) do
+            act = Telegram::Bot::Types::Update.new(actualización)
+            @logger.info "Procesando update #{act.update_id}"
 
-        despachar msj
-    # Acá está bueno handlear excepciones de updates porque si rompe más arriba
-    # se puede romper el bucle donde se analizan las otras updates y como pueden
-    # venir de hasta 100 no queremos que pase eso
-    rescue StandardError => e
-        manejar_excepción_asesina(e, msj, msj.datos_crudos)
+            mensaje = act.current_message
+            return if mensaje.nil?
+
+            mensaje.datos_crudos = actualización
+            return if actualización_de_usuario_bloqueado? mensaje
+
+            despachar mensaje, sincronía: sincronía
+        rescue TelegramAPI::BotExpulsada, TelegramAPI::DemasiadasSolicitudes
+            raise
+        # Acá está bueno handlear excepciones de updates porque si rompe más arriba
+        # se puede romper el bucle donde se analizan las otras updates y como pueden
+        # venir de hasta 100 no queremos que pase eso
+        rescue StandardError => e
+            manejar_excepción_asesina(e, mensaje, mensaje.datos_crudos)
+        end
     end
 
-    # Creo que esto es un dispatch si entendí bien
-    def despachar(msj)
-        case msj
+    public :procesar_actualización
 
+    # Creo que esto es un dispatch si entendí bien
+    def despachar(msj, sincronía: :local)
+        sincronía == :local ? despache_local(msj) : despache_global(msj)
+    end
+
+    def despache_local(msj)
+        case msj
         when Telegram::Bot::Types::Message
             # Handlers generales, no los de comandos, si no
             # los de mensajes/eventos de chat
@@ -292,7 +343,7 @@ class Dankie
             Dankie.callback_queries[clave].ejecutar self, msj
 
         when Telegram::Bot::Types::InlineQuery
-            Dankie.inlinequery.each do |handler|
+            Dankie.inline_queries.each do |handler|
                 handler.ejecutar self, msj
             end
 
@@ -306,6 +357,26 @@ class Dankie
 
         else
             actualizaciones_poco_usuales msj
+        end
+    end
+
+    def despache_global(msj)
+        case msj
+        when Telegram::Bot::Types::Message
+            Dankie.handlers_sincrónicos.each do |handler|
+                next unless handler.verificar(self, msj)
+
+                handler.ejecutar self, msj
+            end
+
+        when Telegram::Bot::Types::CallbackQuery
+            clave = msj.data.split(':').first
+            Dankie.callback_queries[clave].ejecutar self, msj
+
+        when Telegram::Bot::Types::InlineQuery
+            Dankie.inline_queries.each do |handler|
+                handler.ejecutar self, msj
+            end
         end
     end
 
@@ -368,6 +439,12 @@ class Dankie
     # si hay que hacer más cosas se puede agregar acá
     def apagar_bot
         printf @archivo_logging, "\nApagando bot...\n"
+
+        if @planificador
+            @planificador.procesos.each { |p| Process.kill('INT', p.pid) }
+            Process.kill('INT', @planificador.proceso_sincrónico_global.pid)
+        end
+
         exit
     end
 

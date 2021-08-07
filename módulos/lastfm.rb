@@ -62,7 +62,7 @@ class Dankie
         if @redis.del("lastfm:#{msj.from.id}").zero?
             @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
                              text: 'No pude borrar nada. Capaz no '\
-                             'tenías tu cuenta puesta.')
+                                   'tenías tu cuenta puesta.')
         else
             @tg.send_message(chat_id: msj.chat.id, reply_to_message_id: msj.message_id,
                              text: "Ya borré tu cuenta, #{TROESMAS.sample}.")

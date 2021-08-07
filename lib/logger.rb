@@ -181,7 +181,7 @@ class DankieLogger
         mensaje = if backtrace.nil? || backtrace.empty?
                   then "\nMientras se loggeaba surgió una excepción:\n"
                   else "#{backtrace}\n\n\nMientras se manejaba una excepción"\
-                       " surgió otra:\n"
+                      " surgió otra:\n"
                   end
 
         lineas = "#{'-' * 30}\n"

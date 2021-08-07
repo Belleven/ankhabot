@@ -188,13 +188,13 @@ class Dankie
             @tg.send_message(chat_id: id_chat,
                              reply_to_message_id: msj.message_id,
                              text: 'Para qué querés bloquear a un '\
-                                'botazo???? Si ni los puedo leer')
+                                   'botazo???? Si ni los puedo leer')
             return true
         elsif msj.reply_to_message.from.first_name.empty?
             @tg.send_message(chat_id: id_chat,
                              reply_to_message_id: msj.message_id,
                              text: 'Para qué querés bloquear a una '\
-                                'cuenta eliminada? Si ya no jode')
+                                   'cuenta eliminada? Si ya no jode')
             return true
         end
         false

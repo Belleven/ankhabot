@@ -215,7 +215,7 @@ class Dankie
                 chat_id: msj.chat.id,
                 reply_to_message_id: msj.message_id,
                 text: 'Si no me pasás un subreddit, '\
-                                    "está jodida la cosa #{TROESMAS.sample}."
+                      "está jodida la cosa #{TROESMAS.sample}."
             )
         end
         hay
@@ -227,7 +227,7 @@ class Dankie
                 chat_id: msj.chat.id,
                 reply_to_message_id: msj.message_id,
                 text: 'Ese título de subreddit es '\
-                                   "inválido, #{TROESMAS.sample}."
+                      "inválido, #{TROESMAS.sample}."
             )
         end
         inválido

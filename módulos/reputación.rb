@@ -144,7 +144,7 @@ class Dankie
             Telegram::Bot::Types::InlineKeyboardButton.new(
                 text: 'Cancelar',
                 callback_data: "rep_crear_disparador:#{msj.from.id}:"\
-                                'cambio_rep:cancelar:'
+                               'cambio_rep:cancelar:'
             )
         ]
 
@@ -442,7 +442,7 @@ class Dankie
         cambiado = delta_rep.positive? ? 'incrementado' : 'reducido'
 
         "El usuario #{usuario1} #{rep1} ha #{cambiado} la "\
-        "reputación de #{usuario2} #{rep2} #{diferencia}"
+            "reputación de #{usuario2} #{rep2} #{diferencia}"
     end
 
     def armar_arreglo_rep(reputaciones)
@@ -497,7 +497,7 @@ class Dankie
         tablero << Telegram::Bot::Types::InlineKeyboardButton.new(
             text: 'Cancelar',
             callback_data: "rep_crear_disparador:#{id_usuario}:"\
-                            'tipo_rep:cancelar:'
+                           'tipo_rep:cancelar:'
         )
 
         opciones = Telegram::Bot::Types::InlineKeyboardMarkup.new(

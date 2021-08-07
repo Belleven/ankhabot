@@ -120,7 +120,7 @@ class ManejoExcepciones
             @logger.error("No puedo mandar mensajes #{chat}.")
         when /CHAT_SEND_STICKERS_FORBIDDEN/
             @logger.error("Quise mandar un sticker #{chat}, pero parece "\
-                'que esta prohibido.')
+                          'que esta prohibido.')
         else
             manejado = false
         end
@@ -132,25 +132,28 @@ class ManejoExcepciones
 
         case mensaje_error
         when /bot is not a member of the (super)?group chat/
-            @logger.error("Error en #{chat}. Me fui y no puedo mandar mensajes."\
-                          "\n#{mensaje_error}")
+            @logger.info("Ya no estoy en #{chat} >_< no puedo mandar mensajes."\
+                         "\n#{mensaje_error}")
+            raise TelegramAPI::BotExpulsada, chat
         when /bot is not a member of the channel chat/
-            @logger.error("Error en #{chat}. Me fui o me sacaron los permisos de "\
-                          "mandar mensaje en el canal.\n#{mensaje_error}")
+            @logger.info("Error en #{chat}. Me fui o me sacaron los permisos de "\
+                         "mandar mensaje en el canal.\n#{mensaje_error}")
+            raise TelegramAPI::BotExpulsada, chat
         when /bot was kicked from the ((super)?group|channel) chat/
-            @logger.error("Error en #{chat}. Me echaron y no puedo "\
-                          "mandar mensajes.\n#{mensaje_error}")
+            @logger.info("Me expulsaron de #{chat} u.u no puedo "\
+                         "escribir. >_<\n#{mensaje_error}")
+            raise TelegramAPI::BotExpulsada, chat
         when /bot can't send messages to bots/
-            @logger.error("Error en #{chat}. No puedo hablar con otros "\
-                          "bots.\n#{mensaje_error}")
+            @logger.info("Error en #{chat}. No puedo hablar con otros "\
+                         "bots.\n#{mensaje_error}")
             manejado = false
         when /user is deactivated/
-            @logger.error("Error en #{chat}. No puedo hablar por privado con cuentas "\
-                          "eliminadas.\n#{mensaje_error}")
+            @logger.info("Error en #{chat}. No puedo hablar por privado con cuentas "\
+                         "eliminadas.\n#{mensaje_error}")
         when /bot was blocked by the user/
-            @logger.error("Error en #{chat}. Ese usuario me bloqueó.")
+            @logger.info("Error en #{chat}. Ese usuario me bloqueó.")
         when /CHAT_WRITE_FORBIDDEN/ # esta aparece tambien con código de error 400
-            @logger.error("No puedo mandar mensajes #{chat}.")
+            @logger.info("No puedo mandar mensajes en #{chat}.")
         else
             manejado = false
         end
@@ -181,8 +184,9 @@ class ManejoExcepciones
         case mensaje_error
         when /Too Many Requests: retry after/
             segundos = mensaje_error.split('{"retry_after"=>').last.split('}').first
-            @logger.error("Por #{segundos} segundos no puedo mandar mensajes "\
-                          "#{chat}\n#{mensaje_error}")
+            @logger.info("Por #{segundos} segundos no puedo mandar mensajes "\
+                         "#{chat}\n#{mensaje_error}")
+            raise TelegramAPI::DemasiadasSolicitudes, segundos
         else
             manejado = false
         end

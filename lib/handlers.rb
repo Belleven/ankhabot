@@ -4,6 +4,8 @@ module Handler
                        sticker video voice video_note contact
                        location venue poll reply_markup].freeze
 
+        attr_reader :sincronía
+
         def initialize(callback, args = {})
             @callback = callback
             @permitir_editados = args[:permitir_editados] || false
@@ -11,6 +13,7 @@ module Handler
                                 %w[private group supergroup] # channel es otra opción
             @ignorar_comandos = args[:ignorar_comandos] || false
             @tipos = args[:tipos] || MSJ_TYPES
+            @sincronía = args[:sincronía] || :local # Puede ser :global o :local
         end
 
         def verificar(bot, msj)
@@ -39,7 +42,7 @@ module Handler
     end
 
     class Comando
-        attr_reader :cmd, :descripción
+        attr_reader :cmd, :descripción, :sincronía
 
         def initialize(cmd, callback, args = {})
             @cmd = cmd
@@ -50,6 +53,7 @@ module Handler
             # 'channel' es otra opción
             @chats_permitidos = args[:chats_permitidos]&.map(&:to_s) ||
                                 %w[private group supergroup]
+            @sincronía = args[:sincronía] || :local # Puede ser :global o :local
         end
 
         def ejecutar(bot, msj, datos_msj)
@@ -105,6 +109,8 @@ module Handler
                        migrate_from_chat_id pinned_message invoice
                        successful_payment connected_website passport_data].freeze
 
+        attr_reader :sincronía
+
         def initialize(callback, args = {})
             @tipos = args[:tipos] || MSJ_TYPES
 
@@ -117,6 +123,7 @@ module Handler
             @chats_permitidos = args[:chats_permitidos]&.map(&:to_s) ||
                                 %w[private group supergroup] # 'channel' es otra opción
             @callback = callback
+            @sincronía = args[:sincronía] || :local # Puede ser :global o :local
         end
 
         def verificar(_bot, msj)

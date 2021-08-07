@@ -75,8 +75,8 @@ class Dankie
             bajivotos = "\u{1F53D}" << resultados.downvotes.to_s
 
             "<i><b>#{palabra}</b></i>\n\n#{definición}\n\n<i>"\
-            "#{ejemplo}</i>\n\n#{arrivotos}|" \
-            "#{bajivotos}|<a href=\"#{dirección}\">link</a>"
+                "#{ejemplo}</i>\n\n#{arrivotos}|" \
+                "#{bajivotos}|<a href=\"#{dirección}\">link</a>"
         end
     end
 end

@@ -5,8 +5,9 @@ class Dankie
                                      :xkcd,
                                      permitir_params: true,
                                      descripción: 'Devuelvo un cómic aleatorio de '\
-                                     'XKCD, si me pasás un id válido de algún cómic'\
-                                     ' devuelvo ese cómic en particular.')
+                                                  'XKCD, si me pasás un id válido de '\
+                                                  'algún cómic devuelvo ese cómic '\
+                                                  'en particular.')
     def xkcd(msj, entrada)
         # Compruebo si es una entrada vacía.
         if entrada.nil?

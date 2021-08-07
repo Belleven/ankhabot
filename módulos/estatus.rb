@@ -2,11 +2,11 @@ class Dankie
     add_handler Handler::Comando.new(:estatus, :estatus,
                                      chats_permitidos: %i[group supergroup],
                                      descripción: 'Devuelvo el estatus de un '\
-                                                   'miembro del grupo')
+                                                  'miembro del grupo')
     add_handler Handler::Comando.new(:permisos, :permisos,
                                      chats_permitidos: %i[group supergroup],
                                      descripción: 'Devuelvo los permisos de los '\
-                                                   'miembros comunes del grupete')
+                                                  'miembros comunes del grupete')
 
     def estatus(msj)
         return unless (miembro = miembro_válido(msj))
@@ -67,8 +67,8 @@ class Dankie
         if id_usuario.nil?
             @tg.send_message(chat_id: msj.chat.id,
                              text: 'Tenés que responder un mensaje o pasarme '\
-                                    'un usuario válido de este grupo para que '\
-                                    "pueda revisar su estatus, #{TROESMAS.sample}",
+                                   'un usuario válido de este grupo para que '\
+                                   "pueda revisar su estatus, #{TROESMAS.sample}",
                              reply_to_message_id: msj.message_id)
             return nil
         end
@@ -80,7 +80,7 @@ class Dankie
 
             @tg.send_message(chat_id: msj.chat.id,
                              text: 'No reconozco ese alias, lo más probable es que '\
-                                      'haya sido cambiado recientemente',
+                                   'haya sido cambiado recientemente',
                              reply_to_message_id: msj.message_id)
             return nil
         end
