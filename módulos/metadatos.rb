@@ -33,7 +33,7 @@ class Dankie
                 @tg.send_message(chat_id: msj.chat.id,
                                  reply_to_message_id: msj.message_id,
                                  text: 'Tenés que ser desarrollador '\
-                                          "para eso #{TROESMAS.sample}")
+                                       "para eso #{TROESMAS.sample}")
                 return
             end
 
@@ -251,13 +251,13 @@ class Dankie
         # Si tengo el id original del mensaje
         if msj.forward_from_message_id
             texto << "#{tab} ID mensaje original: <code>"\
-                        "#{msj.forward_from_message_id}</code>"
+                     "#{msj.forward_from_message_id}</code>"
         end
 
         # Si tengo la firma del mensaje
         if msj.forward_signature
             texto << "#{tab} Firma: <code>"\
-                        "#{html_parser(msj.forward_signature)}</code>"
+                     "#{html_parser(msj.forward_signature)}</code>"
         end
 
         # Agrego información del Canal original
@@ -767,7 +767,7 @@ class Dankie
         texto << "#{tab} Título: <code>#{html_parser(factura.title)}</code>"\
                  "#{tab} Descripción: <code>#{html_parser(factura.description)}</code>"\
                  "#{tab} Parámetro de Inicio: "\
-                        "<code>#{html_parser(factura.start_parameter)}</code>"\
+                 "<code>#{html_parser(factura.start_parameter)}</code>"\
                  "#{tab} Código de Divisa: <code>#{factura.currency}</code>"
 
         total = factura.currency.to_s
@@ -842,9 +842,9 @@ class Dankie
                  "#{tab3} Estado: <code>#{html_parser(dir_envío.state)}</code>"\
                  "#{tab3} Ciudad: <code>#{html_parser(dir_envío.city)}</code>"\
                  "#{tab3} Parte 1 dirección: "\
-                         "<code>#{html_parser(dir_envío.street_line1)}</code>"\
+                 "<code>#{html_parser(dir_envío.street_line1)}</code>"\
                  "#{tab3} Parte 2 dirección: "\
-                         "<code>#{html_parser(dir_envío.street_line2)}</code>"\
+                 "<code>#{html_parser(dir_envío.street_line2)}</code>"\
                  "#{tab3} Código Postal: <code>#{dir_envío.post_code}</code>"
     end
 
@@ -1099,7 +1099,7 @@ class Dankie
         texto << "#{tab} ID archivo: <code>#{archivo.file_id}</code>"\
                  "#{tab} Id único: <code>#{archivo.file_unique_id}</code>"
         "#{tab} Tamaño: <code>#{tamaño}</code>"\
-        "#{tab} Fecha subida: <code>#{fecha.strftime('%d/%m/%Y %T %Z')}</code>"
+            "#{tab} Fecha subida: <code>#{fecha.strftime('%d/%m/%Y %T %Z')}</code>"
     end
 
     def agregar_botón(texto, botón, nivel)

@@ -144,7 +144,7 @@ class Dankie
                         'aceptado'
                     else
                         'rechazado, podés ponerlo como un '\
-                        'trigger local con /settrigger trigger.'
+                            'trigger local con /settrigger trigger.'
                     end
 
         temp = resultado_callback[:temp]
@@ -395,7 +395,7 @@ class Dankie
         if (grupo = Trigger.grupo_trigger(msj.chat.id, regexp)).nil?
             @tg.send_message(chat_id: msj.chat.id,
                              text: "No encontré el trigger, #{TROESMAS.sample}.\n"\
-                                  "fijate en /triggers@#{@user.username}.",
+                                   "fijate en /triggers@#{@user.username}.",
                              reply_to_message_id: msj.message_id)
         elsif grupo == :global
             if Trigger.temporal_deltrigger(regexp)
@@ -516,14 +516,14 @@ class Dankie
         creador = obtener_enlace_usuario(trigger.creador, msj.chat.id)
         # Relleno el texto a enviar
         "<b>Info del trigger:</b>\nRegexp: "\
-        "<code>#{html_parser Trigger.regexp_a_str(trigger.regexp)}</code>"\
-        "\nMedia: #{campo.keys.first}"\
-        "\n#{campo.keys.first.to_s == 'text' ? 'Valor' : 'Id'}: "\
-        "<code>#{html_parser valor_trigger(campo)}</code>"\
-        "#{caption}\nTipo: #{id_grupo == :global ? 'global' : 'de grupo'}"\
-        "\nCreador: #{creador || 'eliminado'}"\
-        "\nTotal de usos: #{trigger.contador}"\
-        "\nAñadido: <i>#{trigger.fecha.strftime('%d/%m/%Y %T')}</i>"
+            "<code>#{html_parser Trigger.regexp_a_str(trigger.regexp)}</code>"\
+            "\nMedia: #{campo.keys.first}"\
+            "\n#{campo.keys.first.to_s == 'text' ? 'Valor' : 'Id'}: "\
+            "<code>#{html_parser valor_trigger(campo)}</code>"\
+            "#{caption}\nTipo: #{id_grupo == :global ? 'global' : 'de grupo'}"\
+            "\nCreador: #{creador || 'eliminado'}"\
+            "\nTotal de usos: #{trigger.contador}"\
+            "\nAñadido: <i>#{trigger.fecha.strftime('%d/%m/%Y %T')}</i>"
     end
 
     def valor_trigger(campo)

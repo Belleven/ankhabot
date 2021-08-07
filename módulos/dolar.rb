@@ -211,8 +211,8 @@ class Dolar
         array_textos << @fecha_valores_en_página
 
         "Valor en pesos argentinos para #{cant_dólares_sustantivo(factor)} "\
-        '(y de otras monedas también, en distintas cotizaciones, '\
-        "según información de #{URL_PRINCIPAL})\n\n#{array_textos.join("\n\n")}"
+            '(y de otras monedas también, en distintas cotizaciones, '\
+            "según información de #{URL_PRINCIPAL})\n\n#{array_textos.join("\n\n")}"
     end
 
     def añadir_valor_dólar_a_texto!(texto, valores, cambio, factor)

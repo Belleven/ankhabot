@@ -76,8 +76,8 @@ class Dankie
                 reply_to_message_id: msj.message_id,
                 parse_mode: :html,
                 text: "Pasame una operación legal, #{TROESMAS.sample}.\n"\
-                "Es /calcular <i>operación</i>\n"\
-                'Sin letras o símbolos raros.'
+                      "Es /calcular <i>operación</i>\n"\
+                      'Sin letras o símbolos raros.'
             )
             return true
         end
@@ -88,7 +88,7 @@ class Dankie
                 chat_id: msj.chat.id,
                 reply_to_message_id: msj.message_id,
                 text: 'No se puede sacar el factorial '\
-                        "de un número negativo, #{TROESMAS.sample}"
+                      "de un número negativo, #{TROESMAS.sample}"
             )
             return true
         end

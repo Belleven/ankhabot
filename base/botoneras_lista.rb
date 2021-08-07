@@ -291,7 +291,7 @@ class Dankie
                                           reply_markup: opciones, callback: callback)
             @tg.answer_callback_query(callback_query_id: callback.id,
                                       text: 'Botonera ahora solo es presionable '\
-                                      'por el que la pidió.')
+                                            'por el que la pidió.')
             @redis.hset("botonera:#{id_chat}:#{id_mensaje}:metadatos",
                         'editable_por', 'dueño')
         end

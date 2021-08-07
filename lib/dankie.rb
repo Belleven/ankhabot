@@ -275,7 +275,7 @@ class Dankie
 
             if mensaje.nil?
                 @logger.fatal "Update vacía (nil):\n\nJSON:\n"\
-                                "#{debug_bonita(actualización)}\n\nObjeto:\n#{act}",
+                              "#{debug_bonita(actualización)}\n\nObjeto:\n#{act}",
                               al_canal: true
                 next
             end

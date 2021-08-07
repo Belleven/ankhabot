@@ -341,7 +341,7 @@ class Dankie
         @tg.send_message(
             chat_id: msj.chat.id,
             text: 'Hubo un error re turbina, probablemente '\
-                    'no pude terminar de ejecutar el comando.',
+                  'no pude terminar de ejecutar el comando.',
             reply_to_message_id: msj.message_id
         )
     end
@@ -378,7 +378,7 @@ class Dankie
         @tg.send_message(
             chat_id: msj.chat.id,
             text: 'Hubo un error re turbina, probablemente '\
-                    'no pude terminar de ejecutar el comando.',
+                  'no pude terminar de ejecutar el comando.',
             reply_to_message_id: msj.message_id
         )
     end
@@ -407,7 +407,7 @@ class Dankie
         @tg.send_message(
             chat_id: msj.chat.id,
             text: 'Hubo un error re turbina, probablemente '\
-                    'no pude terminar de ejecutar el comando.',
+                  'no pude terminar de ejecutar el comando.',
             reply_to_message_id: msj.message_id
         )
     end
