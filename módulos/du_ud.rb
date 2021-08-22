@@ -1,5 +1,5 @@
 require 'json'
-require 'httpclient'
+require 'httparty'
 
 class Dankie
     add_handler Handler::Comando.new(
@@ -88,7 +88,7 @@ class DiccionarioUrbano
 
     def búsqueda(palabra)
         params = { term: palabra }
-        respuesta = JSON.parse(HTTPClient.new.get(URI.parse(URL), params).body)
+        respuesta = JSON.parse(HTTParty.get("#{URL}?term=#{palabra}").body)
         procesar_respuesta(respuesta)
     end
 
