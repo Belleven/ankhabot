@@ -1,10 +1,10 @@
 ---
-tg_token: 'token'
+tg_token: '5093228548:AAGX3W9yT3XtoQ6CxhfXQ0MnRoSsQUjZe-M'
 redis_host: 'localhost'
 redis_port: '42069'
-redis_pass: 'pass'
-timezone: 'America/Argentina/Buenos_Aires'
-google_image_key: 
+redis_pass: 
+timezone: 'America/Venezuela/Caracas'
+google_image_key: 'AIzaSyDmgczeOA1dfCFDumXmFWn8mrMVUPbHgLI'
 google_image_cx: 
 google_image_gl:
 last_fm_api: 
